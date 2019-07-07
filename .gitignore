@@ -1,3 +1,6 @@
 # secrets [tagSecret and authSecret]
 .env
 
+# img directories
+
+/public/imgs
