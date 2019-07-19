@@ -1,15 +1,27 @@
 const fs = require('fs')
 const sharp = require('sharp')
 
-exports.compressImage = (file, size, currentDirectory) => {
+/* Responsável pelo gerenciamento de arquivos da aplicação */
 
+/**
+ *  1 - sharp é utilizado para a compressão de imagens
+ *  
+ * 
+ */
+
+exports.compressImage = (file, size, currentDirectory) => {
+    /* Responsável por comprimir as imagens enviadas para .webp */
+
+    /* Define a qualidade da imagem resultante comprimida pelo sharp */
+    const quality = 80
 
     const path = `${file.path}.webp`
+
     return sharp(file.path)
         .resize(size)
         .toFormat('webp')
         .webp({
-            quality: 80
+            quality
         })
         .toBuffer()
         .then( async data => {
@@ -46,30 +58,29 @@ exports.compressImage = (file, size, currentDirectory) => {
         })
 }
 
-exports.readImage = async (file) => {
-
-        await fs.access(file, error => {
-            if(error) return false
-        })
-
-        return file
-}
-
 exports.removeImage = async (path) => {
+    /* Responsável por remover a imagem do disco */
+
     try {
+        /* Verifica se a imagem existe */
         await fs.access(path, async (error) => {
             if(!error){
-                //Encontrou o arquivo
+                //Caso exista, irá remover o arquivo
                 await fs.unlink(path, (err) => {
-                    //Não conseguiu remover o arquivo
                     if(err) throw false
                 })
             }else{
-                //Não encontrou o arquivo
+                /*  Caso entre no else, significa que não foi
+                    possível encontrar a imagem
+                */
+
                 throw false
             }
         })
 
+        /*  Chegando neste ponto significa que a imagem foi
+            encontrada e removida com êxito
+        */
         return true
     } catch (error) {
         return error

@@ -1,24 +1,53 @@
+/*  
+    Aqui existem funções para validação de dados
+*/
+
 module.exports = app => {
+
     function exists(valor, msg){
+        /*  Verifica existencia de dados para
+            arrays, strings e valores numéricos
+            Caso não exista é lançado uma excessão com a 
+            mensagem de erro definida na função 
+        */
+
         if(!valor) throw msg
         if(Array.isArray(valor) && valor.length === 0) throw msg
         if(typeof valor === 'string' && !valor.trim()) throw msg
     }
     
+
     function notExists(valor, msg){
+        /*  Oposto a função exists.
+            Ou seja, caso não exista nenhum valor não será 
+            disparado nenhuma excessão, caso exista será disparado
+            uma excessão com a mensagem definida na função   
+        */
+
         try{
             exists(valor, msg)
         }catch(msg){
             return
         }
+
         throw msg
     }
 
     function isEqual(antigo, novo, msg){
-        if(antigo === novo) throw msg
+        /*  Função que verifica igualdade entre dois valores
+            Caso seja diferente é disparado uma excessão com a mensagem
+            Definida na função  
+        */
+
+        if(antigo !== novo) throw msg
     }
 
     function notEqual(antigo, novo, msg){
+        /*  Oposto a função isEqual.
+            Ou seja, caso valores sejam estritamente iguais será disparado
+            uma excessão com a mensagem definida na função
+         */
+
         try{
             isEqual(antigo, novo, msg)
         }catch(msg){
@@ -27,12 +56,17 @@ module.exports = app => {
         throw msg
     }
 
-    function validatePassword(senha, msg){
-        if(senha.length < 8) throw 'A senha precisa ter no mínimo 8 caracteres'
-        if(senha.includes(' ')) throw 'A senha não pode conter espaços em branco'
+    function validatePassword(senha, length, msg){
+        /*  Função que valida uma senha digitada */
+
+        if(senha.length < length) throw msg ? msg : `A senha precisa ter no mínimo ${length} caracteres`
+        if(senha.includes(' ')) throw msg ? msg : 'A senha não pode conter espaços em branco'
     }
 
+    
     function validateCpf(cpf , msg){
+        /* Função que valida um CPF de pessoas nativas do Brasil */
+
         exists(cpf, msg)
         if(cpf.length < 14) throw msg
         if(cpf.includes(' ')) throw msg
@@ -51,13 +85,19 @@ module.exports = app => {
         })
     }
 
+
     function validateEmail(email, msg){
+        /* Função que valida um e-mail digitado */
+
         exists(email, msg)
         if(!(email.includes('@') && email.includes('.'))) throw msg
     }
 
     function validateCnpj(cnpj, msg){
+        /* Função que valida um CNPJ de empresas nativas no Brasil */
+        
         exists(cnpj, msg)
+
         if(cnpj.length < 18) throw msg
         if(cnpj.includes(' ')) throw msg
         cnpj.split('').forEach((char, index) => {
@@ -76,6 +116,8 @@ module.exports = app => {
     }
 
     function validateRg(rg, msg){
+        /* Função que valida RG de pessoas nativas do Brasil */
+
         exists(rg, msg)
         if(rg.length < 12) throw msg
         if(rg.includes(' ')) throw msg
@@ -95,27 +137,19 @@ module.exports = app => {
 
     }
 
-    function validateBirthDate(data, msg){
+    function validateBirthDate(data, minYear, msg){
+        /* Função que valida data de nascimento */
+
         exists(data, msg)
         data = data.split('-')
-        if(data[0] < 1920) throw 'Anos menores de 1920 não são aceitos'
-        if(data[0] >= app.moment().get('year')) throw msg
+        if(data[0] < minYear) throw `Anos menores de ${minYear} não são aceitos`
+        if(data[0] >= app.moment().get('year')) throw msg ? msg : 'Datas maiores que hoje não são permitidas'
     }
 
-    function validadeOnlyYearData(data, msg){
-        if(data === null || data.trim() === '') return
-        data = data.split('-')
-        if(data[0] < app.moment().get('year') - 1) throw msg
-    }
-
-    function validateData(data, msg){
-        exists(data, msg)
-        data = data.split('-')
-        if(data[0] < 2000) throw 'Anos menores de 2000 não são aceitos'
-        if(data[0] > app.moment().add(50, 'year').get('year')) throw msg
-    }
 
     function validatePostalCode(postalcode, msg){
+        /* Função que valida Código postal nativo do brasil */
+
         if(postalcode){
             if(postalcode.length > 9) throw msg
     
@@ -132,6 +166,16 @@ module.exports = app => {
     }
 
     function validateLength(value, length, method, msg){
+        /*
+        
+            Função que valida o tamanho de uma string
+            Atributo = Descrição - tipo
+            value = string a ser testada - String
+            length = Limite de caracteres - Number
+            method = (padrão = 'bigger') Metodo de comparação - enum 'bigger', 'smaller' e 'biggerOrEqual'
+            msg = (opcional) Mensagem a ser apresentada ao critério ser burlado
+        
+         */
         if(!method || (method !== 'bigger' && method !== 'smaller' && method !== 'biggerOrEqual')) method = 'bigger'
         
         switch(method){
@@ -150,5 +194,5 @@ module.exports = app => {
         }
     }
 
-    return {exists, notExists, isEqual, notEqual, validatePassword, validateEmail, validateCpf, validateRg, validateCnpj, validateBirthDate, validadeOnlyYearData, validateData, validatePostalCode, validateLength} 
+    return {exists, notExists, isEqual, notEqual, validatePassword, validateEmail, validateCpf, validateRg, validateCnpj, validateBirthDate, validatePostalCode, validateLength} 
 }

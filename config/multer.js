@@ -1,5 +1,12 @@
 const multer = require('multer')
 
+/**
+ *  Configuração para o disk storage do multer
+ *  É necessário para persistir os arquivos enviados para a aplicação
+ *  
+ *  Obs: Até então o disk Storage esta configurado para somente persistir imagens
+ */
+
 module.exports = (multer(
     {
         storage: multer.diskStorage({

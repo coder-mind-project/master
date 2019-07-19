@@ -1,10 +1,17 @@
 module.exports = app => {
 
+    // Validação de dados
     const {exists, validateLength} = app.config.validation
+
+    // Mongoose model para temas
     const {Theme} = app.config.mongooseModels
-    const {errorTheme} = app.config.codeHttpResponse
+
+    // Responsável por gerar Mensagens de erro Personalizadas
+    const {errorTheme} = app.config.managementHttpResponse
 
     const save = async (req, res) => {
+        /* Responsável por persistir temas */
+        
         const theme = {...req.body}
 
 
@@ -13,9 +20,6 @@ module.exports = app => {
             validateLength(theme.name, 30, 'bigger')
             validateLength(theme.alias, 30, 'bigger')
             validateLength(theme.description, 100, 'bigger')
-            
-            if(!theme.alias) delete theme.alias
-            if(!theme.description) delete theme.description
             
             
             theme.state = 'active'
@@ -28,18 +32,20 @@ module.exports = app => {
                 delete theme._id 
                 const newTheme = new Theme(theme)
 
-                await newTheme.save().then( () => res.status(204).send()).catch(error => {
-                    if(error.code === 11000) throw 'Ja existe tema com este nome'
-                    else throw 'Ocorreu um erro desconhecido, se persistir reporte [Code: 3]'
-                })
+                await newTheme.save().then( response => res.status(201).send(response) )
+                    .catch(error => {
+                        if(error.code === 11000) throw 'Ja existe tema com este nome'
+                        else throw 'Ocorreu um erro desconhecido, se persistir reporte'
+                    })
 
             }else{
                 const _id = theme._id
 
-                Theme.updateOne({_id}, theme).then(() => res.status(204).send()).catch(error => {
-                    if(error.code === 11000) throw 'Ja existe tema com este nome'
-                    else throw 'Ocorreu um erro desconhecido, se persistir reporte [Code: 3]'
-                })
+                await Theme.updateOne({_id}, theme).then(() => res.status(204).send())
+                    .catch(error => {
+                        if(error.code === 11000) throw 'Ja existe tema com este nome'
+                        else throw 'Ocorreu um erro desconhecido, se persistir reporte'
+                    })
             }
         } catch (error) {
             const _error = await errorTheme(error)
@@ -48,11 +54,19 @@ module.exports = app => {
     }
 
     const get = async (req, res) => {
+        /*  Responsável por obter os temas por filtros de 
+            palavras chave. Ocorrendo a possibilidade de limitar 
+            por páginação e também obtendo a quantidade total de registros
+            por filtragem
+        
+        */
         
         try {
+            var limit = parseInt(req.query.limit) || 10
             const query = req.query.query || ''
             const page = req.query.page || 1
-            const limit = parseInt(req.query.limit) || 10
+
+            if(limit > 100) limit = 10
 
             let count = await Theme.aggregate([
                 {$match : 
@@ -93,32 +107,49 @@ module.exports = app => {
     }
 
     const remove = async (req, res) => {
+        /* Responsável por remover o tema */
+
         try {
+
+            const user = req.user.user
+
+            if(!user.tagAdmin) throw 'Acesso não autorizado, somente administradores podem remover temas'
+
             const _id = req.params.id
 
-            if(!_id) throw 'Tema não encontrado [Code: 1]'
+            const theme = await Theme.findOne({_id})
 
+            if(!theme) throw 'Tema não encontrado'
+            if(theme.state === "removed") throw 'Este tema já foi excluído'
+            
             const state = {
                 state: 'removed'
             }
 
             Theme.updateOne({_id}, state).then(() => res.status(204).send())
         } catch (error) {
-            const _error = await errorTheme(error)
-            return res.status(_error).send(error)
+            error = await errorTheme(error)
+            return res.status(error.code).send(error.msg)
         }
     }
 
     const getOne = (req, res) => {
+        /* Responsável por obter o tema pelo ID */
+
         const _id = req.params.id
         Theme.findOne({_id}).then(theme => res.json(theme)).catch( () => res.status(500).send('Ops, ocorreu um erro ao recuperar as informações. Tente atualizar a página'))
     }
     
     const active = async (req, res) => {
+        /* Responsável restaurar uma categoria excluída */
+        // Não implementado
+
         try {
             const _id = req.params.id
+
+            const theme = await Theme.findOne({_id, state: "active"})
             
-            if(!_id) throw 'Tema não encontrado [Code: 1]'
+            if(!theme) throw 'Tema não encontrado'
             
             const state = {
                 state: 'active'

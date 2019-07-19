@@ -1,17 +1,43 @@
+/* Responsável por realizar o gerenciamento de imagens dos artigos */
 const fileManagement = require('../../config/fileManagement.js')
 
 module.exports = app => {
 
-    const {Article} = app.config.mongooseModels
-    const {exists, validateLength} = app.config.validation
-    const {errorURL} = app.config.codeHttpResponse
+    // Mongoose Model para artigos
+    const { Article } = app.config.mongooseModels
+    
+    // Validações de dados
+    const { exists, validateLength } = app.config.validation
+    
+    // Responsável por gerar Mensagens de erro Personalizadas
+    const { errorCustomURL, errorManagementArticles } = app.config.managementHttpResponse
+    const { publish, inactive, active, boost } = app.api.articles.management
 
     const get = async (req, res) => {
+        /*  Realiza a busca de artigos filtrando por palavras chave.
+            Possui limite de resultados e possui implementação de páginação
+            Devolve a quantidade de artigos existentes pelos filtros de pesquisa
+            E os artigos páginados de acordo com página desejada.
+        */
 
         try {
+            var limit = parseInt(req.query.limit) || 10
             const query = req.query.query || ''
             const page = req.query.page || 1
-            const limit = parseInt(req.query.limit) || 10
+            const type = req.query.op || 'perUser'
+
+            var config = {
+                'author._id': req.user.user._id,
+                deleted: false
+            }
+
+            if(req.user.user.tagAdmin && type === 'all'){
+                config = {
+                    deleted: false
+                }
+            }
+
+            if(limit > 100) limit = 10
 
             let count = await Article.aggregate([
                 {$match : {$and: [
@@ -19,9 +45,7 @@ module.exports = app => {
                         {title: {$regex: `${query}` , $options: 'i'}},
                         {shortDescription: {$regex: `${query}` , $options: 'i'}},
                     ]},
-                    {
-                        deleted: false
-                    }
+                    config
                 ]}
             }]).count("id")
             
@@ -33,9 +57,7 @@ module.exports = app => {
                         {title: {$regex: `${query}` , $options: 'i'}},
                         {shortDescription: {$regex: `${query}` , $options: 'i'}},
                     ]},
-                    {
-                        deleted: false
-                    }
+                    config
                 ]}
                 },{$sort: {createdAt: -1}}])
             .skip(page * limit - limit).limit(limit).then(articles => res.json({articles, count, limit}))
@@ -44,35 +66,66 @@ module.exports = app => {
         }
     }
 
-    const getOneById = (req, res) => {
-        const _id = req.params.id
-
+    const getOneById = async (req, res) => {
+        /* Middleware responsável por obter o artigo pelo ID  */
         
+        const _id = req.params.id
+        const article = await getById(_id)
+
+        if(article && article.error) return res.status(500).send()
+        
+        if(article && article._id) return res.json(article)
+        else return res.status(400).send('Nenhum artigo encontrado')
+    }
+
+    const getById = (_id) => {
+        /* Obtem o artigo pelo ID */
+
         try {
-            Article.findOne({_id}).then(data => res.json(data))
+            return Article.findOne({_id})
         } catch (error) {
-            return res.status(500).send(error)
+            return {error: true}
         }
     }
 
 
-    const getOne = (req, res) => {
+    const getOne = async (req, res) => {
+        /* Middleware responsável por obter o artigo pela URL customizada */
         const customURL = req.params.url
+        
+        const article = await getByCustomURL(customURL)
+        
+        if(article && article.error) return res.status(500).send()
+        
+        if(!req.user.user.tagAdmin && article.author._id !== req.user.user._id)
+            return res.status(406).send('Este artigo não é seu, acesso negado')
+
+        if(article && article._id) return res.json(article)
+        else return res.status(400).send('Nenhum artigo encontrado')
+    }
+
+    const getByCustomURL = (customURL) => {
+        /* Obtém o artigo pela URL customizada */
 
         try {
-            Article.findOne({customURL}).then(data => res.json(data))
+            return Article.findOne({customURL})
         } catch (error) {
-            return res.status(500).send(error)
+            return {error: true}
         }
     }
 
+
+    const getByUser = (req, res) => {
+
+    }
     
     const save = async (req, res) => {
+        /* Middleware responśavel por persistir artigos */
+
         const article = {...req.body}
         try {
             
             exists(article.title, 'Informe um título para o artigo')
-            //validateLength(article.title, 150, 'bigger', 'Máximo permitido 150 caracteres')
             exists(article.theme, 'Tema não informado')
             exists(article.theme._id, 'Tema não informado')
             exists(article.shortDescription, 'Breve descrição inválida')
@@ -91,10 +144,11 @@ module.exports = app => {
 
             try{
                 article.createdAt = new Date()
-                
+
                 const newArticle = new Article({
                     title: article.title,
                     theme: article.theme,
+                    customURL: article.customURL,
                     author: article.author,
                     shortDescription: article.shortDescription,
                     textArticle: article.textArticle,
@@ -107,252 +161,114 @@ module.exports = app => {
                 
                 if(article.category && article.category._id) newArticle.category = article.category
                 if(article.longDescription) newArticle.longDescription = article.longDescription
-                if(article.customURL) newArticle.customURL = article.customURL
                 
-                await newArticle.save().then(() => {
-                    res.status(204).send()
+                await newArticle.save().then(async () => {
+                    const response = await Article.findOne({customURL: newArticle.customURL})
+                    return res.status(201).send(response)
                 })
     
             } catch (error) {
-                const payload = await errorURL(error)
+                const payload = await errorCustomURL(error)
                 return res.status(payload.codeError).send(payload.msg)
             }
         }else{
             try{
                 const _id = article._id
-                await Article.updateOne({_id}, article).then(() => {
-                    res.status(204).send()
+                article.updatedAt = new Date()
+                
+                await Article.updateOne({_id}, article).then(async () => {
+                    const response = await Article.findOne({_id})
+                    return res.status(200).send(response)
                 })
     
             } catch (error) {
-                const payload = await errorURL(error)
+                const payload = await errorCustomURL(error)
                 return res.status(payload.codeError).send(payload.msg)
             }
         }
     }
 
     const remove = async (req, res) => {
+        /* Remove o artigo */
+        
         const id = req.params.id
         
         try {
+
+            if(!id) throw 'Artigo não encontrado'
 
             const article = await Article.findOne({_id: id})
             
             if(!article._id) throw 'Artigo não encontrado'
             if(article.published) throw 'Artigos publicados não podem ser removidos, considere inativar o artigo'
 
-        } catch (msg) {
-            return res.status(400).send(msg)
-        }
-        
-        try {
-            
-            const update = await Article.updateOne({_id: id}, {deleted: true})
-            if(update.nModified > 0) {
-                const newArticle = await Article.findOne({_id: id})
-                return res.json(newArticle)
-            }
-            else throw 'Ocorreu um erro desconhecido, se persistir reporte. [Code: 2]'
-        
-        } catch (error) {
-            return res.status(500).send(error)
-        }
-    }
-
-    const publish = async (req, res) => {
-        const id = req.params.id
-        
-        try {
-
-            const article = await Article.findOne({_id: id})
-            
-            if(!article._id) throw 'Artigo não encontrado'
-            if(article.deleted) throw 'Esse artigo esta excluído, não é possível publicá-lo'
-            if(article.published) throw 'Esse artigo já está publicado'
-            
-        } catch (msg) {
-            return res.status(400).send(msg)
-        }
-
-        try {
-        
             const change = {
-                published: true,
-                inactivated: false
+                deleted: true
             }
 
             const update = await Article.updateOne({_id: id}, change)
+            
             if(update.nModified > 0) {
-                const newArticle = await Article.findOne({_id: id})
-                return res.json(newArticle)
+                return res.status(204).send()
             }
+            
             else throw 'Ocorreu um erro desconhecido, se persistir reporte. [Code: 2]'
         
         } catch (error) {
-            return res.status(500).send(error)
+            const customError = await errorManagementArticles(error)
+            return res.status(customError.code).send(customError.msg)
         }
     }
-
-    const boost = async (req, res) => {
-        const id = req.params.id
-
-        try {
-
-            const article = await Article.findOne({_id: id})
-            
-            if(!article._id) throw 'Artigo não encontrado'
-            if(!article.published) throw 'Este artigo não está publicado, publique-o primeiro'
-            if(article.inactivated) throw 'Este artigo está inativo, não é possível impulsioná-lo'
-            if(article.deleted) throw 'Este artigo está excluído, não é possível impulsioná-lo'
-            if(article.boosted) throw 'Este artigo já está impulsionado'
-            
-        } catch (error) {
-            return res.status(400).send(error)
-        }
-        
-        try {
-
-            const update = await Article.updateOne({_id: id}, {boosted: true})
-            
-            if(update.nModified > 0) {
-                const newArticle = await Article.findOne({_id: id})
-                return res.json(newArticle)
-            }
-            else throw 'Ocorreu um erro desconhecido, se persistir reporte. [Code: 2]'
-        
-        } catch (error) {
-            
-            return res.status(500).send(error)
-        }
-    }
-
-    const inactive = async (req, res) => {
-
-        const id = req.params.id
-        
-        try {
-
-            const article = await Article.findOne({_id: id})
-            
-            if(!article._id) throw 'Artigo não encontrado'
-            if(article.deleted) throw 'Esse artigo esta excluído, não é possível inativá-lo'
-            if(!article.published) throw 'Este artigo não está publicado, considere removê-lo'
-
-        } catch (msg) {
-            return res.status(400).send(msg)
-        }
-
-        try {
-            
-            const change = {
-                published: true,
-                inactivated: true,
-                boosted: false
-            }
-
-            const update = await Article.updateOne({_id: id}, change)
-            if(update.nModified > 0) {
-                const newArticle = await Article.findOne({_id: id})
-                return res.json(newArticle)
-            }
-            else throw 'Ocorreu um erro desconhecido, se persistir reporte. [Code: 2]'
-
-        } catch (error) {
-            return res.status(500).send(error)
-        }
-    }
-
-    const active = async (req, res) => {
-        const id = req.params.id
-        
-        try {
-
-            const article = await Article.findOne({_id: id})
-
-            if(!article._id) throw 'Artigo não encontrado'
-            if(article.active) throw 'Este artigo já está ativo'
-            if(article.boosted) throw 'Este artigo não necessita ser ativo'
-            if(article.deleted) throw 'Este artigo está excluído, não é possível ativá-lo'
-
-        } catch (msg) {
-            return res.status(400).send(msg)
-        }
-
-        try {
-            
-            const change = {
-                inactivated: false,
-                published: true,
-                boosted: false
-            }
-            const update = await Article.updateOne({_id: id}, change)
-            if(update.nModified > 0) {
-                const newArticle = await Article.findOne({_id: id})
-                return res.json(newArticle)
-            }
-            else throw 'Ocorreu um erro desconhecido, se persistir reporte. [Code: 2]'
-
-        } catch (error) {
-            return res.status(500).send(error)
-        }
-    }
-
-
-
 
     
-    const unboost = async (req, res) => {
+    const management = async (req, res) => {
+        /*
+            Realiza o gerenciamento de artigos
+            Isto é, realiza a publicação, impulsionamento, inativação e
+            ativação dos artigos respectivamente.
+        */
+
+        const id = req.params.id
+        const operation = req.query.op || 'Operação não identificada'
+
         try {
-            const id = req.params.id
 
-            const update = await Article.updateOne({_id: id}, {boosted: false})
-            if(update.nModified > 0) {
-                const newArticle = await Article.findOne({_id: id})
-                return res.json(newArticle)
+            if(!id) throw 'Artigo não encontrado'
+
+            let result = false
+
+            switch(operation){
+                case 'publish': result = await publish(id); break;
+                case 'boost': result = await boost(id); break;
+                case 'inactive': result = await inactive(id); break;
+                case 'active': result = await active(id); break;
+                default: throw 'Nenhum método definido, consulte a documentação'    
             }
-            else throw 'Ocorreu um erro desconhecido, se persistir reporte. [Code: 2]'
+
+            if(! result._id) throw result
+
+            return res.json(result)
+
         } catch (error) {
-            return res.status(500).send(error)
-        }
-    }
-
-    const restore = async (req, res) => {
-        try {
-            const id = req.params.id
-
-            const update = await Article.updateOne({_id: id}, {deleted: false})
-            if(update.nModified > 0) {
-                const newArticle = await Article.findOne({_id: id})
-                return res.json(newArticle)
+            if(!error.code){
+                return res.status(500).send(error)
+            }else{
+                return res.status(error.code).send(error.msg)
             }
-            else throw 'Ocorreu um erro desconhecido, se persistir reporte. [Code: 2]'
-        } catch (error) {
-            return res.status(500).send(error)
-        }
-    }
-
-    const unpublish = async (req, res) => {
-        try {
-            const id = req.params.id
-
-            const update = await Article.updateOne({_id: id}, {published: false})
-            if(update.nModified > 0) {
-                const newArticle = await Article.findOne({_id: id})
-                return res.json(newArticle)
-            }
-            else throw 'Ocorreu um erro desconhecido, se persistir reporte. [Code: 2]'
-        } catch (error) {
-            return res.status(500).send(error)
-        }
+        }   
     }
 
     
     const pushImage = async (req, res) => {
+        /* Realiza o envio da(s) imagem(ns) do artigo */
+        
         try {
             const _id = req.body.idArticle
             
             const size = parseInt(req.query.size) || 512
             const path = req.query.path || ''
+
+            if(!path) throw 'Ocorreu um problema ao enviar a imagem, se persistir reporte'
 
             const article = await Article.findOne({_id})
             
@@ -370,43 +286,24 @@ module.exports = app => {
                     return res.status(200).send(newPath)
                 })
             }else{
-                throw 'Ocorreu um erro ao salvar a imagem [code: 1]'
+                throw 'Ocorreu um erro ao salvar a imagem, se persistir reporte'
             }
 
         } catch (error) {
-            console.log(error)
             return res.status(500).send(error)
         }
         
     }
 
-    const getImage = async (req, res) => {
-        const id = req.params.id
-
-        try {
-            const article = await Article.findOne({_id: id})
-            
-            if(!article) throw 'Artigo não encontrado'
-            
-            if(article.smallImg){
-                fileManagement.readImage(article.smallImg).then( data => res.status(200).send(data)).catch(error => {
-                    return res.status(500).send(error)
-                })
-            }else{
-                return res.status(204).send()
-            }
-        } catch (msg) {
-            return res.status(400).send(msg)
-        }
-        
-    }
 
     const removeImage = async (req, res) => {
+        /* Realiza a remoção da(s) imagem(ns) do artigo */
+
         const _id = req.params.id
         const path = req.query.path
 
         try {
-            if(path !== 'smallImg' && path !== 'bigImg') throw 'Ocorreu um erro ao remover a imagem [code: 2]'
+            if(path !== 'smallImg' && path !== 'bigImg') throw 'Ocorreu um erro ao remover a imagem, se persistir reporte'
             
             const article = await Article.findOne({_id})
             if(!article) throw 'Artigo não encontrado'
@@ -417,9 +314,9 @@ module.exports = app => {
                 if(resp){
                     const update = await Article.updateOne({_id},{[path]: ''})
                     if(update.nModified > 0) return res.status(204).send()
-                    else throw 'Ocorreu um erro ao remover a imagem [code: 1]'
+                    else throw 'Ocorreu um erro ao remover a imagem, se persistir reporte'
                 }else{
-                    throw 'Ocorreu um erro ao remover a imagem [code: 2]'
+                    throw 'Ocorreu um erro ao remover a imagem, se persistir reporte'
                 }
             })
         } catch (msg) {
@@ -430,5 +327,5 @@ module.exports = app => {
 
     
 
-    return {get, getOneById, getOne, save, remove, publish, boost, inactive, unpublish, unboost, active,restore, pushImage, getImage, removeImage}
+    return {get, getOneById, getOne, save, management, remove, pushImage, removeImage}
 }
