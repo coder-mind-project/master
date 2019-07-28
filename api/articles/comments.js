@@ -143,6 +143,51 @@ module.exports = app => {
         }
     }
 
+    const getOne = async (_id) => {
+        try {
+            const comment = await Comment.findOne({_id})
+
+            return {comment, status: true}
+        } catch (error) {
+            return {status: false, error}
+        }
+    }
+
+    const getHistory = async (req, res) => {
+        try {
+            const _id = req.params.id
+            const limit = parseInt(req.query.limit) || 10
+            const page = parseInt(req.query.page) || 1
+
+            if(!_id) throw 'Comentário não encontrado'
+            
+            const result = await getOne(_id)
+
+            if(!result.status) throw 'Comentário não encontrado'
+            
+            let answers = await Comment.aggregate([
+                {$match: {
+                    $and: [
+                        {answerOf: {'$ne': null}}
+                    ]
+                }}
+            ]).skip(page * limit - limit).limit(limit)
+
+            answers = answers.filter(answer => {
+                return answer.answerOf._id == result.comment._id
+            })
+
+            const comment = result.comment
+            const count = answers.length
+            
+            return res.json({answers, comment, count, limit})
+            
+        } catch (error) {
+            console.log(error)
+            return res.status(500).send(error)
+        }
+    }
+
     const readComment = (req, res) => {
         try {
             const comment = {...req.body}
@@ -157,7 +202,6 @@ module.exports = app => {
                 }
             })
         } catch (error) {
-            console.log(error)
             return res.status(500).send(error)
         }
     }
@@ -190,5 +234,5 @@ module.exports = app => {
         }
     }
 
-    return {get, readComment, sendComment}
+    return {get, readComment, sendComment, getHistory}
 }

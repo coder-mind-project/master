@@ -127,7 +127,8 @@ module.exports = app => {
         article: Object,
         confirmed: Boolean,
         readed: Boolean,
-        answerOf: {type: Object, default: null}
+        answerOf: {type: Object, default: null},
+        createdAt: {type: Date, default: new Date()}
     })
 
     const Comment = app.mongo.model('comments', comment)

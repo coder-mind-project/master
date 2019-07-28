@@ -117,5 +117,10 @@ module.exports = app => {
         .get(app.api.articles.comments.get)
         .patch(app.api.articles.comments.readComment)
         .post(app.api.articles.comments.sendComment)
+        
+    app.route('/comments/history/:id')
+        .all(app.config.passport.authenticate())
+        .get(app.api.articles.comments.getHistory)
+
     
 }
