@@ -239,6 +239,7 @@ module.exports = app => {
                     const change = {
                         profilePhoto: newPath
                     }
+
                     await User.updateOne({_id}, change)
 
                     return res.status(200).send(newPath)

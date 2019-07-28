@@ -109,6 +109,13 @@ module.exports = app => {
     app.route('/categories/theme/:id')
         .all(app.config.passport.authenticate())
         .get(app.api.categories.categories.getByTheme)
-
+        
+        
+    /* Resource for management of comments */
+    app.route('/comments')
+        .all(app.config.passport.authenticate())
+        .get(app.api.articles.comments.get)
+        .patch(app.api.articles.comments.readComment)
+        .post(app.api.articles.comments.sendComment)
     
 }

@@ -1,5 +1,6 @@
 # secrets [tagSecret and authSecret]
 .env
+node_modules/
 
 # img directories
 

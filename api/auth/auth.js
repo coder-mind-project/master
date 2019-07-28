@@ -1,5 +1,6 @@
 const jwt = require('jwt-simple')
 const { authSecret, issuer } = require('../../.env')
+const rp = require('request-promise')
 
 module.exports = app => {
 
@@ -15,19 +16,20 @@ module.exports = app => {
 
     const { validateTokenManagement, signInError } = app.config.managementHttpResponse
 
-    /**
-     *      Implementar a autenticação via Token
-     *      Adicionar tempo de expiração para este token
-     *      E utilizar o passport via JWT
-     * 
-     */
-
+    const { secret_key, uri } = app.config.captcha
 
     const signIn = async (req, res) => {
         /* Realiza a autenticação do usuário no sistema */
 
         try {
             const request = {...req.body}
+
+            const url = `${uri}?secret=${secret_key}&response=${request.response}`
+            
+            await rp({method: 'POST', uri: url, json: true}).then( response => {
+                if(!response.success) throw 'Captcha inválido'
+            })
+
             validateEmail(request.email, 'E-mail inválido')
             exists(request.password, 'É necessário informar uma senha')
 

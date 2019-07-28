@@ -137,7 +137,10 @@ module.exports = app => {
         /* Responsável por obter o tema pelo ID */
 
         const _id = req.params.id
-        Theme.findOne({_id}).then(theme => res.json(theme)).catch( () => res.status(500).send('Ops, ocorreu um erro ao recuperar as informações. Tente atualizar a página'))
+        Theme.findOne({_id}).then(theme => res.json(theme)).catch( async (error) => {
+            error = await errorTheme(error)
+            return res.status(error.code).send(error.msg)
+        })
     }
     
     const active = async (req, res) => {

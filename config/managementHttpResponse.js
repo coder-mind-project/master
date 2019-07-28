@@ -21,7 +21,16 @@ module.exports = app => {
             msg: 'Ocorreu um erro desconhecido, se persistir reporte'
         }
         
-        if( typeof error !== 'string' ) return reformulatedError
+        if( typeof error !== 'string' ) {
+            
+            if(error.name === 'CastError'){
+                reformulatedError.code = 404
+                reformulatedError.msg = 'Tema não encontrado'
+            }
+            
+            return reformulatedError
+        }
+        
         if( error.trim() === '' ) return reformulatedError
 
         switch(error){
@@ -67,7 +76,16 @@ module.exports = app => {
             msg: 'Ocorreu um erro desconhecido, se persistir reporte'
         }
         
-        if( typeof error !== 'string' ) return reformulatedError
+        if( typeof error !== 'string' ) {
+            
+            if(error.name === 'CastError'){
+                reformulatedError.code = 404
+                reformulatedError.msg = 'Categoria não encontrada'
+            }
+            
+            return reformulatedError
+        }
+
         if( error.trim() === '' ) return reformulatedError
 
         switch(error){
@@ -190,7 +208,8 @@ module.exports = app => {
         switch(error){
             case 'E-mail inválido':
             case 'É necessário informar uma senha':
-            case 'Não encontramos um cadastro com estas credenciais':{
+            case 'Não encontramos um cadastro com estas credenciais':
+            case 'Captcha inválido':{
                 reformulatedError.code = 400
                 break
             }
@@ -212,7 +231,16 @@ module.exports = app => {
             msg: 'Ocorreu um erro desconhecido, se persistir reporte'
         }
         
-        if( typeof error !== 'string' ) return reformulatedError
+        if( typeof error !== 'string' ){
+            
+            if(error.name === 'CastError'){
+                reformulatedError.code = 404
+                reformulatedError.msg = 'Usuário não encontrado'
+            }
+            
+            return reformulatedError
+        }
+
         if( error.trim() === '' ) return reformulatedError
 
         switch(error){
@@ -248,7 +276,30 @@ module.exports = app => {
         return reformulatedError
     }
     
+
+    const errorView = (error) => {
+        const reformulatedError = {
+            code: 500,
+            msg: 'Ocorreu um erro desconhecido, se persistir reporte'
+        }
+        
+        if( typeof error !== 'string' ) return reformulatedError
+        if( error.trim() === '' ) return reformulatedError
+
+        switch(error){
+            case 'Artigo não encontrado':{
+                reformulatedError.code = 400
+                break
+            }
+        }
+
+        reformulatedError.msg = error
+
+        return reformulatedError 
+    }
+
+
     return {errorTheme, errorCategory, errorCustomURL,
         errorManagementArticles, validateTokenManagement,
-        signInError, userError}
+        signInError, userError, errorView}
 } 

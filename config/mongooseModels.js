@@ -92,5 +92,47 @@ module.exports = app => {
     const Category = app.mongo.model('categories', category)
 
 
-    return {User, Article, Theme, Category}
+
+
+
+    //Schema para as visualizações dos artigos
+    const view = new app.mongo.Schema({
+        _id: {type: app.mongo.Schema.ObjectId, auto: true},
+        reader: Object,
+        article: Object,
+        readTime: Number,
+        startRead: Date
+    })
+    
+    const View = app.mongo.model('views', view)
+    
+    
+    //Schema para os likes dos artigos
+    const like = new app.mongo.Schema({
+        _id: {type: app.mongo.Schema.ObjectId, auto: true},
+        article: Object,
+        reader: {type: Object, unique: true},
+        likedAt: Date
+    })
+    
+    const Like = app.mongo.model('likes', like)
+    
+    
+    //Schema para os comentários dos artigos
+    const comment = new app.mongo.Schema({
+        _id: {type: app.mongo.Schema.ObjectId, auto: true},
+        userName: String,
+        userEmail: String,
+        comment: String,
+        article: Object,
+        confirmed: Boolean,
+        readed: Boolean,
+        answerOf: {type: Object, default: null}
+    })
+
+    const Comment = app.mongo.model('comments', comment)
+
+    
+    
+    return {User, Article, Theme, Category, View, Like, Comment}
 }

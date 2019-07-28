@@ -160,6 +160,11 @@ module.exports = app => {
                 })
                 
                 if(article.category && article.category._id) newArticle.category = article.category
+                else newArticle.category = {
+                    name: '',
+                    alias: '',
+                    description: ''
+                }
                 if(article.longDescription) newArticle.longDescription = article.longDescription
                 
                 await newArticle.save().then(async () => {
@@ -175,6 +180,13 @@ module.exports = app => {
             try{
                 const _id = article._id
                 article.updatedAt = new Date()
+
+                if(!(article.category && article.category._id))
+                    article.category = {
+                        name: '',
+                        alias: '',
+                        description: ''
+                    }
                 
                 await Article.updateOne({_id}, article).then(async () => {
                     const response = await Article.findOne({_id})

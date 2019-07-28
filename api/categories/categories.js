@@ -115,8 +115,8 @@ module.exports = app => {
 
             Category.updateOne({_id}, state).then(() => res.status(204).send())
         } catch (error) {
-            const _error = await errorCategory(error)
-            return res.status(_error).send(error)
+            error = await errorCategory(error)
+            return res.status(error.code).send(error.msg)
         }
     }
 
@@ -124,7 +124,10 @@ module.exports = app => {
         /* Responsável por obter a categoria pelo ID */
 
         const _id = req.params.id
-        Category.findOne({_id}).then(category => res.json(category)).catch( () => res.status(500).send('Ops, ocorreu um erro ao recuperar as informações. Tente atualizar a página'))
+        Category.findOne({_id}).then(category => res.json(category)).catch( async (error) => {
+            error = await errorCategory(error)
+            return res.status(error.code).send(error.msg)
+        })
     }
     
     const active = async (req, res) => {
