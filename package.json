@@ -6,7 +6,12 @@
   "scripts": {
     "start": "nodemon"
   },
-  "keywords": ["CM","CoderMind","Gestão","Management"],
+  "keywords": [
+    "CM",
+    "CoderMind",
+    "Gestão",
+    "Management"
+  ],
   "author": "Allan Wanderley Alves",
   "license": "self-funding",
   "private": true,
