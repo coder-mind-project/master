@@ -1,6 +1,7 @@
+./node_modules
+
 # secrets [tagSecret and authSecret]
 .env
-node_modules/
 
 # img directories
 
