@@ -1,3 +1,5 @@
+const MyDate = require('../../config/Date')
+
 module.exports = app => {
 
     // Mongoose Model para artigos
@@ -25,7 +27,7 @@ module.exports = app => {
                 boosted: false,
                 deleted: false,
                 inactivated: false,
-                publishAt: article.publishAt || new Date() 
+                publishAt: MyDate.setTimeZone('-3')
             }
     
             const update = await Article.updateOne({_id}, change)

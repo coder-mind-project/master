@@ -132,7 +132,7 @@ module.exports = app => {
                     deleted: false
                 })
 
-                saveUser.save().then((response) => res.status(201).send(response)).catch(error => {
+                await saveUser.save().then((response) => res.status(201).send(response)).catch(error => {
                     if(error.code === 11000) throw 'Ja existe cadastro com essas informações'
                 })
             }

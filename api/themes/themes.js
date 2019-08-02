@@ -48,8 +48,8 @@ module.exports = app => {
                     })
             }
         } catch (error) {
-            const _error = await errorTheme(error)
-            return res.status(_error).send(error)
+            error = await errorTheme(error)
+            return res.status(error.code).send(error.msg)
         }
     }
 
@@ -160,8 +160,8 @@ module.exports = app => {
             
             Theme.updateOne({_id}, state).then(() => res.status(204).send())
         } catch (error) {
-            const _error = await errorTheme(error)
-            return res.status(_error).send(error)
+            error = await errorTheme(error)
+            return res.status(error.code).send(error.msg)
             }
     }
 

@@ -1,16 +1,16 @@
 /* Responsável por realizar o gerenciamento de imagens dos artigos */
 const fileManagement = require('../../config/fileManagement.js')
-
+const MyDate = require('../../config/Date')
 module.exports = app => {
 
     // Mongoose Model para artigos
     const { Article } = app.config.mongooseModels
-    
+
     // Validações de dados
     const { exists, validateLength } = app.config.validation
     
     // Responsável por gerar Mensagens de erro Personalizadas
-    const { errorCustomURL, errorManagementArticles } = app.config.managementHttpResponse
+    const { errorArticle, errorManagementArticles } = app.config.managementHttpResponse
     const { publish, inactive, active, boost } = app.api.articles.management
 
     const get = async (req, res) => {
@@ -115,10 +115,6 @@ module.exports = app => {
     }
 
 
-    const getByUser = (req, res) => {
-
-    }
-    
     const save = async (req, res) => {
         /* Middleware responśavel por persistir artigos */
 
@@ -130,20 +126,18 @@ module.exports = app => {
             exists(article.theme._id, 'Tema não informado')
             exists(article.shortDescription, 'Breve descrição inválida')
             validateLength(article.shortDescription, 150, 'bigger', 'Máximo permitido 150 caracteres')
-            validateLength(article.longDescription, 300, 'bigger', 'Máximo permitido 300 caracteres')
+            validateLength(article.longDescription, 300, 'bigger', '')
             exists(article.textArticle, 'Corpo do artigo inválido')
             exists(article.author, 'Autor não encontrado')
             exists(article.author._id, 'Autor não encontrado')
             exists(article.customURL, 'URL não definida')
             
-        }catch(msg){
-            return res.status(400).send(msg)
-        }
+            const exist = await getByCustomURL(article.customURL)
 
-        if(!article._id){
+            if(exist && exist._id) throw 'Já existe um artigo com este link personalizado, considere alterar-lo' 
+            if(exist && exist.error) throw 'Ocorreu um erro desconhecido, se persistir reporte'
 
-            try{
-                article.createdAt = new Date()
+            if(!article._id){
 
                 const newArticle = new Article({
                     title: article.title,
@@ -152,13 +146,13 @@ module.exports = app => {
                     author: article.author,
                     shortDescription: article.shortDescription,
                     textArticle: article.textArticle,
-                    createdAt: article.createdAt,
                     published: false,
                     boosted: false,
                     deleted: false,
                     inactivated: false
                 })
-                
+
+
                 if(article.category && article.category._id) newArticle.category = article.category
                 else newArticle.category = {
                     name: '',
@@ -170,33 +164,32 @@ module.exports = app => {
                 await newArticle.save().then(async () => {
                     const response = await Article.findOne({customURL: newArticle.customURL})
                     return res.status(201).send(response)
+                }).catch(error => {
+                    if(error.code === 11000) throw 'Ja existe um artigo com este link personalizado'
+                    else throw 'Ocorreu um erro desconhecido, se persistir reporte'
                 })
-    
-            } catch (error) {
-                const payload = await errorCustomURL(error)
-                return res.status(payload.codeError).send(payload.msg)
-            }
-        }else{
-            try{
-                const _id = article._id
-                article.updatedAt = new Date()
+            }else{
+                    const _id = article._id
+                    article.updatedAt = MyDate.setTimeZone('-3')
 
-                if(!(article.category && article.category._id))
-                    article.category = {
-                        name: '',
-                        alias: '',
-                        description: ''
-                    }
-                
-                await Article.updateOne({_id}, article).then(async () => {
-                    const response = await Article.findOne({_id})
-                    return res.status(200).send(response)
-                })
-    
-            } catch (error) {
-                const payload = await errorCustomURL(error)
-                return res.status(payload.codeError).send(payload.msg)
+                    if(!(article.category && article.category._id))
+                        article.category = {
+                            name: '',
+                            alias: '',
+                            description: ''
+                        }
+                    
+                    await Article.updateOne({_id}, article).then(async () => {
+                        const response = await Article.findOne({_id})
+                        return res.status(200).send(response)
+                    }).catch(error => {
+                        if(error.code === 11000) throw 'Ja existe um artigo com este link personalizado'
+                        else throw 'Ocorreu um erro desconhecido, se persistir reporte'
+                    })
             }
+        } catch (error) {
+            error = await errorArticle(error)
+            return res.status(error.code).send(error.msg)
         }
     }
 

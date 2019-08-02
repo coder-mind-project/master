@@ -122,14 +122,38 @@ module.exports = app => {
         Usado pela API de articles, porém pode ser usada em
         Qualquer outro caso que envolva URLs personalizadas.
     */
-    const errorCustomURL = error => {
-        let codeError = 500
-        if(error.code && error.code === 11000){
-            codeError = 400
-            return {codeError, msg: 'O link personalizado informado já se encontra em uso, por favor informe outro'}
+    const errorArticle = error => {
+        const reformulatedError = {
+            code: 500,
+            msg: 'Ocorreu um erro desconhecido, se persistir reporte'
         }
-        else
-            return {codeError, msg: 'Ocorreu um erro desconhecido, se persistir reporte'}    
+
+        if( typeof error !== 'string' ) return reformulatedError
+        if( error.trim() === '' ) return reformulatedError
+
+        switch(error){
+            case 'Informe um título para o artigo':
+            case 'Tema não informado':
+            case 'Breve descrição inválida':
+            case 'Máximo permitido 150 caracteres':
+            case 'Máximo permitido 300 caracteres':
+            case 'Máximo permitido 300 caracteres':
+            case 'Corpo do artigo inválido':
+            case 'Já existe um artigo com este link personalizado, considere alterar-lo':{
+                reformulatedError.code = 400
+                break
+            }
+            case 'Autor não encontrado':
+            case 'URL não definida':{
+                reformulatedError.code = 404
+                break
+            }
+
+        }
+
+        reformulatedError.msg = error
+
+        return reformulatedError
     }
 
 
@@ -299,7 +323,7 @@ module.exports = app => {
     }
 
 
-    return {errorTheme, errorCategory, errorCustomURL,
+    return {errorTheme, errorCategory, errorArticle,
         errorManagementArticles, validateTokenManagement,
         signInError, userError, errorView}
 } 

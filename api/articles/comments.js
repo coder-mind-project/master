@@ -74,7 +74,8 @@ module.exports = app => {
                         {'article.author._id': user._id},
                         {answerOf: null}
                     ]
-                }}
+                }},
+                {$sort: {_id: -1}}
             ]).skip(page * limit - limit).limit(limit)
 
             return {comments, status: true, count, limit}
@@ -105,7 +106,8 @@ module.exports = app => {
                         {'article.author._id': user._id},
                         {answerOf: null}
                     ]
-                }}
+                }},
+                {$sort: {_id: -1}}
             ]).skip(page * limit - limit).limit(limit)
 
             return {comments, status: true, count, limit}
@@ -134,7 +136,8 @@ module.exports = app => {
                         {'article.author._id': user._id},
                         {answerOf: null}
                     ]
-                }}
+                }},
+                {$sort: {_id: -1}}
             ]).skip(page * limit - limit).limit(limit)
 
             return {comments, status: true, count, limit}
@@ -211,7 +214,7 @@ module.exports = app => {
             const comment = {...req.body}
             const user = req.user.user
 
-            validateLength(comment.comment, 1000, 'bigger', 'Para o comentário é somente permitido 1000 caracteres')
+            validateLength(comment.answer, 3000, 'bigger', 'Para o comentário é somente permitido 1000 caracteres')
 
             const newComment = new Comment({
                 userName: user.name,

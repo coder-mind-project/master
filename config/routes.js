@@ -44,6 +44,7 @@ module.exports = app => {
     app.route('/articles/img/:id')
         .all(app.config.passport.authenticate())
         .post(multer.single('smallImg'), app.api.articles.articles.pushImage)
+        .patch(multer.single('mediumImg'), app.api.articles.articles.pushImage)
         .put(multer.single('bigImg'), app.api.articles.articles.pushImage)
         .delete(app.api.articles.articles.removeImage)
         
@@ -122,5 +123,6 @@ module.exports = app => {
         .all(app.config.passport.authenticate())
         .get(app.api.articles.comments.getHistory)
 
-    
+    app.route('/configurations/start')
+        .post(app.api.config.startApplication.start)
 }

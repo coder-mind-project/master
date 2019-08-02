@@ -2,6 +2,8 @@
     Schemas de configurações para as coleções do mongoDB via Mongoose
 */
 
+const MyDate = require('./Date')
+
 module.exports = app => {
 
     
@@ -23,7 +25,7 @@ module.exports = app => {
         address: String,
         number: Number,
         password: String,
-        createdAt: Date,
+        createdAt: {type: Date, default: MyDate.setTimeZone(-3)},
         deleted: Boolean,
         expireToken: String,
         rescuePassword: String,
@@ -55,7 +57,7 @@ module.exports = app => {
         sharesCounter: Number,
         likesCounter: Number,
         dislikesCounter: Number,
-        createdAt: Date,
+        createdAt: {type: Date, default: MyDate.setTimeZone(-3)},
         updatedAt: Date,
         publishAt: Date,
         published: Boolean,
@@ -101,7 +103,7 @@ module.exports = app => {
         reader: Object,
         article: Object,
         readTime: Number,
-        startRead: Date
+        startRead: {type: Date, default: MyDate.setTimeZone(-3)}
     })
     
     const View = app.mongo.model('views', view)
@@ -112,7 +114,7 @@ module.exports = app => {
         _id: {type: app.mongo.Schema.ObjectId, auto: true},
         article: Object,
         reader: {type: Object, unique: true},
-        likedAt: Date
+        likedAt: {type: Date, default: MyDate.setTimeZone(-3)}
     })
     
     const Like = app.mongo.model('likes', like)
@@ -128,7 +130,7 @@ module.exports = app => {
         confirmed: Boolean,
         readed: Boolean,
         answerOf: {type: Object, default: null},
-        createdAt: {type: Date, default: new Date()}
+        createdAt: {type: Date, default: MyDate.setTimeZone(-3)}
     })
 
     const Comment = app.mongo.model('comments', comment)
