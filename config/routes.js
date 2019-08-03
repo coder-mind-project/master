@@ -10,8 +10,10 @@ module.exports = app => {
     /* AUTHENTICATION RESOURCES */
 
     /* Resource for authentication */
-    app.route('/signIn')
+    app.route('/auth')
         .post(app.api.auth.auth.signIn)
+        .patch(app.api.auth.auth.redeemPerEmail)
+        .put(app.api.auth.auth.redeemPerMoreInformations)
 
     /* Resource for verify authentication */
     app.route('/validate_token')

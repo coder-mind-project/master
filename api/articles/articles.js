@@ -134,7 +134,7 @@ module.exports = app => {
             
             const exist = await getByCustomURL(article.customURL)
 
-            if(exist && exist._id) throw 'Já existe um artigo com este link personalizado, considere alterar-lo' 
+            if(exist && exist._id && exist._id === article._id) throw 'Já existe um artigo com este link personalizado, considere alterar-lo' 
             if(exist && exist.error) throw 'Ocorreu um erro desconhecido, se persistir reporte'
 
             if(!article._id){
