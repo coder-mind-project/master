@@ -7,11 +7,11 @@ module.exports = app => {
     const { viewsJob } = app.api.articles.views
     const { commentsJob } = app.api.articles.comments
 
-    schedule.scheduleJob('10 * * * *', async () => {
+    schedule.scheduleJob('01 * * *', async () => {
         viewsJob()
     })
 
-    schedule.scheduleJob('20 * * * *', async () => {
+    schedule.scheduleJob('02 * * *', async () => {
         commentsJob()
     })
 }

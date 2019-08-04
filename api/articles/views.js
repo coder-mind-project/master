@@ -14,6 +14,19 @@ module.exports = app => {
         }
     }
 
+    const lastViews = (req, res) => {
+        try {
+            const limit = parseInt(req.query.limit) || 10
+
+            View.aggregate([
+                {$sort: {startRead: -1}}
+            ]).limit(limit).then(response => res.json({views: response, limit}))
+
+        } catch (error) {
+            return res.status(500).send('Ocorreu um erro ao obter as visualizações')
+        }
+    }
+
     const getStats = async (req, res) => {
         app.mysql.query('select * from views order by id desc limit 1', (err, result) => {
             if(!err) return res.json(result[0])
@@ -42,5 +55,5 @@ module.exports = app => {
         })
     }
     
-    return {getStats , viewsJob}
+    return {getStats , viewsJob, lastViews}
 }

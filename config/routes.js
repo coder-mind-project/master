@@ -120,10 +120,10 @@ module.exports = app => {
         
     /* Resource for management of comments */
     app.route('/comments')
-    .all(app.config.passport.authenticate())
-    .get(app.api.articles.comments.get)
-    .patch(app.api.articles.comments.readComment)
-    .post(app.api.articles.comments.sendComment)
+        .all(app.config.passport.authenticate())
+        .get(app.api.articles.comments.get)
+        .patch(app.api.articles.comments.readComment)
+        .post(app.api.articles.comments.sendComment)
     
     app.route('/comments/stats')
         .all(app.config.passport.authenticate())
@@ -133,8 +133,15 @@ module.exports = app => {
         .all(app.config.passport.authenticate())
         .get(app.api.articles.comments.getHistory)
         
+    
+    app.route('/views')
+        .all(app.config.passport.authenticate())
+        .get(app.api.articles.views.lastViews)
+
+    
     app.route('/views/stats')
         .all(app.config.passport.authenticate())
         .get(app.api.articles.views.getStats)
+    
 
 }
