@@ -15,10 +15,14 @@ module.exports = app => {
         .patch(app.api.auth.auth.redeemPerEmail)
         .put(app.api.auth.auth.redeemPerMoreInformations)
 
+
     /* Resource for verify authentication */
     app.route('/validate_token')
         .post(app.api.auth.auth.validateToken)
+
         
+    app.route('/configurations/start')
+        .post(app.api.config.startApplication.start)
 
     
     /* ARTICLES RESOURCES */
@@ -116,15 +120,21 @@ module.exports = app => {
         
     /* Resource for management of comments */
     app.route('/comments')
+    .all(app.config.passport.authenticate())
+    .get(app.api.articles.comments.get)
+    .patch(app.api.articles.comments.readComment)
+    .post(app.api.articles.comments.sendComment)
+    
+    app.route('/comments/stats')
         .all(app.config.passport.authenticate())
-        .get(app.api.articles.comments.get)
-        .patch(app.api.articles.comments.readComment)
-        .post(app.api.articles.comments.sendComment)
-        
+        .get(app.api.articles.comments.getStats)
+    
     app.route('/comments/history/:id')
         .all(app.config.passport.authenticate())
         .get(app.api.articles.comments.getHistory)
+        
+    app.route('/views/stats')
+        .all(app.config.passport.authenticate())
+        .get(app.api.articles.views.getStats)
 
-    app.route('/configurations/start')
-        .post(app.api.config.startApplication.start)
 }

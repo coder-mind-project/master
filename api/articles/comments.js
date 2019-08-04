@@ -186,7 +186,6 @@ module.exports = app => {
             return res.json({answers, comment, count, limit})
             
         } catch (error) {
-            console.log(error)
             return res.status(500).send(error)
         }
     }
@@ -237,5 +236,36 @@ module.exports = app => {
         }
     }
 
-    return {get, readComment, sendComment, getHistory}
+    const commentsJob = async () => {
+
+        const currentMonth = (new Date().getMonth())
+        const currentYear = (new Date().getFullYear())
+        const firstDay = new Date(currentYear, currentMonth, 1)
+        const lastDay = new Date(currentYear, currentMonth, 31)
+
+        const views = await Comment.countDocuments({
+            createdAt: {
+                '$gte': firstDay,
+                '$lt': lastDay
+            },
+            answerOf: null
+        })
+        
+        app.mysql.query('insert into comments (month, count) values(? , ?)',
+            [currentMonth , views], (err, results) => {
+                if(err) console.log(err)
+                else{
+                    console.log(`Comentários atualizados as ${new Date()}`)
+                }
+        })
+    }
+
+    const getStats = (req, res) => {
+        app.mysql.query('select * from comments order by id desc limit 1', (err, result) => {
+            if(!err) return res.json(result[0])
+            else return res.status(500).send(err)
+        })
+    }
+
+    return {get, readComment, sendComment, getHistory, commentsJob, getStats}
 }

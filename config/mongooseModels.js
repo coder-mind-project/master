@@ -100,12 +100,12 @@ module.exports = app => {
     //Schema para as visualizações dos artigos
     const view = new app.mongo.Schema({
         _id: {type: app.mongo.Schema.ObjectId, auto: true},
-        reader: Object,
+        reader: String,
+        startRead: {type: Date, default: MyDate.setTimeZone('-3')},
         article: Object,
-        readTime: Number,
-        startRead: {type: Date, default: MyDate.setTimeZone(-3)}
+        viewsQuantity: {type: Number, default: 1}
     })
-    
+
     const View = app.mongo.model('views', view)
     
     

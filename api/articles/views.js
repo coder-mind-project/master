@@ -14,64 +14,33 @@ module.exports = app => {
         }
     }
 
-    const countViewPerMonth = async () => {
-
+    const getStats = async (req, res) => {
+        app.mysql.query('select * from views order by id desc limit 1', (err, result) => {
+            if(!err) return res.json(result[0])
+            else return res.status(500).send(err)
+        })
     }
 
-    const countAllViews = async () => {
+    const viewsJob = async () => {
 
-    }
+        const currentMonth = (new Date().getMonth())
+        const currentYear = (new Date().getFullYear())
+        const firstDay = new Date(currentYear, currentMonth, 1)
+        const lastDay = new Date(currentYear, currentMonth, 31)
 
-    const get = async (req, res) => {
-        const _idArticle = req.params.id
-
-        try {
-            if(!_idArticle) throw 'Artigo não encontrado'
-
-            const perArticle = await countViewsPerArticle()
-
-            return res.json({perArticle})
-        } catch (error) {
-            error = await errorView(error)
-            return res.status(error.code).send(error.msg)
-        }
-    }
-
-    const addView = async (req, res) => {
-        try {
-
-            const view = {...req.body}
-            const reader = await publicIp.v4()
-
-            if(view.article){
-                const exists = await View.findOne({reader, 'article._id': view.article._id})
-                if(exists) return res.status(204).send()
-            }else{
-                throw 'Artigo não encontrado'
-            }
-
-            const newView = new View({
-                article: view.article,
-                reader,
-                readTime: 0,
-                startRead: new Date()
-            })
-            
-            await newView.save().then( response => res.json(response)).catch(error => {
-                throw error
-            })
-
-        } catch (error) {
-            console.log(error)
-            error = await errorView(error)
-            return res.status(error.code).send(error.msg)    
-        }
-    }
-
-    const updateView = (req, res) => {
-
+        const views = await View.countDocuments({startRead: {
+            '$gte': firstDay,
+            '$lt': lastDay
+        }})
+        
+        app.mysql.query('insert into views (month, count) values(? , ?)',
+            [currentMonth , views], (err, results) => {
+                if(err) console.log(err)
+                else{
+                    console.log(`Visualizações atualizadas as ${new Date()}`)
+                }
+        })
     }
     
-    
-    return {get, addView, updateView}
+    return {getStats , viewsJob}
 }
