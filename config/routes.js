@@ -25,6 +25,7 @@ module.exports = app => {
         .post(app.api.config.startApplication.start)
 
     
+
     /* ARTICLES RESOURCES */
 
     /* Resource for general management. EX: get some articles, create, update */
@@ -54,7 +55,10 @@ module.exports = app => {
         .put(multer.single('bigImg'), app.api.articles.articles.pushImage)
         .delete(app.api.articles.articles.removeImage)
         
-
+    /* Resource for articles stats */
+    app.route('/articles/stats/:id')
+        // .all(app.config.passport.authenticate())
+        .get(app.api.stats.stats.get)
 
         
     /* USERS RESORUCES */
@@ -78,6 +82,7 @@ module.exports = app => {
     app.route('/users/img/:id')
         .patch(multer.single('profilePhoto'), app.api.users.users.configProfilePhoto)
         .delete(app.api.users.users.removeProfilePhoto)
+
 
         
     /* THEMES RESOURCES */
@@ -117,7 +122,10 @@ module.exports = app => {
         .all(app.config.passport.authenticate())
         .get(app.api.categories.categories.getByTheme)
         
-        
+    
+
+    /* COMMENTS RESOURCES */
+
     /* Resource for management of comments */
     app.route('/comments')
         .all(app.config.passport.authenticate())
@@ -125,23 +133,35 @@ module.exports = app => {
         .patch(app.api.articles.comments.readComment)
         .post(app.api.articles.comments.sendComment)
     
-    app.route('/comments/stats')
-        .all(app.config.passport.authenticate())
-        .get(app.api.articles.comments.getStats)
-    
     app.route('/comments/history/:id')
         .all(app.config.passport.authenticate())
         .get(app.api.articles.comments.getHistory)
         
     
+
+    /* VIEWS RESOURCES */
+    
+    /* Resource for management of views */
     app.route('/views')
         .all(app.config.passport.authenticate())
         .get(app.api.articles.views.lastViews)
+    
 
-    
-    app.route('/views/stats')
+
+    /* LIKES RESOURCES */
+
+    /* Resource for management of likes */
+    app.route('/likes')
         .all(app.config.passport.authenticate())
-        .get(app.api.articles.views.getStats)
-    
+        .get(app.api.articles.likes.getLastLikes)
+        
+
+
+    /* STATS RESOURCES */
+
+    /* Resource for management of stats */
+    app.route('/stats')
+        .all(app.config.passport.authenticate())
+        .get(app.api.stats.countStats.get)
 
 }

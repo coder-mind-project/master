@@ -14,3 +14,12 @@ id int auto_increment primary key,
 month int,
 count bigint,
 generated_at timestamp)Engine=InnoDB default charset 'utf8';
+
+
+-- Likes table
+
+create table likes (
+id int auto_increment primary key,
+month int,
+count bigint,
+generated_at timestamp)Engine=InnoDB default charset 'utf8';

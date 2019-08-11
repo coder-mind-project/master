@@ -5,18 +5,20 @@ module.exports = app => {
     const { errorView } = app.config.managementHttpResponse
 
 
-    const countViewsPerArticle = async (_idArticle) => {
-        try {
-            const views = await View.findOne({'article._id': _idArticle}).count("id")
-            return views.length > 0 ? views.reduce(item => item).id : 0
-        } catch (error) {
-            throw error
-        }
-    }
+    // const countViewsPerArticle = async (_idArticle) => {
+    //     try {
+    //         const views = await View.findOne({'article._id': _idArticle}).count("id")
+    //         return views.length > 0 ? views.reduce(item => item).id : 0
+    //     } catch (error) {
+    //         throw error
+    //     }
+    // }
 
     const lastViews = (req, res) => {
         try {
             const limit = parseInt(req.query.limit) || 10
+
+            if(limit > 10) limit = 10
 
             View.aggregate([
                 {$sort: {startRead: -1}}
@@ -27,11 +29,13 @@ module.exports = app => {
         }
     }
 
-    const getStats = async (req, res) => {
-        app.mysql.query('select * from views order by id desc limit 1', (err, result) => {
-            if(!err) return res.json(result[0])
-            else return res.status(500).send(err)
-        })
+    const getStats = async () => {
+        try {
+            const views = await app.knex.select().from('views').orderBy('id', 'desc').first()
+            return {status: true, views}
+        } catch (error) {
+            return {status: error, views: {}}
+        }
     }
 
     const viewsJob = async () => {
@@ -46,14 +50,31 @@ module.exports = app => {
             '$lt': lastDay
         }})
         
-        app.mysql.query('insert into views (month, count) values(? , ?)',
-            [currentMonth , views], (err, results) => {
-                if(err) console.log(err)
-                else{
-                    console.log(`Visualizações atualizadas as ${new Date()}`)
-                }
+        app.knex('views').insert({month: currentMonth + 1, count: views}).then( () => {
+            console.log(`**CRON** | Visualizações atualizadas as ${new Date()}`)
         })
     }
+
+    const getViewsPerArticle = async (article, page, limit) => {
+
+        try {
+
+            if(!page) page = 1
+            if(!limit || limit > 100) limit = 10
+            
+            const count =  await View.find({'article._id': article._id}).countDocuments()
+            const views =  await View.aggregate([
+                {$match: {
+                    'article._id':  article._id,
+                }},
+                {$sort: {startRead: -1}}
+            ]).skip(page * limit - limit).limit(limit)
+
+            return {status: true, views, count}
+        } catch (error) {
+            return {status: false, views: [], count: 0}
+        }
+    }
     
-    return {getStats , viewsJob, lastViews}
+    return {getStats , viewsJob, lastViews, getViewsPerArticle}
 }

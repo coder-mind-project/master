@@ -243,29 +243,48 @@ module.exports = app => {
         const firstDay = new Date(currentYear, currentMonth, 1)
         const lastDay = new Date(currentYear, currentMonth, 31)
 
-        const views = await Comment.countDocuments({
+        const comments = await Comment.countDocuments({
             createdAt: {
                 '$gte': firstDay,
                 '$lt': lastDay
             },
             answerOf: null
         })
-        
-        app.mysql.query('insert into comments (month, count) values(? , ?)',
-            [currentMonth , views], (err, results) => {
-                if(err) console.log(err)
-                else{
-                    console.log(`Comentários atualizados as ${new Date()}`)
-                }
+
+        app.knex('comments').insert({month: currentMonth + 1, count: comments}).then( () => {
+            console.log(`**CRON** | Comentários atualizados as ${new Date()}`)
         })
     }
 
-    const getStats = (req, res) => {
-        app.mysql.query('select * from comments order by id desc limit 1', (err, result) => {
-            if(!err) return res.json(result[0])
-            else return res.status(500).send(err)
-        })
+    const getStats = async () => {
+        try {
+            const comments = await app.knex.select().from('comments').orderBy('id', 'desc').first()
+            return {status: true, comments}
+        } catch (error) {
+            return {status: error, comments: {}}
+        }
     }
 
-    return {get, readComment, sendComment, getHistory, commentsJob, getStats}
+    const getCommentsPerArticle = async (article, page, limit) => {
+        try {
+
+            if(!page) page = 1
+            if(!limit || limit > 100) limit = 10
+            
+            const count =  await Comment.find({'article._id': {$regex: `${article._id}`, $options: 'i'}, answerOf: null}).countDocuments()
+            const comments =  await Comment.aggregate([
+                {$match: {
+                    'article._id':  {$regex: `${article._id}`, $options: 'i'},
+                    answerOf: null
+                }},
+                {$sort: {startRead: -1}}
+            ]).skip(page * limit - limit).limit(limit)
+
+            return {status: true, comments, count}
+        } catch (error) {
+            return {status: false, comments: [], count: 0}
+        }
+    }
+
+    return {get, readComment, sendComment, getHistory, commentsJob, getStats, getCommentsPerArticle}
 }

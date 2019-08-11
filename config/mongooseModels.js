@@ -25,7 +25,7 @@ module.exports = app => {
         address: String,
         number: Number,
         password: String,
-        createdAt: {type: Date, default: MyDate.setTimeZone(-3)},
+        createdAt: {type: Date, default: new Date()},
         deleted: Boolean,
         expireToken: String,
         rescuePassword: String,
@@ -57,7 +57,7 @@ module.exports = app => {
         sharesCounter: Number,
         likesCounter: Number,
         dislikesCounter: Number,
-        createdAt: {type: Date, default: MyDate.setTimeZone(-3)},
+        createdAt: {type: Date, default: new Date()},
         updatedAt: Date,
         publishAt: Date,
         published: Boolean,
@@ -109,14 +109,14 @@ module.exports = app => {
     const View = app.mongo.model('views', view)
     
     
-    //Schema para os likes dos artigos
     const like = new app.mongo.Schema({
         _id: {type: app.mongo.Schema.ObjectId, auto: true},
+        reader: String,
+        createdAt: {type: Date, default: new Date()},
         article: Object,
-        reader: {type: Object, unique: true},
-        likedAt: {type: Date, default: MyDate.setTimeZone(-3)}
+        confirmed: Boolean
     })
-    
+
     const Like = app.mongo.model('likes', like)
     
     
@@ -130,7 +130,7 @@ module.exports = app => {
         confirmed: Boolean,
         readed: Boolean,
         answerOf: {type: Object, default: null},
-        createdAt: {type: Date, default: MyDate.setTimeZone(-3)}
+        createdAt: {type: Date, default: new Date()}
     })
 
     const Comment = app.mongo.model('comments', comment)
