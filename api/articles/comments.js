@@ -1,6 +1,6 @@
 module.exports = app => {
 
-    const { Comment } = app.config.mongooseModels
+    const { Comment, Article } = app.config.mongooseModels
 
     const { exists, validateEmail, validateLength } = app.config.validation
 
@@ -286,5 +286,31 @@ module.exports = app => {
         }
     }
 
-    return {get, readComment, sendComment, getHistory, commentsJob, getStats, getCommentsPerArticle}
+    const getComments = async (req, res) => {
+        try {
+            const page = parseInt(req.query.page) || 1
+            const limit = parseInt(req.query.limit) || 10
+
+            if(limit > 100) limit = 10
+
+            const _id = req.params.id
+
+            const article = await Article.findOne({_id})
+
+            const result = await getCommentsPerArticle(article, page, limit)
+
+            if(result.status){
+                const comments = result.comments
+                const count = result.count
+
+                return res.json({comments, count})
+            }else{
+                throw 'Ocorreu um erro ao encontrar os comentários'
+            }
+        } catch (error) {
+            return res.status(500).send(error)
+        }
+    }
+
+    return {get, readComment, sendComment, getHistory, commentsJob, getStats, getCommentsPerArticle, getComments}
 }

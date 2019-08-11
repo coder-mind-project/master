@@ -57,8 +57,14 @@ module.exports = app => {
         
     /* Resource for articles stats */
     app.route('/articles/stats/:id')
-        // .all(app.config.passport.authenticate())
+        .all(app.config.passport.authenticate())
         .get(app.api.stats.stats.get)
+
+    /* Resource for articles comments */
+    app.route('/articles/comments/:id')
+        .all(app.config.passport.authenticate())
+        .get(app.api.articles.comments.getComments)
+
 
         
     /* USERS RESORUCES */
