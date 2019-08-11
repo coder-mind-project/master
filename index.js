@@ -24,7 +24,7 @@ consign()
 .then('./config/routes.js')
 .into(app)
 
-const port = 3000
+const port = process.env.DEFAULTPORT || 3001
 
 app.listen(port, () => {
     console.log(`Server running at port ${port}`)

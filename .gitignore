@@ -4,4 +4,4 @@
 
 # img directories
 
-/public/imgs
+/public/imgs/*
