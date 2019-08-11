@@ -1,7 +1,1 @@
 /node_modules
-
-# secrets [tagSecret and authSecret]
-
-# img directories
-
-/public/imgs/*
