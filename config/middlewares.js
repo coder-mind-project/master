@@ -10,7 +10,8 @@ const cors = require('cors')
     Adicione somente mais origins em casos de novas
     aplicações que irão consumir a mesma
 */
-const whiteList = ['https://painel.codermind.com.br', 'https://codermind.com.br']
+
+//const whiteList = ['https://painel.codermind.com.br', 'https://codermind.com.br']
 
 /*      
     Configurações de acesso aos middlewares via cors
@@ -22,7 +23,6 @@ const whiteList = ['https://painel.codermind.com.br', 'https://codermind.com.br'
 
 const options = {
     origin: (origin, callback) => {
-        console.log(origin)
         if(whiteList.indexOf(origin) !== -1){
             callback(null, true)
         }else{
@@ -34,5 +34,5 @@ const options = {
 
 module.exports = app => {
     app.use(bodyParser.json({limit: '10mb'}))
-    app.use(cors(options))
+    app.use(cors())
 }
