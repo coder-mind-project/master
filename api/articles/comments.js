@@ -1,8 +1,15 @@
+const nodemailer = require('nodemailer')
+const { webApp } = require('../../.env')
+
 module.exports = app => {
 
     const { Comment, Article } = app.config.mongooseModels
 
-    const { exists, validateEmail, validateLength } = app.config.validation
+    const { validateLength } = app.config.validation
+
+    const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
+    
+    const clientUrl = webApp.local
 
     const get = async (req, res) => {
         try {
@@ -171,15 +178,13 @@ module.exports = app => {
             let answers = await Comment.aggregate([
                 {$match: {
                     $and: [
-                        {answerOf: {'$ne': null}}
+                        {answerOf: {'$ne': null}},
+                        {'answerOf._id': {$regex: `${result.comment._id}`, $options: 'i'}}
                     ]
                 }}
             ]).skip(page * limit - limit).limit(limit)
-
-            answers = answers.filter(answer => {
-                return answer.answerOf._id == result.comment._id
-            })
-
+            
+            
             const comment = result.comment
             const count = answers.length
             
@@ -208,13 +213,13 @@ module.exports = app => {
         }
     }
 
-    const sendComment = async (req, res) => {
+    const answerComment = (req, res) => {
         try {
             const comment = {...req.body}
             const user = req.user.user
 
             validateLength(comment.answer, 3000, 'bigger', 'Para o comentário é somente permitido 1000 caracteres')
-
+            
             const newComment = new Comment({
                 userName: user.name,
                 userEmail: user.email,
@@ -225,8 +230,12 @@ module.exports = app => {
                 answerOf: comment
             })
 
-            newComment.save().then(() => res.status(201).send('Resposta salva com sucesso'))
-                .catch(error => {
+            newComment.save().then( async () => {
+                await sendMailNotification(comment.userEmail, comment.userName, comment.article.title, comment.article.customURL, comment.article.author.name, comment.answer, comment.comment)
+                
+                return res.status(201).send('Resposta salva com sucesso')
+
+            }).catch(error => {
                     throw error
                 })
 
@@ -234,6 +243,62 @@ module.exports = app => {
             if(typeof error === 'string') return res.status(400).send(error)
             return res.status(500).send('Ocorreu um erro desconhecido, por favor tente mais tarde')
         }
+    }
+
+    const sendMailNotification = async (to, reader, article, urlArticle, author, answer, comment) => {
+        const transport = {
+            host: SMTP_SERVER,
+            port: PORT,
+            secure: SECURE,
+            auth: {
+                user: USER,
+                pass: PASSWORD
+            }
+        }
+
+        const transporter = nodemailer.createTransport(transport)
+
+        const mail = {
+            from: `Mensageiro Coder Mind <${USER}>`,
+            to,
+            subject: `Seu comentário foi respondido! - Coder Mind`,
+            text:   `Olá ${reader}, seu comentário no artigo ${article} foi respondido pelo autor ${author}.\n
+                    Sua pergunta: \n
+                    ${comment}\n
+                    Segue a mensagem: \n
+                    ${answer}\n
+                    Você também pode acessar o artigo abaixo: \n
+                    ${clientUrl}/artigos/${urlArticle}`,
+            html: `
+                    <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;">
+                        <div>
+                            <p>Olá <strong>${reader}</strong>, seu comentário no artigo <a href="${clientUrl}/artigos/${urlArticle}" style="color: #f50057; text-decoration: underline; font-weight: 600;">${article}</a> foi respondido pelo autor ${author}.</p>
+                            <br>
+                            <p>Sua pergunta: </p>
+                            <blockquote>
+                                ${comment}
+                            </blockquote>
+                            <p>Segue a mensagem:</p>
+                            <blockquote>
+                                ${answer}
+                            </blockquote>
+                            <br>
+                            <strong>Você também pode acessar o artigo pelo link:</strong>
+                            <br>
+                            <a href="${clientUrl}/artigos/${urlArticle}" style="color: #f50057; text-decoration: underline; font-weight: 600;">${clientUrl}/artigos/${urlArticle}</a>
+                            <br>
+                            <small>Sou um mensageiro digital, por favor não responda este e-mail. =D</small>
+                            <br>
+                            <small>Caso sinta dúvidas mais dúvidas basta entrar em contato no link <a href="${clientUrl}/contato" style="color: #f50057; text-decoration: underline; font-weight: 600;">${clientUrl}/sobre#contact</a> 
+                        </div>
+                    </div>
+            `,
+        }
+
+        const info = await transporter.sendMail(mail)
+
+        if(info.messageId) return true
+        else false
     }
 
     const commentsJob = async () => {
@@ -312,5 +377,5 @@ module.exports = app => {
         }
     }
 
-    return {get, readComment, sendComment, getHistory, commentsJob, getStats, getCommentsPerArticle, getComments}
+    return {get, readComment, answerComment, getHistory, commentsJob, getStats, getCommentsPerArticle, getComments}
 }

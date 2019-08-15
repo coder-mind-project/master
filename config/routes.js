@@ -83,9 +83,10 @@ module.exports = app => {
         .delete(app.api.users.users.remove)
         .patch(app.api.users.users.updateExtraInfo)
         .put(app.api.users.users.save)
-
-    /* Resource for img's management */
+        
+        /* Resource for img's management */
     app.route('/users/img/:id')
+        .all(app.config.passport.authenticate())
         .patch(multer.single('profilePhoto'), app.api.users.users.configProfilePhoto)
         .delete(app.api.users.users.removeProfilePhoto)
 
@@ -117,7 +118,7 @@ module.exports = app => {
         .post(app.api.categories.categories.save)
         
         /* Resource for management of categories with informed ID */
-        app.route('/categories/:id')
+    app.route('/categories/:id')
         .all(app.config.passport.authenticate())
         .delete(app.api.categories.categories.remove)
         .get(app.api.categories.categories.getOne)
@@ -137,7 +138,7 @@ module.exports = app => {
         .all(app.config.passport.authenticate())
         .get(app.api.articles.comments.get)
         .patch(app.api.articles.comments.readComment)
-        .post(app.api.articles.comments.sendComment)
+        .post(app.api.articles.comments.answerComment)
     
     app.route('/comments/history/:id')
         .all(app.config.passport.authenticate())
