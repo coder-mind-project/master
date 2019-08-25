@@ -308,7 +308,7 @@ module.exports = app => {
         const path = req.query.path
 
         try {
-            if(path !== 'smallImg' && path !== 'bigImg') throw 'Ocorreu um erro ao remover a imagem, se persistir reporte'
+            if(path !== 'smallImg' && path !== 'mediumImg' && path !== 'bigImg') throw 'Ocorreu um erro ao remover a imagem, se persistir reporte'
             
             const article = await Article.findOne({_id})
             if(!article) throw 'Artigo não encontrado'

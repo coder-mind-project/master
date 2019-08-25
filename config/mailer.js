@@ -8,7 +8,7 @@ module.exports = app => {
     const USER = smtpUser
     const PASSWORD = smtpPassword
 
-    const RECEIVER = 'awallan259@gmail.com'
+    const RECEIVER = 'allan.codermind@gmail.com'
 
 
     return { SMTP_SERVER, PORT, SECURE, USER, PASSWORD, RECEIVER}

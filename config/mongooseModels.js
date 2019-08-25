@@ -2,8 +2,6 @@
     Schemas de configurações para as coleções do mongoDB via Mongoose
 */
 
-const MyDate = require('./Date')
-
 module.exports = app => {
 
     
@@ -25,7 +23,6 @@ module.exports = app => {
         address: String,
         number: Number,
         password: String,
-        createdAt: {type: Date, default: new Date()},
         deleted: Boolean,
         expireToken: String,
         rescuePassword: String,
@@ -33,6 +30,10 @@ module.exports = app => {
         occupation: String,
         especiality: String,
         tagAuthor: String,
+    },{
+        timestamps: {
+            createdAt: 'created_at'
+        }
     })
 
     const User = app.mongo.model('users', user)
@@ -57,13 +58,15 @@ module.exports = app => {
         sharesCounter: Number,
         likesCounter: Number,
         dislikesCounter: Number,
-        createdAt: {type: Date, default: new Date()},
-        updatedAt: Date,
         publishAt: Date,
         published: Boolean,
         boosted: Boolean,
         deleted: Boolean,
-        inactivated: Boolean
+        inactivated: Boolean,
+    },{
+        timestamps: {
+            createdAt: 'created_at'
+        }
     })
     
     const Article = app.mongo.model('articles', article)
@@ -101,7 +104,7 @@ module.exports = app => {
     const view = new app.mongo.Schema({
         _id: {type: app.mongo.Schema.ObjectId, auto: true},
         reader: String,
-        startRead: {type: Date, default: MyDate.setTimeZone('-3')},
+        startRead: Date,
         article: Object,
         viewsQuantity: {type: Number, default: 1}
     })
@@ -112,9 +115,12 @@ module.exports = app => {
     const like = new app.mongo.Schema({
         _id: {type: app.mongo.Schema.ObjectId, auto: true},
         reader: String,
-        createdAt: {type: Date, default: new Date()},
         article: Object,
         confirmed: Boolean
+    },{
+        timestamps: {
+            createdAt: 'created_at'
+        }
     })
 
     const Like = app.mongo.model('likes', like)
@@ -129,8 +135,11 @@ module.exports = app => {
         article: Object,
         confirmed: Boolean,
         readed: Boolean,
-        answerOf: {type: Object, default: null},
-        createdAt: {type: Date, default: new Date()}
+        answerOf: {type: Object, default: null}
+    },{
+        timestamps: {
+            createdAt: 'created_at'
+        }
     })
 
     const Comment = app.mongo.model('comments', comment)
