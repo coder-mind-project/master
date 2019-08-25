@@ -9,7 +9,7 @@ module.exports = app => {
 
     const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
     
-    const clientUrl = webApp.local
+    const clientUrl = webApp.production
 
     const get = async (req, res) => {
         try {
@@ -231,13 +231,15 @@ module.exports = app => {
             })
 
             newComment.save().then( async () => {
-                await sendMailNotification(comment.userEmail, comment.userName, comment.article.title, comment.article.customURL, comment.article.author.name, comment.answer, comment.comment)
+                if(comment.confirmed){
+                    await sendMailNotification(comment.userEmail, comment.userName, comment.article.title, comment.article.customURL, comment.article.author.name, comment.answer, comment.comment)
+                }
                 
                 return res.status(201).send('Resposta salva com sucesso')
 
             }).catch(error => {
-                    throw error
-                })
+                throw error
+            })
 
         } catch (error) {
             if(typeof error === 'string') return res.status(400).send(error)
@@ -246,6 +248,7 @@ module.exports = app => {
     }
 
     const sendMailNotification = async (to, reader, article, urlArticle, author, answer, comment) => {
+        
         const transport = {
             host: SMTP_SERVER,
             port: PORT,

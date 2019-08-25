@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 //Configuração de referencias de conexão com o banco de dados
 const {dbLocal, dbProduction} = require('../.env')
 
-const config = dbLocal
+const config = dbProduction
 
 const url = config.mongo.url
 const user = config.mongo.user

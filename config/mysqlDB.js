@@ -5,7 +5,7 @@ const {dbLocal, dbProduction} = require('../.env')
 
 module.exports = app => {
 
-    const connection = knex(dbLocal.mysql);
+    const connection = knex(dbProduction.mysql);
 
     app.knex = connection
 }
