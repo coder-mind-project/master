@@ -33,7 +33,7 @@ module.exports = app => {
         const firstDay = new Date(currentYear, currentMonth, 1)
         const lastDay = new Date(currentYear, currentMonth, 31)
 
-        const likes = await Like.countDocuments({createdAt: {
+        const likes = await Like.countDocuments({created_at: {
             '$gte': firstDay,
             '$lt': lastDay
         }})
