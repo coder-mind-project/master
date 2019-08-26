@@ -313,7 +313,7 @@ module.exports = app => {
         const lastDay = new Date(currentYear, currentMonth, 31)
 
         const comments = await Comment.countDocuments({
-            createdAt: {
+            created_at: {
                 '$gte': firstDay,
                 '$lt': lastDay
             },
