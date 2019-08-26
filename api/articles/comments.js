@@ -268,33 +268,34 @@ module.exports = app => {
             text:   `Olá ${reader}, seu comentário no artigo ${article} foi respondido pelo autor ${author}.\n
                     Sua pergunta: \n
                     ${comment}\n
-                    Segue a mensagem: \n
+                    Resposta do autor ${author}: \n
                     ${answer}\n
                     Você também pode acessar o artigo abaixo: \n
                     ${clientUrl}/artigos/${urlArticle}`,
             html: `
-                    <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;">
-                        <div>
-                            <p>Olá <strong>${reader}</strong>, seu comentário no artigo <a href="${clientUrl}/artigos/${urlArticle}" style="color: #f50057; text-decoration: underline; font-weight: 600;">${article}</a> foi respondido pelo autor ${author}.</p>
-                            <br>
-                            <p>Sua pergunta: </p>
-                            <blockquote>
-                                ${comment}
-                            </blockquote>
-                            <p>Segue a mensagem:</p>
-                            <blockquote>
-                                ${answer}
-                            </blockquote>
-                            <br>
-                            <strong>Você também pode acessar o artigo pelo link:</strong>
-                            <br>
-                            <a href="${clientUrl}/artigos/${urlArticle}" style="color: #f50057; text-decoration: underline; font-weight: 600;">${clientUrl}/artigos/${urlArticle}</a>
-                            <br>
-                            <small>Sou um mensageiro digital, por favor não responda este e-mail. =D</small>
-                            <br>
-                            <small>Caso sinta dúvidas mais dúvidas basta entrar em contato no link <a href="${clientUrl}/contato" style="color: #f50057; text-decoration: underline; font-weight: 600;">${clientUrl}/sobre#contact</a> 
-                        </div>
+                <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: #444; height: 100vh;">
+                    <div style="border: 1px solid #888; border-radius: 15px; padding: 15px; background-color: #fff;">
+                        <h1>Coder Mind</h1>
+                        <p>Olá <strong>${reader}</strong>, seu comentário no artigo <a href="${clientUrl}/artigos/${urlArticle}" style="color: #f50057; text-decoration: underline; font-weight: 600;">${article}</a> foi respondido pelo autor ${author}.</p>
+                        <br>
+                        <p>Sua pergunta: </p>
+                        <blockquote>
+                            ${comment}
+                        </blockquote>
+                        <p>Resposta do autor ${author}:</p>
+                        <blockquote>
+                            ${answer}
+                        </blockquote>
+                        <br>
+                        <strong>Você também pode acessar o artigo pelo link:</strong>
+                        <br>
+                        <a href="${clientUrl}/artigos/${urlArticle}" style="color: #f50057; text-decoration: underline; font-weight: 600;">${clientUrl}/artigos/${urlArticle}</a>
+                        <br>
+                        <small>Sou um mensageiro digital, por favor não responda este e-mail. =D</small>
+                        <br>
+                        <small>Caso sinta dúvidas ou deseje reportar algum bug basta entrar em contato no link <a href="${clientUrl}/sobre#contact" style="color: #f50057; text-decoration: underline; font-weight: 600;">${clientUrl}/sobre#contact</a> 
                     </div>
+                </div>
             `,
         }
 
