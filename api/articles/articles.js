@@ -145,6 +145,8 @@ module.exports = app => {
                     customURL: article.customURL,
                     author: article.author,
                     shortDescription: article.shortDescription,
+                    youtube: article.youtube,
+                    github: article.github,
                     textArticle: article.textArticle,
                     published: false,
                     boosted: false,
@@ -170,7 +172,6 @@ module.exports = app => {
                 })
             }else{
                     const _id = article._id
-                    article.updatedAt = MyDate.setTimeZone('-3')
 
                     if(!(article.category && article.category._id))
                         article.category = {
