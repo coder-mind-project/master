@@ -48,6 +48,8 @@ module.exports = app => {
         category: Object,
         shortDescription: String,
         longDescription: String,
+        youtube: String,
+        github: String,
         textArticle: String,
         smallImg: String,
         mediumImg: String,
