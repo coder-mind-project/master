@@ -31,9 +31,5 @@ module.exports = app => {
     }
 
 
-    const getViews = (article) => {
-
-    }
-
     return { get }
 }

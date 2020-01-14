@@ -6,7 +6,7 @@ module.exports = app => {
     const { User } = app.config.mongooseModels
     
     // Validação de dados
-    const { exists, validateEmail, validateCpf, validatePassword } = app.config.validation
+    const { exists, validateEmail, validateCpf, validatePassword, isEqual } = app.config.validation
     
     // Configurações extras
     const { encryptTag, encryptAuth } = app.config.secrets
@@ -25,6 +25,8 @@ module.exports = app => {
             const query = req.query.query || ''
             const page = req.query.page || 1
 
+            const deleted = Boolean(req.query.deleted) || false
+
             if(limit > 100) limit = 10
 
             let count = await User.aggregate([
@@ -36,7 +38,7 @@ module.exports = app => {
                         {telphone: {$regex: `${query}`, $options: 'i'}},
                         {celphone: {$regex: `${query}`, $options: 'i'}},
                     ]},
-                    {deleted: false}
+                    {deleted: deleted}
                 ]}}
             ]).count('id')
 
@@ -51,7 +53,7 @@ module.exports = app => {
                         {telphone: {$regex: `${query}`, $options: 'i'}},
                         {celphone: {$regex: `${query}`, $options: 'i'}},
                     ]},
-                    {deleted: false}
+                    {deleted: deleted}
                 ]}}
             ]).skip(page * limit - limit).limit(limit).then(users => {
                 users = users.map(user => {
@@ -143,11 +145,20 @@ module.exports = app => {
     }
 
     const updateExtraInfo = async (req, res) => {
+        /* Responsável por atualizar as informações sociais (ou informações extras) do usuario/autor */
         const user = {...req.body}
         const _id = req.params.id
+
         try {
             if(!_id) throw 'Usuário não encontrado'
             
+            if(user.customUrl){
+                const customUrl = user.customUrl
+                const existsUser = await User.findOne({customUrl, _id: {'$ne': _id}})
+                
+                if(existsUser) throw 'Está Url customizada já esta associada a outro usuário, tente uma outra url'
+            }
+
             User.updateOne({_id}, user)
                 .then( () => res.status(204).send())
         } catch (error) {
@@ -181,18 +192,42 @@ module.exports = app => {
         try {
             const _id = req.params.id
             const userRequest = req.user.user
+            let password = ''
 
             if(!_id) throw 'Usuário não encontrado'
-
 
             if(!userRequest.tagAdmin && userRequest._id !== _id)
                 throw 'Acesso negado, somente administradores podem remover outros usuários'
             
-            const {User} = app.config.mongooseModels
+            if(req.method === 'PUT'){
+                exists(req.body.password, 'Senha não informada')
+                
+                password = await encryptAuth(req.body.password)
+                const user = await User.findOne({_id}, {_id, password})
+                if(!user) throw 'Usuário não encontrado'
+
+                if(password !== user.password) throw 'Senha incorreta'
+            }
+
             const update = await User.updateOne({_id}, {deleted: true})
             
             if(update.nModified > 0) return res.status(204).send()
             else throw 'Este usuário já foi removido'
+        } catch (error) {
+            error = await userError(error)
+            return res.status(error.code).send(error.msg)
+        }
+    }
+
+    const restore = async (req, res) => {
+        // Responsável por restaurar o usuário
+        try {
+            const _id = req.params.id
+            
+            const update = await User.updateOne({_id}, {deleted: false})
+            
+            if(update.nModified > 0) return res.status(204).send()
+            else throw 'Este usuário já foi restaurado'
         } catch (error) {
             error = await userError(error)
             return res.status(error.code).send(error.msg)
@@ -212,6 +247,26 @@ module.exports = app => {
             validatePassword(user.password, 8)
             const password = encryptAuth(user.password)
             const _id = user._id
+            User.updateOne({_id},{password}).then(() => res.status(204).send())
+        } catch (error) {
+            error = await userError(error)
+            return res.status(error.code).send(error.msg)
+        }
+    }
+
+    const changeMyPassword = async (req, res) => {
+        /* Middleware responsável por alterar a senha do usuario da requisição */
+
+        try {
+            const pass = {...req.body}
+            const _id = req.params.id
+
+            validatePassword(pass.firstField, 8, 'Senha inválida, é necessário pelo menos 8 caracteres')
+            validatePassword(pass.secondField, 8, 'Senha confirmada inválida, é necessário pelo menos 8 caracteres')
+            isEqual(pass.firstField, pass.secondField, 'As senhas não coincidem')
+
+            const password = encryptAuth(pass.firstField)
+
             User.updateOne({_id},{password}).then(() => res.status(204).send())
         } catch (error) {
             error = await userError(error)
@@ -275,8 +330,64 @@ module.exports = app => {
         }
     }
 
+    const validateAdminPassword = async (req, res) => {
+        try {
+            const _id = req.user.user._id
+            const password = req.body.password
+
+            exists(password, 'É necessário informar sua senha para prosseguir')
+            
+            
+            const user = await User.findOne({_id, deleted: false})
+            if(!user) throw 'Usuário não encontrado'
+            
+            const pass = await encryptAuth(password)
+
+            if(user.password === pass) return res.status(204).send()
+            else throw 'Senha inválida'
+        } catch (error) {
+            error = await userError(error)
+            res.status(error.code).send(error.msg)
+        }
+    }
+
+    const validateUserPass = async (_id, password) => {
+        // Responsável por validar a senha atual do usuário
+        try {
+            const pass = await encryptAuth(password)
+
+            const user = await User.findOne({_id})
+
+            if(!user) throw 'Usuário não encontrado'
+
+            return user.password === pass
+        } catch (error) {
+            return error
+        }
+    } 
+
+    const validateUserPassword = async (req, res) => {
+        //Middleware responsável por validar a senha atual do usuário
+        try {
+            const _id = req.body._id
+            let password = req.body.password
+
+            const accepted = await validateUserPass(_id, password)
+
+            if(typeof accepted === 'string' && Boolean(accepted)) throw accepted
+            if(!accepted) throw 'Senha incorreta'
+            
+            res.status(204).send()
+        } catch (error) {
+            error = await userError(error)
+            res.status(error.code).send(error.msg)
+        }
+    }
+
+
     return {get, getOne, save, remove,
             changePassword, updateExtraInfo,
-            configProfilePhoto, removeProfilePhoto}
+            configProfilePhoto, removeProfilePhoto, changeMyPassword,
+            validateAdminPassword, restore, validateUserPassword}
 
 }

@@ -3,7 +3,7 @@ const { webApp } = require('../../.env')
 
 module.exports = app => {
 
-    const { Comment, Article } = app.config.mongooseModels
+    const { Comment, Article, User } = app.config.mongooseModels
 
     const { validateLength } = app.config.validation
 
@@ -312,6 +312,26 @@ module.exports = app => {
         const firstDay = new Date(currentYear, currentMonth, 1)
         const lastDay = new Date(currentYear, currentMonth, 31)
 
+
+        // Estatísticas para cada usuário da plataforma
+        
+        // Obter o arrays de _ids dos usuários
+        const users = await User.find({}, {_id: 1})
+        
+        // Percorre o array obtendo as views e inserindo as views no banco SQL
+        users.map(async user => {
+            const userComments = await Comment.countDocuments(
+                {created_at: {
+                    '$gte': firstDay,
+                    '$lt': lastDay
+                },
+                'article.author._id': user.id
+            })
+            
+            await app.knex('comments').insert({month: currentMonth + 1, count: userComments, year: currentYear, reference: user.id})
+        })
+
+        /* Estatísticas gerais de plataforma */
         const comments = await Comment.countDocuments({
             created_at: {
                 '$gte': firstDay,
@@ -320,14 +340,14 @@ module.exports = app => {
             answerOf: null
         })
 
-        app.knex('comments').insert({month: currentMonth + 1, count: comments}).then( () => {
+        app.knex('comments').insert({month: currentMonth + 1, count: comments, year: currentYear}).then( () => {
             console.log(`**CRON** | Comentários atualizados as ${new Date()}`)
         })
     }
 
-    const getStats = async () => {
+    const getStats = async (_id) => {
         try {
-            const comments = await app.knex.select().from('comments').orderBy('id', 'desc').first()
+            const comments = _id ? await app.knex.select().from('comments').where('reference', _id).orderBy('id', 'desc').first() : await app.knex.select().from('comments').whereNull('reference').orderBy('id', 'desc').first()
             return {status: true, comments}
         } catch (error) {
             return {status: error, comments: {}}

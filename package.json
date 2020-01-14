@@ -1,6 +1,6 @@
 {
   "name": "api-coder-mind-gestao",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Uma api para fornecer informações a aplicações que desfrutarão do 'gestão' da plataforma",
   "main": "index.js",
   "scripts": {

@@ -1,20 +1,10 @@
 module.exports = app => {
     
-    const { View } = app.config.mongooseModels
+    const { View, User } = app.config.mongooseModels
 
-    const { errorView } = app.config.managementHttpResponse
-
-
-    // const countViewsPerArticle = async (_idArticle) => {
-    //     try {
-    //         const views = await View.findOne({'article._id': _idArticle}).count("id")
-    //         return views.length > 0 ? views.reduce(item => item).id : 0
-    //     } catch (error) {
-    //         throw error
-    //     }
-    // }
 
     const lastViews = (req, res) => {
+        /** Obtem as ultimas visualizações dos artigos [FUNÇÃO NÃO UTILIZADA] */
         try {
             const limit = parseInt(req.query.limit) || 10
 
@@ -29,9 +19,40 @@ module.exports = app => {
         }
     }
 
-    const getStats = async () => {
+    const getViews = async (req, res) => {
+        /* Obtem as visualizações permitindo uma serie de filtros */
         try {
-            const views = await app.knex.select().from('views').orderBy('id', 'desc').first()
+            const limit = parseInt(req.query.limit) || 10
+
+            const article = req.query.art || ''
+            const dateBegin = req.query.db ? new Date(req.query.db) : new Date(new Date().setFullYear(new Date().getFullYear() - 100))
+            const dateEnd = req.query.de ? new Date(req.query.de) : new Date(new Date().setFullYear(new Date().getFullYear() + 100))
+
+            if(limit > 10) limit = 10
+            
+            View.aggregate([
+                {$match: 
+                    {   'article.title': {$regex: `${article}`, $options: 'i'},
+                        startRead: {
+                            $gte: dateBegin,
+                            $lte: dateEnd
+                        }
+                    }
+                }, 
+                {$sort: {startRead: -1}}
+            ]).limit(limit).then(views => {
+                return res.json({views})
+            })
+            
+        } catch (error) {
+            res.status(500).send(error)
+        }
+    }
+
+    const getStats = async (_id) => {
+        /* Obtem a quantidade de visualizações mais atualizada da base de dados SQL */
+        try {
+            const views = _id ? await app.knex.select().from('views').where('reference', _id).orderBy('id', 'desc').first() : await app.knex.select().from('views').whereNull('reference').orderBy('id', 'desc').first()
             return {status: true, views}
         } catch (error) {
             return {status: error, views: {}}
@@ -39,24 +60,48 @@ module.exports = app => {
     }
 
     const viewsJob = async () => {
+        /* Responsável por migrar as informações de quantidade de visualizações da base NOSQL para SQL */
 
         const currentMonth = (new Date().getMonth())
         const currentYear = (new Date().getFullYear())
         const firstDay = new Date(currentYear, currentMonth, 1)
         const lastDay = new Date(currentYear, currentMonth, 31)
 
+        
+        // Estatísticas para cada usuário da plataforma
+        
+        // Obter o arrays de _ids dos usuários
+        const users = await User.find({}, {_id: 1})
+        
+        // Percorre o array obtendo as views e inserindo as views no banco SQL
+        users.map(async user => {
+            const userViews = await View.countDocuments(
+                {startRead: {
+                    '$gte': firstDay,
+                    '$lt': lastDay
+                },
+                'article.author._id': user.id
+            })
+            
+            await app.knex('views').insert({month: currentMonth + 1, count: userViews, year: currentYear, reference: user.id})
+        })
+
+        
+        /* Estatísticas gerais de plataforma */
         const views = await View.countDocuments({startRead: {
             '$gte': firstDay,
             '$lt': lastDay
         }})
-        
-        app.knex('views').insert({month: currentMonth + 1, count: views}).then( () => {
+
+        app.knex('views').insert({month: currentMonth + 1, count: views, year: currentYear}).then( () => {
             console.log(`**CRON** | Visualizações atualizadas as ${new Date()}`)
         })
+
+        
     }
 
     const getViewsPerArticle = async (article, page, limit) => {
-
+        /* Obtem as estatisticas de visualização por um artigo especifico */
         try {
 
             if(!page) page = 1
@@ -75,6 +120,106 @@ module.exports = app => {
             return {status: false, views: [], count: 0}
         }
     }
+
+    const getChartViews = async (limit = 10) => {
+        try {
+            const viewsByArticle = await getViewsByArticle(limit)
+            const viewsByAuthor = await getViewsByAuthor(limit)
+
+            const data = {
+                byArticle: viewsByArticle,
+                byAuthor: viewsByAuthor
+            }
+
+            return data
+        } catch (error) {
+            throw error
+        }
+    }
+
+    const getViewsByArticle = async (limit) => {
+        const views = await View.aggregate([
+            {$group: 
+                {   _id:  "$article._id",
+                    count: {$sum: 1}
+                }
+            },
+            {$lookup: 
+                {
+                    from: "articles",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "article"
+                }
+            }
+        ]).limit(limit)
+
+        const data = await views.map( elem => {
+            return {
+                _id: elem._id,
+                title: elem.article[0].title,
+                article: elem.article[0],
+                quantity: elem.count
+            }
+        })
+
+        let chartData = {
+            articles: [],
+            articleId: [],
+            views: [],
+            originalData: data 
+        }
+
+        for (let i = 0; i < data.length; i++) {
+            chartData.articles.push(data[i].title)
+            chartData.articleId.push(data[i]._id)
+            chartData.views.push(data[i].quantity)
+        }
+
+        return chartData
+    }
+
+    const getViewsByAuthor = async (limit) => {
+        const views = await View.aggregate([
+            {$group: 
+                {   _id:  {$toObjectId: "$article.author._id"},
+                    count: {$sum: 1}
+                }
+            },
+            {$lookup: 
+                {
+                    from: "users",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "author"
+                }
+            }
+        ]).limit(limit)
+
+        const data = await views.map( elem => {
+            return {
+                _id: elem._id,
+                name: elem.author[0].name,
+                author: elem.author[0],
+                quantity: elem.count
+            }
+        })
+
+        let chartData = {
+            authors: [],
+            authorId: [],
+            views: [],
+            originalData: data 
+        }
+
+        for (let i = 0; i < data.length; i++) {
+            chartData.authors.push(data[i].author.name)
+            chartData.authorId.push(data[i]._id)
+            chartData.views.push(data[i].quantity)
+        }
+
+        return chartData
+    }
     
-    return {getStats , viewsJob, lastViews, getViewsPerArticle}
+    return {getStats , viewsJob, lastViews, getViewsPerArticle, getViews, getChartViews}
 }

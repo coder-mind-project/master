@@ -209,8 +209,18 @@ module.exports = app => {
         if( error.trim() === '' ) return reformulatedError
 
         switch(error){
-            case 'Acesso não autorizado':{
+            case 'Acesso não autorizado':
+            case 'Token inválido, solicite uma nova recuperação de senha':
+            case 'Token expirado, solicite uma nova recuperação de senha':{
                 reformulatedError.code = 401
+                break
+            }
+            case 'Token não informado':{
+                reformulatedError.code = 400
+                break
+            }
+            case 'Usuário não encontrado':{
+                reformulatedError.code = 404
                 break
             }
         }
@@ -275,12 +285,16 @@ module.exports = app => {
             case 'CPF inválido':
             case 'Número de telefone inválido':
             case 'Número de celular inválido':
-            case 'Ja existe cadastro com essas informações':{
+            case 'Ja existe cadastro com essas informações':
+            case 'Está Url customizada já esta associada a outro usuário, tente uma outra url':
+            case 'É necessário informar sua senha para prosseguir':
+            case 'Senha inválida':{
                 reformulatedError.code = 400
                 break
             }
             case 'Acesso negado, somente administradores podem remover outros usuários':
-            case 'Acesso negado, somente administradores podem alterar a senha de outros usuários': {
+            case 'Acesso negado, somente administradores podem alterar a senha de outros usuários':
+            case 'Senha incorreta': {
                 reformulatedError.code = 401
                 break
             }
@@ -289,7 +303,8 @@ module.exports = app => {
                 break
             }
             case 'Este usuário já foi removido':
-            case 'Imagem já removida': {
+            case 'Imagem já removida':
+            case 'Este usuário já foi restaurado': {
                 reformulatedError.code = 410
                 break
             }
@@ -322,8 +337,58 @@ module.exports = app => {
         return reformulatedError 
     }
 
+    const notAcceptableResource = (error) => {
+        const reformulatedError = {
+            code: 500,
+            msg: 'Ocorreu um erro desconhecido, se persistir reporte'
+        }
+        
+        if( typeof error !== 'string' ) return reformulatedError
+        if( error.trim() === '' ) return reformulatedError
+
+        switch(error){
+            case 'Recurso não disponível para o usuário':{
+                reformulatedError.code = 406
+                break
+            }
+        }
+
+        reformulatedError.msg = error
+
+        return reformulatedError 
+    }
+
+
+    const errorRedeemPassword = (error) => {
+        const reformulatedError = {
+            code: 500,
+            msg: 'Ocorreu um erro desconhecido, se persistir reporte'
+        }
+        
+        if( typeof error !== 'string' ) return reformulatedError
+        if( error.trim() === '' ) return reformulatedError
+
+        switch(error){
+            case 'Insira uma senha válida, de no mínimo 8 caracteres':
+            case 'Confirmação de senha inválida, informe no mínimo 8 caracteres':
+            case 'As senhas não conferem':{
+                reformulatedError.code = 400
+                break
+            }
+            case 'Ocorreu um erro ao alterar sua senha, se persistir reporte':{
+                reformulatedError.code = 506
+                break
+            }
+        }
+
+        reformulatedError.msg = error
+
+        return reformulatedError 
+    }
+
 
     return {errorTheme, errorCategory, errorArticle,
         errorManagementArticles, validateTokenManagement,
-        signInError, userError, errorView}
+        signInError, userError, errorView, notAcceptableResource,
+        errorRedeemPassword}
 } 

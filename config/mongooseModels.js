@@ -24,12 +24,14 @@ module.exports = app => {
         number: Number,
         password: String,
         deleted: Boolean,
-        expireToken: String,
-        rescuePassword: String,
+        token: String,
         tagAdmin: String,
         occupation: String,
         especiality: String,
         tagAuthor: String,
+        customUrl: {type: String, unique: true},
+        publicProfile: {type: Boolean, default: false},
+        platformStats: {type: Boolean, default: false}
     },{
         timestamps: {
             createdAt: 'created_at'

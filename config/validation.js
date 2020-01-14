@@ -194,5 +194,68 @@ module.exports = app => {
         }
     }
 
-    return {exists, notExists, isEqual, notEqual, validatePassword, validateEmail, validateCpf, validateRg, validateCnpj, validateBirthDate, validatePostalCode, validateLength} 
+    function defineMonthDescribed(monthInNumber){
+        try {
+            if(!(monthInNumber && !isNaN(monthInNumber))) throw 'O número informado não é numérico'
+            
+            let month = ''
+            switch(monthInNumber){
+                case 1: {
+                    month = 'JANEIRO'
+                    break
+                }
+                case 2: {
+                    month = 'FEVEREIRO'
+                    break
+                }
+                case 3: {
+                    month = 'MARÇO'
+                    break
+                }
+                case 4: {
+                    month = 'ABRIL'
+                    break
+                }
+                case 5: {
+                    month = 'MAIO'
+                    break
+                }
+                case 6: {
+                    month = 'JUNHO'
+                    break
+                }
+                case 7: {
+                    month = 'JULHO'
+                    break
+                }
+                case 8: {
+                    month = 'AGOSTO'
+                    break
+                }
+                case 9: {
+                    month = 'SETEMBRO'
+                    break
+                }
+                case 10: {
+                    month = 'OUTUBRO'
+                    break
+                }
+                case 11: {
+                    month = 'NOVEMBRO'
+                    break
+                }
+                case 12: {
+                    month = 'DEZEMBRO'
+                    break
+                }
+            }
+
+            return month
+
+        } catch (error) {
+            return error
+        }
+    }
+
+    return {exists, notExists, isEqual, notEqual, validatePassword, validateEmail, validateCpf, validateRg, validateCnpj, validateBirthDate, validatePostalCode, validateLength, defineMonthDescribed} 
 }

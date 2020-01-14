@@ -1,4 +1,5 @@
 const multer = require('./multer')
+const {isAdmin} = require('./accessLevel')
 
 module.exports = app => {
 
@@ -15,6 +16,10 @@ module.exports = app => {
         .patch(app.api.auth.auth.redeemPerEmail)
         .put(app.api.auth.auth.redeemPerMoreInformations)
 
+    app.route('/auth/logged')
+        .all(app.config.passport.authenticate())
+        .patch(isAdmin(app.api.users.users.validateAdminPassword))
+        .put(app.api.users.users.validateUserPassword)
 
     /* Resource for verify authentication */
     app.route('/validate_token')
@@ -23,6 +28,10 @@ module.exports = app => {
         
     app.route('/configurations/start')
         .post(app.api.config.startApplication.start)
+
+    app.route('/redeem-password')
+        .post(app.api.auth.auth.validateTokenForRedeemAccount)
+        .patch(app.api.auth.auth.newPassFromRedeemAccount)
 
     
 
@@ -66,30 +75,37 @@ module.exports = app => {
         .get(app.api.articles.comments.getComments)
 
 
-        
     /* USERS RESORUCES */
 
     /* Resource for general management. Ex: get some users, create, update, change passwords */
     app.route('/users')
         .all(app.config.passport.authenticate())
-        .get(app.api.users.users.get)
-        .post(app.api.users.users.save)
-        .patch(app.api.users.users.changePassword)
+        .get(isAdmin(app.api.users.users.get))
+        .post(isAdmin(app.api.users.users.save))
+        .patch(isAdmin(app.api.users.users.changePassword))
+
         
     /* Resource for management of users with informed ID */
     app.route('/users/:id')
         .all(app.config.passport.authenticate())
         .get(app.api.users.users.getOne)
         .delete(app.api.users.users.remove)
+        .post(app.api.users.users.changeMyPassword)
         .patch(app.api.users.users.updateExtraInfo)
         .put(app.api.users.users.save)
         
-        /* Resource for img's management */
+    app.route('/users/configs/:id')
+        .all(app.config.passport.authenticate())
+        .patch(isAdmin(app.api.users.users.restore))
+        .put(app.api.users.users.remove)
+        
+        
+    /* Resource for img's management */
     app.route('/users/img/:id')
         .all(app.config.passport.authenticate())
         .patch(multer.single('profilePhoto'), app.api.users.users.configProfilePhoto)
         .delete(app.api.users.users.removeProfilePhoto)
-
+    
 
         
     /* THEMES RESOURCES */
@@ -98,14 +114,14 @@ module.exports = app => {
     app.route('/themes')
         .all(app.config.passport.authenticate())
         .get(app.api.themes.themes.get)
-        .post(app.api.themes.themes.save)
+        .post(isAdmin(app.api.themes.themes.save))
         
     /* Resource for management of themes with informed ID */
     app.route('/themes/:id')
         .all(app.config.passport.authenticate())
         .get(app.api.themes.themes.getOne)
-        .delete(app.api.themes.themes.remove)
-        .put(app.api.themes.themes.save)
+        .delete(isAdmin(app.api.themes.themes.remove))
+        .put(isAdmin(app.api.themes.themes.save))
         
 
 
@@ -115,14 +131,14 @@ module.exports = app => {
     app.route('/categories')
         .all(app.config.passport.authenticate())
         .get(app.api.categories.categories.get)
-        .post(app.api.categories.categories.save)
+        .post(isAdmin(app.api.categories.categories.save))
         
-        /* Resource for management of categories with informed ID */
+    /* Resource for management of categories with informed ID */
     app.route('/categories/:id')
         .all(app.config.passport.authenticate())
-        .delete(app.api.categories.categories.remove)
+        .delete(isAdmin(app.api.categories.categories.remove))
         .get(app.api.categories.categories.getOne)
-        .put(app.api.categories.categories.save)
+        .put(isAdmin(app.api.categories.categories.save))
     
     /* Resource for management of categories through theme's ID */
     app.route('/categories/theme/:id')
@@ -151,8 +167,7 @@ module.exports = app => {
     /* Resource for management of views */
     app.route('/views')
         .all(app.config.passport.authenticate())
-        .get(app.api.articles.views.lastViews)
-    
+        .get(app.api.articles.views.getViews)
 
 
     /* LIKES RESOURCES */
@@ -170,5 +185,18 @@ module.exports = app => {
     app.route('/stats')
         .all(app.config.passport.authenticate())
         .get(app.api.stats.countStats.get)
+        
+    app.route('/stats/sincronization')
+        .all(app.config.passport.authenticate())
+        .get(app.api.stats.countStats.lastSincronization)
+        .post(isAdmin(app.api.stats.countStats.sincronizeManually))
+        
+    app.route('/stats/articles')
+        .all(app.config.passport.authenticate())
+        .get(app.api.stats.countStats.getArticleStatsForChart)
+
+    app.route('/stats/authors')
+        .all(app.config.passport.authenticate())
+        .patch(app.api.users.stats.definePlatformStats)
 
 }
