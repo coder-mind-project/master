@@ -10,19 +10,36 @@ module.exports = app => {
             const dateBegin = req.query.db ? new Date(req.query.db) : new Date(new Date().setFullYear(new Date().getFullYear() - 100))
             const dateEnd = req.query.de ? new Date(req.query.de) : new Date(new Date().setFullYear(new Date().getFullYear() + 100))
 
+            const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
+
             if(limit > 10) limit = 10
 
-            Like.aggregate([
-                { $match: {   
-                        'article.title': {$regex: `${article}`, $options: 'i'},
-                        updatedAt: {
-                            $gte: dateBegin,
-                            $lte: dateEnd
+            if(user){
+                Like.aggregate([
+                    { $match: {   
+                            'article.title': {$regex: `${article}`, $options: 'i'},
+                            updatedAt: {
+                                $gte: dateBegin,
+                                $lte: dateEnd
+                            },
+                            'article.author._id': user
                         }
-                    }
-                },
-                {$sort: {updatedAt: -1}}
-            ]).limit(limit).then(likes => res.json({likes, limit}))
+                    },
+                    {$sort: {updatedAt: -1}}
+                ]).limit(limit).then(likes => res.json({likes, limit}))
+            }else{
+                Like.aggregate([
+                    { $match: {   
+                            'article.title': {$regex: `${article}`, $options: 'i'},
+                            updatedAt: {
+                                $gte: dateBegin,
+                                $lte: dateEnd
+                            }
+                        }
+                    },
+                    {$sort: {updatedAt: -1}}
+                ]).limit(limit).then(likes => res.json({likes, limit}))
+            }
 
         } catch (error) {
             return res.status(500).send('Ocorreu um erro ao obter as ultimas avaliações')
@@ -75,7 +92,6 @@ module.exports = app => {
         })
     }
 
-
     const getLikesPerArticle = async (article) => {
 
         try {
@@ -87,5 +103,124 @@ module.exports = app => {
         }
     }
 
-    return { getLastLikes, getStats, likesJob, getLikesPerArticle }
+    const getChartLikes = async (user = null, limit = 10) => {
+        try {
+            const likesByArticle = await getLikesByArticle(user, limit)
+            const likesByAuthor = await getLikesByAuthor(limit)
+
+            const data = {
+                byArticle: likesByArticle,
+                byAuthor: likesByAuthor
+            }
+
+            return data
+        } catch (error) {
+            throw error
+        }
+    }
+
+    const getLikesByArticle = async (user, limit) => {
+        
+        const likes = user ? await Like.aggregate([
+            {$match: {
+                'article.author._id': user
+            }},
+            {$group: 
+                {   _id:  {$toObjectId: "$article._id"},
+                    count: {$sum: 1},
+                }
+            },
+            {$lookup: 
+                {
+                    from: "articles",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "article"
+                }
+            }
+        ]).limit(limit) : await Like.aggregate([
+            {$match: {}},
+            {$group: 
+                {   _id:  {$toObjectId: "$article._id"},
+                    count: {$sum: 1}
+                }
+            },
+            {$lookup: 
+                {
+                    from: "articles",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "article"
+                }
+            }
+        ]).limit(limit)
+
+        const data = await likes.map( elem => {
+            return {
+                _id: elem._id,
+                title: elem.article[0].title,
+                article: elem.article[0],
+                quantity: elem.count
+            }
+        })
+
+        let chartData = {
+            articles: [],
+            articleId: [],
+            likes: [],
+            originalData: data 
+        }
+
+        for (let i = 0; i < data.length; i++) {
+            chartData.articles.push(data[i].title)
+            chartData.articleId.push(data[i]._id)
+            chartData.likes.push(data[i].quantity)
+        }
+
+        return chartData
+    }
+
+    const getLikesByAuthor = async (limit) => {
+        const likes = await Like.aggregate([
+            {$group: 
+                {   _id:  {$toObjectId: "$article.author._id"},
+                    count: {$sum: 1}
+                }
+            },
+            {$lookup: 
+                {
+                    from: "users",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "author"
+                }
+            }
+        ]).limit(limit)
+
+        const data = await likes.map( elem => {
+            return {
+                _id: elem._id,
+                name: elem.author[0].name,
+                author: elem.author[0],
+                quantity: elem.count
+            }
+        })
+
+        let chartData = {
+            authors: [],
+            authorId: [],
+            likes: [],
+            originalData: data 
+        }
+
+        for (let i = 0; i < data.length; i++) {
+            chartData.authors.push(data[i].author.name)
+            chartData.authorId.push(data[i]._id)
+            chartData.likes.push(data[i].quantity)
+        }
+
+        return chartData
+    }
+
+    return { getLastLikes, getStats, likesJob, getLikesPerArticle, getChartLikes }
 }

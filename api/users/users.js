@@ -1,5 +1,7 @@
 const fileManagement = require('../../config/fileManagement.js')
 
+const newAccountTxtMsg = require('../../mailer-templates/mail-text-msg/newAccount.js')
+
 module.exports = app => {
 
     // Mongoose model para usuario
@@ -8,6 +10,9 @@ module.exports = app => {
     // Validação de dados
     const { exists, validateEmail, validateCpf, validatePassword, isEqual } = app.config.validation
     
+    // Configurações SMTP
+    const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
+
     // Configurações extras
     const { encryptTag, encryptAuth } = app.config.secrets
 
@@ -131,10 +136,35 @@ module.exports = app => {
                     address: user.address,
                     number: user.number,
                     password: password,
-                    deleted: false
+                    deleted: false,
+                    firstLogin: false,
+                    customUrl: `${Date.now()}`
                 })
 
-                await saveUser.save().then((response) => res.status(201).send(response)).catch(error => {
+                await saveUser.save().then(async (response) => {
+                    const accessLevelPlural = user.type === 'admin' ? 'Administradores' : 'Autores'
+                    const accessLevel = user.type === 'admin' ? 'Administrador' : 'Autor'
+                    const deleteAccountLink = 'https://codermind.com.br'
+
+                    const htmlPath = 'mailer-templates/newAccount.html'
+                    const variables = [
+                        {key: '__AccessLevel', value: accessLevelPlural},
+                        {key: '__email', value: user.email},
+                        {key: '__password', value: user.password},
+                        {key: '__notAcceptAccountLink', value: deleteAccountLink},
+                        {key: '__AccessLevel', value: accessLevel},
+                    ]
+                    const params = {
+                        accessLevel,
+                        email: user.email,
+                        password: user.password,
+                        notAcceptAccountLink: deleteAccountLink
+                    }
+                    const email = user.email
+                    
+                    const result = await sendMail(htmlPath, variables, newAccountTxtMsg, params, email)
+                    return res.status(201).send(response)
+                }).catch(error => {
                     if(error.code === 11000) throw 'Ja existe cadastro com essas informações'
                 })
             }
@@ -142,6 +172,39 @@ module.exports = app => {
             error = await userError(error)
             return res.status(error.code).send(error.msg)
         }
+    }
+
+    const sendMail = async (htmlPath, variables, txtMsgFunction, params, email) => {
+        
+        let htmlMsg = app.fs.readFileSync(htmlPath, 'utf8')
+
+        variables.forEach( variable => {
+            htmlMsg = htmlMsg.replace(variable.key, variable.value)
+        })
+
+        const transport = {
+            host: SMTP_SERVER,
+            port: PORT,
+            secure: SECURE,
+            auth: {
+                user: USER,
+                pass: PASSWORD
+            }
+        }
+
+        const transporter = app.nodemailer.createTransport(transport)
+
+        const mail = {
+            from: `"Agente Coder Mind" <${USER}>`,
+            to: email,
+            subject: 'Acesso a plataforma | Coder Mind',
+            text: txtMsgFunction(params),
+            html: htmlMsg,
+        }
+        
+        const info = await transporter.sendMail(mail)
+
+        return Boolean(info.messageId)
     }
 
     const updateExtraInfo = async (req, res) => {
@@ -384,10 +447,65 @@ module.exports = app => {
         }
     }
 
+    const validateFirstLoginTime  = async () => {
+        /*  Verifica os novos usuários que nunca logaram
+            na aplicação onde os mesmo estejam fora do prazo
+            de 7 dias após a criação da conta. 
+        */
+        try {
+            const users = await User.find({firstLogin: false})
+            
+            if(!users || users.length === 0) throw 'Nenhum usuário encontrado'
+            
+            let usersDeleted = []
+            
+            for (let i = 0; i < users.length; i++) {
+                if((users[i].created_at.getTime() + (1000*60*60*24*7)) < Date.now()){
+                    const result = await User.deleteOne({_id: users[i]._id})
+
+                    if(result && result.deletedCount !== 0){
+                        const userDeleted = {
+                            _id: users[i].id,
+                            name: users[i].name,
+                            cpf: users[i].cpf,
+                            celphone: users[i].celphone,
+                            password: users[i].password,
+                            deleted_at: new Date()
+                        }
+
+                        usersDeleted.push(userDeleted)
+                    }
+                }
+            }
+
+            if(usersDeleted.length === 0) throw 'Nenhum usuário a remover'
+
+            return {status: true, data: usersDeleted}
+        } catch (error) {
+            return {status: false, data: [], msg: error}
+        }
+    }
+
+    const writeRemovedUsers = async (payload) => {
+        // Escreve a relação de usuários removidos para a base de dados SQL
+        try {
+            const status = payload.status
+            const users = payload.data
+            if(!status) return
+            if(users.length === 0) throw 'Nenhum usuário informado'
+            app.knex.insert(users).into('users_removed_permanently').then( () => {
+                console.log(`${users.length} usuário(s) removido(s) permanentemente por não acessar sua(s) conta(s) pela primeira vez dentro do prazo de 7 dias`)
+            })
+        } catch (error) {
+            console.log('Erro ao gravar os usuários removidos permanentemente por não acessar suas contas pela primeira vez dentro do prazo de 7 dias')
+        }
+    }
+
 
     return {get, getOne, save, remove,
             changePassword, updateExtraInfo,
             configProfilePhoto, removeProfilePhoto, changeMyPassword,
-            validateAdminPassword, restore, validateUserPassword}
+            validateAdminPassword, restore, validateUserPassword,
+            validateFirstLoginTime, writeRemovedUsers}
 
 }

@@ -6,7 +6,7 @@ module.exports = app => {
 
     const { viewsJob, getChartViews } = app.api.articles.views
     const { commentsJob } = app.api.articles.comments
-    const { likesJob } = app.api.articles.likes 
+    const { likesJob, getChartLikes } = app.api.articles.likes 
 
     const defineMonthDescribed = require('../../config/validation')().defineMonthDescribed
 
@@ -22,7 +22,7 @@ module.exports = app => {
             const comments = (await getComments(user)).comments
             const likes = (await getLikes(user)).likes
 
-            const chartData = await getStatsForChart(year)
+            const chartData = await getStatsForChart(year, user)
             
             return res.json({views, comments, likes, chartData})
         } catch (error) {
@@ -31,7 +31,7 @@ module.exports = app => {
     }
 
 
-    const getStatsForChart = async (year) => {
+    const getStatsForChart = async (year, user = null) => {
         try {
             
             const result = await app.knex.raw(`select
@@ -51,14 +51,15 @@ module.exports = app => {
                 WHEN month = 12 THEN 'DEZEMBRO'
             END AS month,
             max(quantity) as views,
-            (SELECT max(count) from codermind.comments where month = a.month and year = ${year}) as comments,
-            (SELECT max(count) from codermind.likes where month = a.month and year = ${year}) as likes
+            (SELECT max(count) from codermind.comments where month = a.month and year = ${year} and reference ${user ? `= '${user}'` : 'is null'}) as comments,
+            (SELECT max(count) from codermind.likes where month = a.month and year = ${year} and reference ${user ? `= '${user}'` : 'is null'}) as likes
         from (
             select 
                 max(month) as month,
                 max(count) as quantity
             from codermind.views 
             where year = ${year}
+            and reference ${user ? `= '${user}'` : 'is null'}
             group by month) a
         GROUP BY
             month,
@@ -132,10 +133,14 @@ module.exports = app => {
 
     const getArticleStatsForChart = async (req, res) => {
         try {
-            const views = await getChartViews()
+            const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
 
-            res.json({views})
+            const views = await getChartViews(user)
+            const likes = await getChartLikes(user)
+
+            res.json({views,likes})
         } catch (error) {
+            console.log(error)
             res.status(500).send(error)
         }
     }
