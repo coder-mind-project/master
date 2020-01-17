@@ -26,7 +26,7 @@ module.exports = app => {
             const page = req.query.page || 1
             const type = req.query.op || 'perUser'
 
-            var config = {
+            var config = req.user.user.tagAdmin ? {deleted: false} : {
                 'author._id': req.user.user._id,
                 deleted: false
             }

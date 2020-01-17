@@ -22,23 +22,29 @@ module.exports = app => {
     const getViews = async (req, res) => {
         /* Obtem as visualizações permitindo uma serie de filtros */
         try {
-            const limit = parseInt(req.query.limit) || 10
+            let limit = parseInt(req.query.limit) || 10
 
             const article = req.query.art || ''
             const dateBegin = req.query.db ? new Date(req.query.db) : new Date(new Date().setFullYear(new Date().getFullYear() - 100))
             const dateEnd = req.query.de ? new Date(req.query.de) : new Date(new Date().setFullYear(new Date().getFullYear() + 100))
 
+            const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
+
             if(limit > 10) limit = 10
-            
+
+            const match = {   
+                'article.title': {$regex: `${article}`, $options: 'i'},
+                startRead: {
+                    $gte: dateBegin,
+                    $lte: dateEnd
+                },
+                'article.author._id': user
+            }
+
+            if(!user) delete match['article.author._id']
+
             View.aggregate([
-                {$match: 
-                    {   'article.title': {$regex: `${article}`, $options: 'i'},
-                        startRead: {
-                            $gte: dateBegin,
-                            $lte: dateEnd
-                        }
-                    }
-                }, 
+                {$match: match}, 
                 {$sort: {startRead: -1}}
             ]).limit(limit).then(views => {
                 return res.json({views})
@@ -121,15 +127,16 @@ module.exports = app => {
         }
     }
 
-    const getChartViews = async (limit = 10) => {
+    const getChartViews = async (user = null, limit = 10) => {
         try {
-            const viewsByArticle = await getViewsByArticle(limit)
-            const viewsByAuthor = await getViewsByAuthor(limit)
+            const viewsByArticle = await getViewsByArticle(user, limit)
+            const viewsByAuthor = await getViewsByAuthor(user, limit)
 
             const data = {
                 byArticle: viewsByArticle,
                 byAuthor: viewsByAuthor
             }
+
 
             return data
         } catch (error) {
@@ -137,8 +144,27 @@ module.exports = app => {
         }
     }
 
-    const getViewsByArticle = async (limit) => {
-        const views = await View.aggregate([
+    const getViewsByArticle = async (user, limit) => {
+        
+        const views = user ? await View.aggregate([
+            {$match: {
+                'article.author._id': user
+            }},
+            {$group: 
+                {   _id:  "$article._id",
+                    count: {$sum: 1},
+                }
+            },
+            {$lookup: 
+                {
+                    from: "articles",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "article"
+                }
+            }
+        ]).limit(limit) : await View.aggregate([
+            {$match: {}},
             {$group: 
                 {   _id:  "$article._id",
                     count: {$sum: 1}
@@ -179,8 +205,22 @@ module.exports = app => {
         return chartData
     }
 
-    const getViewsByAuthor = async (limit) => {
-        const views = await View.aggregate([
+    const getViewsByAuthor = async (user, limit) => {
+        const views = user ? await View.aggregate([
+            {$group: 
+                {   _id:  {$toObjectId: "$article.author._id"},
+                    count: {$sum: 1}
+                }
+            },
+            {$lookup: 
+                {
+                    from: "users",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "author"
+                }
+            }
+        ]).limit(limit) : await View.aggregate([
             {$group: 
                 {   _id:  {$toObjectId: "$article.author._id"},
                     count: {$sum: 1}

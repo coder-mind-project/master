@@ -31,7 +31,8 @@ module.exports = app => {
         tagAuthor: String,
         customUrl: {type: String, unique: true},
         publicProfile: {type: Boolean, default: false},
-        platformStats: {type: Boolean, default: false}
+        platformStats: {type: Boolean, default: false},
+        firstLogin: {type: Boolean, default: false}
     },{
         timestamps: {
             createdAt: 'created_at'

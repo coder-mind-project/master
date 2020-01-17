@@ -2,11 +2,15 @@ const express = require('express')
 const app = express()
 const consign = require('consign')
 const mongoose = require('mongoose')
+const nodemailer = require('nodemailer')
+const fs = require('fs')
 
 require('./config/mongoDB')
 
 app.mongo = mongoose
 app.express = express
+app.nodemailer = nodemailer
+app.fs = fs
 
 consign()
 .include('./config/mysqlDB.js')
