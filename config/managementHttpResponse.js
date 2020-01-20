@@ -288,7 +288,9 @@ module.exports = app => {
             case 'Ja existe cadastro com essas informações':
             case 'Está Url customizada já esta associada a outro usuário, tente uma outra url':
             case 'É necessário informar sua senha para prosseguir':
-            case 'Senha inválida':{
+            case 'Senha inválida':
+            case 'Este e-mail já está cadastrado':
+            case 'Emissor inválido!':{
                 reformulatedError.code = 400
                 break
             }
@@ -306,6 +308,10 @@ module.exports = app => {
             case 'Imagem já removida':
             case 'Este usuário já foi restaurado': {
                 reformulatedError.code = 410
+                break
+            }
+            case 'Já foi enviado um e-mail a pouco tempo, espere um pouco até enviar outro novamente. Verifique sua caixa de spam.':{
+                reformulatedError.code = 429
                 break
             }
         }

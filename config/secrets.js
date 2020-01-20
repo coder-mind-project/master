@@ -1,5 +1,5 @@
 const crypto = require('crypto')
-const {algorithmForTag, tagSecret, binEncodeTag, encodeTag, algorithmForAuth, authSecret, binEncodeAuth, encodeAuth, redemAccountPackage } = require('../.env') 
+const {algorithmForTag, tagSecret, binEncodeTag, encodeTag, algorithmForAuth, authSecret, binEncodeAuth, encodeAuth, cipherDefaultPackage } = require('../.env') 
 
 /*  Usado para definir as configurações de segurança da aplicação
     Como algoritmos de ciphers e alguns encodings
@@ -51,9 +51,9 @@ module.exports = app => {
     }
 
     const encryptToken = (text) => {
-        /*  Realiza o cipher para autenticação (senhas) */
+        /*  Realiza o cipher para autenticação (senhas) e confirmacao de email */
 
-        const {algorithm, secret, binEncode, encode} = redemAccountPackage
+        const {algorithm, secret, binEncode, encode} = cipherDefaultPackage
         
         let cipher = crypto.createCipher(algorithm, secret)
 
@@ -65,8 +65,8 @@ module.exports = app => {
     }
     
     const decryptToken = (tag) => {
-        /*  Realiza o decipher para autenticação (senhas) */
-        const {algorithm, secret, binEncode, encode} = redemAccountPackage
+        /*  Realiza o decipher para autenticação (senhas) e confirmacao de email */
+        const {algorithm, secret, binEncode, encode} = cipherDefaultPackage
 
         let decipher = crypto.createDecipher(algorithm, secret)
         let res = decipher.update(tag, encode, binEncode)

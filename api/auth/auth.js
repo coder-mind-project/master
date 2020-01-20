@@ -21,7 +21,7 @@ module.exports = app => {
     const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
 
 
-    const { validateTokenManagement, signInError, errorRedeemPassword, userError } = app.config.managementHttpResponse
+    const { validateTokenManagement, signInError, errorRedeemPassword } = app.config.managementHttpResponse
 
     const { secret_key, uri } = app.config.captcha
 
@@ -48,6 +48,10 @@ module.exports = app => {
             const password = await encryptAuth(request.password)
 
             if(user.password === password) {
+
+                if(!user.firstLogin){
+                    await User.updateOne({_id: user._id},{firstLogin: true})
+                }
 
                 user.password = null
 
@@ -175,7 +179,7 @@ module.exports = app => {
             const mail = {
                 from: `"Agente Coder Mind" <${USER}>`,
                 to: request.email,
-                subject: 'RECUPERAÇÃO DE SENHA | Coder Mind',
+                subject: 'Recuperação de senha',
                 text: redeemAccountTextMsg(user.name, panel.production, token),
                 html: htmlMsg,
             }
@@ -236,7 +240,7 @@ module.exports = app => {
             const mail = {
                 from: `"Agente Coder Mind" <${USER}>`,
                 to: email,
-                subject: 'RECUPERAÇÃO DE SENHA | Coder Mind',
+                subject: 'Recuperação de senha',
                 text: redeemAccountTextMsg(user.name, panel.production, token),
                 html: htmlMsg,
             }

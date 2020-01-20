@@ -98,6 +98,7 @@ module.exports = app => {
         .all(app.config.passport.authenticate())
         .patch(isAdmin(app.api.users.users.restore))
         .put(app.api.users.users.remove)
+        .post(app.api.users.users.resendMail)
         
         
     /* Resource for img's management */
