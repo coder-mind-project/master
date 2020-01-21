@@ -392,9 +392,30 @@ module.exports = app => {
         return reformulatedError 
     }
 
+    const ticketError = (error) => {
+        const reformulatedError = {
+            code: 500,
+            msg: 'Ocorreu um erro desconhecido, se persistir reporte'
+        }
+        
+        if( typeof error !== 'string' ) return reformulatedError
+        if( error.trim() === '' ) return reformulatedError
+
+        switch(error){
+            case 'É necessário descrever seu problema para enviar o ticket':
+            case 'E-mail inválido, tente fornecer um e-mail válido!':{
+                reformulatedError.code = 400
+                break
+            }
+        }
+
+        reformulatedError.msg = error
+
+        return reformulatedError 
+    }
 
     return {errorTheme, errorCategory, errorArticle,
         errorManagementArticles, validateTokenManagement,
         signInError, userError, errorView, notAcceptableResource,
-        errorRedeemPassword}
+        errorRedeemPassword, ticketError}
 } 
