@@ -152,7 +152,28 @@ module.exports = app => {
 
     const Comment = app.mongo.model('comments', comment)
 
+
+    //Schema para as categorias dos artigos
+    const ticket = new app.mongo.Schema({
+        _id: {type: app.mongo.Schema.ObjectId, auto: true},
+        type: String,
+        user: {type: app.mongo.Schema.ObjectId},
+        dateOccurrence: Date,
+        adminId: {type: app.mongo.Schema.ObjectId},
+        userId: {type: app.mongo.Schema.ObjectId},
+        email: String,
+        msg: String
+    },{
+        timestamps: {
+            createdAt: 'createdAt',
+            updatedAt: 'updatedAt',
+            deletedAt: 'deletedAt'
+        }
+    })
+
+    const Ticket = app.mongo.model('tickets', ticket)
+
     
     
-    return {User, Article, Theme, Category, View, Like, Comment}
+    return {User, Article, Theme, Category, View, Like, Comment, Ticket}
 }

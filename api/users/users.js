@@ -18,11 +18,13 @@ module.exports = app => {
     // Configurações SMTP
     const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
 
-    // Configurações extras
+    // Configurações de criptografia
     const { encryptTag, encryptAuth, decryptAuth, encryptToken, decryptToken } = app.config.secrets
-
+    
+    // Gerenciamento de erros para usuários
     const { userError } = app.config.managementHttpResponse
     
+
     const get = async (req, res) => {
         /*  Responsável por obter os usuarios por filtros de 
             palavras chave. Ocorrendo a possibilidade de limitar 
@@ -96,8 +98,8 @@ module.exports = app => {
         
     }
 
-    /* Responsável por persistir usuarios */
     const save = async (req, res) => {
+        /* Responsável por persistir usuarios */
         
         const user = {...req.body}
 

@@ -200,4 +200,10 @@ module.exports = app => {
         .all(app.config.passport.authenticate())
         .patch(app.api.users.stats.definePlatformStats)
 
+
+    /* TICKETS RESOURCES */
+
+    app.route('/tickets')
+        .post(app.api.tickets.tickets.save)
+
 }
