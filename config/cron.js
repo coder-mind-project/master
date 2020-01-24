@@ -20,7 +20,7 @@ module.exports = app => {
         likesJob()
     })
 
-    schedule.scheduleJob('15 * * * * *', async () => {
+    schedule.scheduleJob('00 04 * * *', async () => {
         const resultSet = await validateFirstLoginTime()
         writeRemovedUsers(resultSet)
     })
