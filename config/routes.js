@@ -33,6 +33,13 @@ module.exports = app => {
         .post(app.api.auth.auth.validateTokenForRedeemAccount)
         .patch(app.api.auth.auth.newPassFromRedeemAccount)
 
+    app.route('/users/settings')
+        .patch(app.api.users.users.confirmEmail)
+        .post(app.api.users.users.cancelChangeEmail)
+        
+    app.route('/users/settings/:id')
+        .delete(app.api.users.users.removePermanently)
+        
     
 
     /* ARTICLES RESOURCES */
@@ -98,9 +105,12 @@ module.exports = app => {
         .all(app.config.passport.authenticate())
         .patch(isAdmin(app.api.users.users.restore))
         .put(app.api.users.users.remove)
+        
+    app.route('/users/emails/:id')
+        .all(app.config.passport.authenticate())
+        .patch(app.api.users.users.cancelChangeEmail)
         .post(app.api.users.users.resendMail)
-        
-        
+
     /* Resource for img's management */
     app.route('/users/img/:id')
         .all(app.config.passport.authenticate())
@@ -204,6 +214,10 @@ module.exports = app => {
     /* TICKETS RESOURCES */
 
     app.route('/tickets')
+        .post(app.api.tickets.tickets.save)
+        
+    app.route('/tickets/authenticated')
+        .all(app.config.passport.authenticate())
         .post(app.api.tickets.tickets.save)
 
 }

@@ -211,7 +211,8 @@ module.exports = app => {
         switch(error){
             case 'Acesso não autorizado':
             case 'Token inválido, solicite uma nova recuperação de senha':
-            case 'Token expirado, solicite uma nova recuperação de senha':{
+            case 'Token expirado, solicite uma nova recuperação de senha':
+            case 'Acesso não autorizado, seu e-mail de acesso foi alterado.':{
                 reformulatedError.code = 401
                 break
             }
@@ -248,7 +249,8 @@ module.exports = app => {
                 break
             }
             case 'Sua conta esta suspensa, em caso de reinvidicação entre em contato com o administrador do sistema':
-            case 'Senha incorreta': {
+            case 'Senha incorreta':
+            case 'Senha incorreta, esqueceu sua senha?': {
                 reformulatedError.code = 401
 
             }
@@ -298,6 +300,12 @@ module.exports = app => {
             case 'Acesso negado, somente administradores podem alterar a senha de outros usuários':
             case 'Senha incorreta': {
                 reformulatedError.code = 401
+                break
+            }
+            case 'Token não reconhecido, se persistir reporte':
+            case 'Token expirado, solicite uma nova troca de e-mail':
+            case 'Este usuário não pode ser removido':{
+                reformulatedError.code = 403
                 break
             }
             case 'Usuário não encontrado':{
@@ -403,8 +411,18 @@ module.exports = app => {
 
         switch(error){
             case 'É necessário descrever seu problema para enviar o ticket':
-            case 'E-mail inválido, tente fornecer um e-mail válido!':{
+            case 'E-mail inválido, tente fornecer um e-mail válido!':
+            case 'Código não informado, é necessário informar o código.':
+            case 'Data de alteração não informada.':
+            case 'Este é um código inválido, caso esteja inserindo o código corretamente, nos envie um ticket de reporte de bugs':
+            case 'Informe o software que ocorreu o bug':
+            case 'Informe o dispositivo que ocorreu o bug':
+            case 'Informe o browser / navegador em que ocorreu o bug':{
                 reformulatedError.code = 400
+                break
+            }
+            case 'Acesso negado':{
+                reformulatedError.code = 401
                 break
             }
         }

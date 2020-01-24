@@ -162,7 +162,11 @@ module.exports = app => {
         adminId: {type: app.mongo.Schema.ObjectId},
         userId: {type: app.mongo.Schema.ObjectId},
         email: String,
-        msg: String
+        msg: String,
+        software: String,
+        device: String,
+        browser: String,
+        anotherBrowser: String
     },{
         timestamps: {
             createdAt: 'createdAt',

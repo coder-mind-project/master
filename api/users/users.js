@@ -1,6 +1,6 @@
 const fileManagement = require('../../config/fileManagement.js')
 
-const { issuer } = require('../../.env')
+const { issuer, panel } = require('../../.env')
 
 const newAccountTxtMsg = require('../../mailer-templates/mail-text-msg/newAccount')
 const userChangedTxtMsg = require('../../mailer-templates/mail-text-msg/userChanged')
@@ -132,7 +132,7 @@ module.exports = app => {
                 /** Verifica a possibilidade de o usuário autenticado estar alterando
                  *  seu próprio e-mail cadastrado
                  */
-                if(!admin && req.user.user.email !== email){
+                if( user.confirmEmail && req.user.user.email !== email){
 
                     /** Verifica se o novo e-mail a ser cadastro ja existe
                      *  em outros usuários 
@@ -196,18 +196,20 @@ module.exports = app => {
                         await sendMail(htmlPath, variables, textMsg, params, email, subject)
                         
                         if(oldEmail){
-                            let { htmlPath, variables, textMsg, params, email, subject } = await configMailInSecondCase(user._id, admin, oldEmail) 
+                            let { htmlPath, variables, textMsg, params, email, subject } = await configMailInSecondCase(user._id, admin, oldEmail, panel) 
                             await sendMail(htmlPath, variables, textMsg, params, email, subject)
                         }
                         
                     }
 
-                    if(!admin && req.user.user.email !== email){
-                        let { htmlPath, variables, textMsg, params, email, subject } = await configMailInThirdCase(updatedUser) 
+                    if( updatedUser.confirmEmail && req.user.user.email !== email){
+                        let { htmlPath, variables, textMsg, params, email, subject } = await configMailInThirdCase(updatedUser, panel) 
                         await sendMail(htmlPath, variables, textMsg, params, email, subject)
                     }
 
-                    return res.status(204).send()
+                    const userUpdated = await User.findOne({_id: user._id}, {password: 0})
+
+                    return res.json(userUpdated)
                 }).catch(error => {
                     if(error.code === 11000) throw 'Ja existe cadastro com essas informações'
                     else throw 'Ocorreu um erro desconhecido, se persistir reporte'
@@ -237,28 +239,8 @@ module.exports = app => {
                 })
 
                 await saveUser.save().then(async (response) => {
-                    const accessLevelPlural = user.type === 'admin' ? 'Administradores' : 'Autores'
-                    const accessLevel = user.type === 'admin' ? 'Administrador' : 'Autor'
-                    const deleteAccountLink = 'https://codermind.com.br'
-
-                    const htmlPath = 'mailer-templates/newAccount.html'
-                    const variables = [
-                        {key: '__AccessLevel', value: accessLevelPlural},
-                        {key: '__email', value: user.email},
-                        {key: '__password', value: user.password},
-                        {key: '__notAcceptAccountLink', value: deleteAccountLink},
-                        {key: '__AccessLevel', value: accessLevel},
-                    ]
-                    const params = {
-                        accessLevel,
-                        email: user.email,
-                        password: user.password,
-                        notAcceptAccountLink: deleteAccountLink
-                    }
-                    const email = user.email
-                    const subject = 'Seja bem vindo a Coder Mind!'
-
-                    await sendMail(htmlPath, variables, newAccountTxtMsg, params, email, subject)
+                    const { htmlPath, variables, textMsg, params, email, subject } = await configMailInFourthCase(response, panel)
+                    await sendMail(htmlPath, variables, textMsg, params, email, subject)
                     return res.status(201).send(response)
                 }).catch(error => {
                     if(error.code === 11000) throw 'Ja existe cadastro com essas informações'
@@ -319,18 +301,20 @@ module.exports = app => {
      * deste usuário fazendo com que seja enviado o a mensagem para o antigo
      * e-mail cadastrado.
      */
-    const configMailInSecondCase = async (_id, admin, oldEmail) => {
+    const configMailInSecondCase = async (_id, admin, oldEmail, url) => {
         const user = await User.findOne({_id}) 
         const htmlPath = 'mailer-templates/userChangedToOldMail.html'
 
         const variables = [
+            {key: '___url', value: url.default},
             {key: '___idAdmin', value: admin._id},
             {key: '___idUser', value: user._id},
             {key: '__email', value: oldEmail},
             {key: '__date', value: `${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`},
             {key: '___idAdmin', value: admin._id},
             {key: '___idUser', value: user._id},
-            {key: '__date', value: `${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`}
+            {key: '__date', value: `${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`},
+            {key: '__url', value: panel.default}
         ]
 
         const params = {
@@ -354,18 +338,22 @@ module.exports = app => {
     /** Retorna a configuração do e-mail a ser enviado quando o usuário estiver 
      *  trocando seu próprio e-mail de cadastro.
      */
-    const configMailInThirdCase = (user) => {
+    const configMailInThirdCase = (user, url) => {
         const htmlPath = 'mailer-templates/emailChangedMyAccount.html'
 
         const variables = [
             {key: '__username', value: user.name},
             {key: '__token', value: user.confirmEmailToken},
             {key: '__token', value: user.confirmEmailToken},
+            {key: '__url', value: url.default},
+            {key: '__url', value: url.default},
+
         ]
 
         const params = {
             username: user.name,
             token: user.confirmEmailToken,
+            url: url.default
         }
 
         const textMsg = emailChangedMyAccountTxtMsg
@@ -373,6 +361,45 @@ module.exports = app => {
         const email = user.confirmEmail
 
         const subject = 'Confirmação de e-mail'
+
+        const payload = {htmlPath, variables, params, textMsg, email, subject}
+
+        return payload
+    }
+
+    /** Retorna a configuração do e-mail a ser enviado quando uma nova conta de usuário
+     *  é criada.
+     */
+    const configMailInFourthCase = (user, url) => {
+        const accessLevelPlural = user.type === 'admin' ? 'Administradores' : 'Autores'
+        const accessLevel = user.type === 'admin' ? 'Administrador' : 'Autor'
+        const deleteAccountLink = `${url.default}/remove-account?uid=${user.id}`
+
+        const htmlPath = 'mailer-templates/newAccount.html'
+
+        const variables = [
+            {key: '__AccessLevel', value: accessLevelPlural},
+            {key: '__email', value: user.email},
+            {key: '__password', value: user.password},
+            {key: '__notAcceptAccountLink', value: deleteAccountLink},
+            {key: '__AccessLevel', value: accessLevel},
+            {key: '__url', value: url.default},
+            {key: '__url', value: url.default},
+        ]
+
+        const params = {
+            accessLevel,
+            email: user.email,
+            password: user.password,
+            notAcceptAccountLink: deleteAccountLink,
+            url: url.default
+        }
+
+        const textMsg = newAccountTxtMsg
+
+        const email = user.email
+
+        const subject = 'Seja bem vindo a Coder Mind!'
 
         const payload = {htmlPath, variables, params, textMsg, email, subject}
 
@@ -432,11 +459,36 @@ module.exports = app => {
             
             await User.updateOne({_id},{lastEmailTokenSendAt: Date.now()})
 
-            const { htmlPath, variables, textMsg, params, email, subject } = configMailInThirdCase(user)
+            const { htmlPath, variables, textMsg, params, email, subject } = configMailInThirdCase(user, panel)
             const send = await sendMail(htmlPath, variables, textMsg, params, email, subject)
 
             if(send) res.status(200).send('E-mail reenviado com sucesso, verifique sua caixa de entrada. Caso não encontre verifique a caixa de spam')
             else throw 'Ocorreu um erro ao enviar o e-mail, por favor tente mais tarde'
+        } catch (error) {
+            error = await userError(error)
+            return res.status(error.code).send(error.msg)
+        }
+    }
+
+    const cancelChangeEmail = async (req, res) => {
+        try {
+            let _id = req.params.id
+            
+            if(!_id){
+                const token = req.body.token
+
+                const user = await User.findOne({confirmEmailToken: token})
+                if(!user) throw 'Token não reconhecido, se persistir reporte' 
+                
+                const payload = JSON.parse(decryptToken(token))
+                _id = payload._id
+            }
+
+            User.updateOne({_id}, {confirmEmail: null, confirmEmailToken: null}).then( response => {
+                if(response.nModified === 1) return res.status(200).send('Alteração de e-mail cancelada com sucesso!')
+                else throw 'Ocorreu um problema ao remover a alteração de e-mail, se persistir reporte!'
+            })
+            
         } catch (error) {
             error = await userError(error)
             return res.status(error.code).send(error.msg)
@@ -511,6 +563,41 @@ module.exports = app => {
             
             if(update.nModified > 0) return res.status(204).send()
             else throw 'Este usuário já foi removido'
+        } catch (error) {
+            error = await userError(error)
+            return res.status(error.code).send(error.msg)
+        }
+    }
+
+    const removePermanently = async (req, res) => {
+        /*  Remove o usuário permanentemente da base de dados */
+        const _id = req.params.id
+
+        try {
+            const user = await User.findOne({_id})
+
+            if(!user) throw 'Usuário não encontrado'
+
+            if(user.firstLogin) throw 'Este usuário não pode ser removido'
+
+            User.deleteOne({_id}).then( async response => {
+                const payload = {
+                    status: Boolean(response.deletedCount > 0),
+                    data: [{
+                        _id: user.id,
+                        name: user.name,
+                        cpf: user.cpf,
+                        celphone: user.celphone,
+                        password: user.password,
+                        deleted_at: new Date()
+                    }]
+                }
+
+                await writeRemovedUsers(payload, true)
+                if(response.deletedCount > 0) return res.status(200).send('Conta removida com sucesso!')
+
+                throw 'Ocorreu um problema ao remover a conta da base de dados'
+            })
         } catch (error) {
             error = await userError(error)
             return res.status(error.code).send(error.msg)
@@ -721,7 +808,7 @@ module.exports = app => {
         }
     }
 
-    const writeRemovedUsers = async (payload) => {
+    const writeRemovedUsers = async (payload, manually = false) => {
         // Escreve a relação de usuários removidos para a base de dados SQL
         try {
             const status = payload.status
@@ -729,18 +816,53 @@ module.exports = app => {
             if(!status) return
             if(users.length === 0) throw 'Nenhum usuário informado'
             app.knex.insert(users).into('users_removed_permanently').then( () => {
-                console.log(`${users.length} usuário(s) removido(s) permanentemente por não acessar sua(s) conta(s) pela primeira vez dentro do prazo de 7 dias`)
+                const msg = manually ? `${users.length} usuário removido permanentemente manualmente pelo próprio dono da conta às ${new Date()}` : `${users.length} usuário(s) removido(s) permanentemente por não acessar sua(s) conta(s) pela primeira vez dentro do prazo de 7 dias`
+                console.log(msg)
             })
         } catch (error) {
             console.log('Erro ao gravar os usuários removidos permanentemente por não acessar suas contas pela primeira vez dentro do prazo de 7 dias')
         }
     }
 
+    const confirmEmail = async (req, res) => {
+        try {
+            const token = req.body.token
+        
+            const payload = JSON.parse(await decryptToken(token))
+
+            const user = await User.findOne({_id: payload._id})
+
+            if(!user) throw 'Token não reconhecido, se persistir reporte'
+
+            if(user.confirmEmailToken !== token) throw 'Token não reconhecido, se persistir reporte'
+
+            if(payload.issuer !== issuer) throw 'Token não reconhecido, se persistir reporte'
+
+            if(Date.now() > payload.expireAt){
+                await User.updateOne({_id: payload._id}, {confirmEmail: null, confirmEmailToken: null})
+                throw 'Token expirado, solicite uma nova troca de e-mail'
+            }
+
+            const change = {
+                confirmEmail: null,
+                confirmEmailToken: null,
+                email: payload.newEmail
+            }
+
+            await User.updateOne({_id: payload._id}, change).then( response => {
+                return res.status(200).send('E-mail alterado com sucesso!')
+            })
+        } catch (error) {
+            error = await userError(error)
+            return res.status(error.code).send(error.msg)
+        }
+    }
 
     return {get, getOne, save, remove,
             changePassword, updateExtraInfo,
             configProfilePhoto, removeProfilePhoto, changeMyPassword,
             validateAdminPassword, restore, validateUserPassword,
-            validateFirstLoginTime, writeRemovedUsers, resendMail}
+            validateFirstLoginTime, writeRemovedUsers, resendMail,
+            confirmEmail, cancelChangeEmail, removePermanently}
 
 }

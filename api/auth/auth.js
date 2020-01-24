@@ -112,6 +112,8 @@ module.exports = app => {
                 const exist = await User.findOne({_id: user._id, deleted: false})
                 
                 if(exist && exist._id) {
+                    
+                    if(user.email !== exist.email) throw 'Acesso não autorizado, seu e-mail de acesso foi alterado.'
 
                     if( payload.exp - Math.floor(Date.now() / 1000) < (60 * 60 * 24 * 2)){
                         payload.exp = (60*60*24*10)
@@ -162,7 +164,7 @@ module.exports = app => {
 
             await User.updateOne({ _id: user._id },{ token })
 
-            const htmlMsg = fs.readFileSync('mailer-templates/redeemAccount1.html', 'utf8').replace('\n', '').replace('__user', user.name).replace('__token', token).replace('__token', token).replace('__url', panel.production).replace('__url', panel.production)
+            const htmlMsg = fs.readFileSync('mailer-templates/redeemAccount1.html', 'utf8').replace('\n', '').replace('__user', user.name).replace('__token', token).replace('__token', token).replace('__url', panel.default).replace('__url', panel.default)
 
             const transport = {
                 host: SMTP_SERVER,

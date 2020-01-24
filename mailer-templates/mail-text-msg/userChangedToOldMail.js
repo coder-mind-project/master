@@ -6,7 +6,7 @@ module.exports = payload => {
         Caso a mudança foi feita com seu consentimento pode desconsiderar o restante de nossa mensagem, seu novo acesso estará disponível no novo e-mail cadastrado!\n\n
         Caso esta mudança não foi devidamente autorizada você pode entrar com um ticket no site da plataforma acessando o link abaixo:\n\n
         Copie o link e cole no seu navegador para solicitar o envio do ticket:\n
-        Link: https://painel.codermind.com.br/tickets?aid=${payload._idAdmin}&uid=${payload._idUser}=&mail=${payload.email}&date=${payload.date}\n\n
+        Link: https://painel.codermind.com.br/ticket?aid=${payload._idAdmin}&uid=${payload._idUser}=&mail=${payload.email}&date=${payload.date}\n\n
         Para a recuperação de sua conta, é necessário enviar informações obrigatórias (descritas abaixo), ao clicar no link não é necessário informar diretamente pois nós ja trabalhamos de preencher os essas informações  para você, porém certifique-se que as informações obrigatórias estejam presentes.\n\n
         \n
         Primeiro código: ${payload._idAdmin}
