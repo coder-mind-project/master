@@ -37,7 +37,14 @@ module.exports = app => {
                     op = await sendBugReport(body, user)
                     if(!op.status) throw op.msg || 'Ocorreu um erro ao enviar o ticket, por favor tente novamente mais tarde'
                     break
-
+                }
+                case 'improvement-suggestion':{
+                    op = await sendImprovementSuggestion(body, user)
+                    if(!op.status) throw op.msg || 'Ocorreu um erro ao enviar o ticket, por favor tente novamente mais tarde'
+                    break
+                }
+                default: {
+                    throw 'Informe um tipo de ticket válido!'
                 }
             }
             
@@ -140,6 +147,31 @@ module.exports = app => {
         }
     }
 
+    const sendImprovementSuggestion = async (body, user) => {
+        try {
+            exists(body.software, 'Informe o local em que deseja a melhoria!')
+            
+            const ticket = new Ticket({
+                type: body.type,
+                userId: user._id,
+                email: body.emailUser,
+                msg: body.msg 
+            })
+
+            const response = await ticket.save()
+
+            if(response._id){
+                const { htmlPath, variables, textMsg, params, email, subject } = await configEmailTicketReceived(response) 
+                await sendEmail(htmlPath, variables, textMsg, params, email, subject)
+            }
+
+            return {status: Boolean(response._id)}
+        } catch (error) {
+            let msg = typeof error === 'string' ? error : 'Ocorreu um erro ao enviar o ticket, por favor tente novamente mais tarde'
+            return {status: false, msg}
+        }
+    }
+
     const sendEmail = async (htmlPath, variables, txtMsgFunction, params, email, subject) => {
         let htmlMsg = app.fs.readFileSync(htmlPath, 'utf8')
 
@@ -198,5 +230,83 @@ module.exports = app => {
         return payload
     }
 
-    return {save}
+
+    const get = async (req, res) => {
+        /*  Responsável por obter os tickets por filtros de 
+            palavras chave. Ocorrendo a possibilidade de limitar 
+            por páginação e também obtendo a quantidade total de registros
+            por filtragem
+        
+        */
+        
+        try {
+        var limit = parseInt(req.query.limit) || 10
+        const tid = req.query.tid || null
+        const type = req.query.type || null
+        const page = req.query.page || 1
+        const begin = req.query.begin ? new Date(req.query.begin) : new Date(new Date().setFullYear(new Date().getFullYear() - 100))
+        const end = req.query.end ? new Date(req.query.end) : new Date(new Date().setFullYear(new Date().getFullYear() + 100))
+        const order = req.query.order || null
+
+        if(limit > 100) limit = 10
+
+        let count = await Ticket.aggregate([
+            {$match:
+                {$and: [
+                    {_id: app.mongo.Types.ObjectId.isValid(tid) ? app.mongo.Types.ObjectId(tid) : tid ? tid : {$ne: null}},
+                    {type: type || {$ne: null}},
+                    {createdAt: {
+                        $gte: begin,
+                        $lte: end
+                    }}
+                ]}
+            }
+        ]).count('id')
+
+        count = count.length > 0 ? count.reduce(item => item).id : 0
+
+        Ticket.aggregate([
+            {$match:
+                {$and: [
+                    {_id: app.mongo.Types.ObjectId.isValid(tid) ? app.mongo.Types.ObjectId(tid) : tid ? tid : {$ne: null}},
+                    {type: type || {$ne: null}},
+                    {createdAt: {
+                        $gte: begin,
+                        $lte: end
+                    }}
+                ]}
+            },
+            {$lookup: 
+                {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "user"
+                }
+            },
+            {$lookup: 
+                {
+                    from: "users",
+                    localField: "adminId",
+                    foreignField: "_id",
+                    as: "admin"
+                }
+            },
+            {$project: 
+                {
+                    content: "$$ROOT",
+                    user: {$arrayElemAt: ['$user', 0]},
+                    admin: {$arrayElemAt: ['$admin', 0]}
+                }
+            },
+            {$sort: 
+                {'content.createdAt': !order || order === 'desc' ? -1 : 1}
+            }
+        ]).skip(page * limit - limit).limit(limit).then(tickets => res.json({tickets, count, limit}))
+        } catch (error) {
+            return res.status(500).send('Ops, ocorreu um erro ao recuperar as informações. Tente atualizar a página')
+        }
+    }
+
+    return {save, get}
 }

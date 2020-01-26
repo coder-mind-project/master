@@ -166,7 +166,8 @@ module.exports = app => {
         software: String,
         device: String,
         browser: String,
-        anotherBrowser: String
+        anotherBrowser: String,
+        responses: {type: Array, default: []}
     },{
         timestamps: {
             createdAt: 'createdAt',
