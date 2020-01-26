@@ -213,11 +213,12 @@ module.exports = app => {
 
     /* TICKETS RESOURCES */
 
-    app.route('/tickets')
+    app.route('/tickets/not-authenticated')
         .post(app.api.tickets.tickets.save)
         
-    app.route('/tickets/authenticated')
+    app.route('/tickets')
         .all(app.config.passport.authenticate())
         .post(app.api.tickets.tickets.save)
+        .get(isAdmin(app.api.tickets.tickets.get))
 
 }

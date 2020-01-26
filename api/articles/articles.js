@@ -59,7 +59,7 @@ module.exports = app => {
                     ]},
                     config
                 ]}
-                },{$sort: {createdAt: -1}}])
+                },{$sort: {updatedAt: -1}}])
             .skip(page * limit - limit).limit(limit).then(articles => res.json({articles, count, limit}))
         } catch (error) {
             return res.status(500).send(error)

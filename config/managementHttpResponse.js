@@ -417,7 +417,9 @@ module.exports = app => {
             case 'Este é um código inválido, caso esteja inserindo o código corretamente, nos envie um ticket de reporte de bugs':
             case 'Informe o software que ocorreu o bug':
             case 'Informe o dispositivo que ocorreu o bug':
-            case 'Informe o browser / navegador em que ocorreu o bug':{
+            case 'Informe o browser / navegador em que ocorreu o bug':
+            case 'Informe o local em que deseja a melhoria!':
+            case 'Informe um tipo de ticket válido!':{
                 reformulatedError.code = 400
                 break
             }
