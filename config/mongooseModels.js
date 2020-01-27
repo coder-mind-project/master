@@ -167,7 +167,8 @@ module.exports = app => {
         device: String,
         browser: String,
         anotherBrowser: String,
-        responses: {type: Array, default: []}
+        responses: {type: Array, default: []},
+        readed: {type: Boolean, default: false}
     },{
         timestamps: {
             createdAt: 'createdAt',

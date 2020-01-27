@@ -212,13 +212,18 @@ module.exports = app => {
 
 
     /* TICKETS RESOURCES */
-
-    app.route('/tickets/not-authenticated')
-        .post(app.api.tickets.tickets.save)
-        
     app.route('/tickets')
         .all(app.config.passport.authenticate())
         .post(app.api.tickets.tickets.save)
         .get(isAdmin(app.api.tickets.tickets.get))
+    
+    app.route('/tickets/:id')
+        .all(app.config.passport.authenticate())
+        .put(app.api.tickets.tickets.answerTicket)
+        .patch(app.api.tickets.tickets.readTicket)
+
+    app.route('/tickets/not-authenticated')
+        .post(app.api.tickets.tickets.save)
+        
 
 }
