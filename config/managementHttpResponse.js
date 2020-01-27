@@ -419,12 +419,17 @@ module.exports = app => {
             case 'Informe o dispositivo que ocorreu o bug':
             case 'Informe o browser / navegador em que ocorreu o bug':
             case 'Informe o local em que deseja a melhoria!':
-            case 'Informe um tipo de ticket válido!':{
+            case 'Informe um tipo de ticket válido!':
+            case 'É necessário informar uma reposta':{
                 reformulatedError.code = 400
                 break
             }
             case 'Acesso negado':{
                 reformulatedError.code = 401
+                break
+            }
+            case 'Ticket não encontrado':{
+                reformulatedError.code = 404
                 break
             }
         }

@@ -1,4 +1,5 @@
 const ticketReceivedTxtMsg = require('../../mailer-templates/mail-text-msg/ticketReceived')
+const ticketAnsweredTxtMsg = require('../../mailer-templates/mail-text-msg/ticketAnswered')
 
 module.exports = app => {
 
@@ -204,19 +205,17 @@ module.exports = app => {
         return Boolean(info.messageId)
     }
 
-    const configEmailTicketReceived = (ticket) => {
+    const configEmailTicketReceived = ticket => {
         const htmlPath = 'mailer-templates/ticketReceived.html'
 
         const variables = [
             {key: '___id', value: ticket._id},
             {key: '__createdAt', value: `${ticket.createdAt.toLocaleDateString('pt-BR')} ${ticket.createdAt.toLocaleTimeString('pt-BR')}`}
-            // {key: '__changeDate', value: `${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`}
         ]
 
         const params = {
             _id: ticket._id, 
             createdAt: ticket.createdAt
-            // changeDate: `${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`
         }
 
         const textMsg = ticketReceivedTxtMsg
@@ -230,6 +229,31 @@ module.exports = app => {
         return payload
     }
 
+    const configEmailTicketAnswered = (ticket, answer) => {
+        const htmlPath = 'mailer-templates/ticketAnswered.html'
+
+        const variables = [
+            {key: '__ticket', value: ticket.id},
+            {key: '__answer', value: `" ${answer} "`},
+            //{key: '__url', value: answer},
+            //{key: '__route', value: answer}
+        ]
+
+        const params = {
+            ticket: ticket.id, 
+            answer: `" ${answer} "`
+        }
+
+        const textMsg = ticketAnsweredTxtMsg
+
+        const email = ticket.email
+
+        const subject = 'Seu ticket foi respondido!'
+
+        const payload = {htmlPath, variables, params, textMsg, email, subject}
+
+        return payload
+    }
 
     const get = async (req, res) => {
         /*  Responsável por obter os tickets por filtros de 
@@ -308,5 +332,64 @@ module.exports = app => {
         }
     }
 
-    return {save, get}
+
+    const answerTicket = async (req, res) => {
+        try {
+            const _id = req.params.id
+            const msg = req.body.response
+            const send = req.body.sendEmail || false
+
+            exists(msg, 'É necessário informar uma resposta')
+            
+            let ticket = await Ticket.findOne({_id})
+            
+            if(!ticket) throw 'Ticket não encontrado'
+            
+            const response = {
+                index: ticket.responses.length + 1, 
+                adminId: req.user.user._id,
+                createdAt: new Date(),
+                msg
+            }
+            
+            let responses = ticket.responses
+
+            responses.push(response)
+
+            Ticket.updateOne({_id}, {responses}).then( async r => {
+                if(r.nModified === 0) throw 'Houve um problema para salvar a sua resposta, por favor tente novamente mais tarde'
+                
+                ticket = await Ticket.findOne({_id})
+
+                if(send){
+                    const { htmlPath, variables, textMsg, params, email, subject } = await configEmailTicketAnswered(ticket, msg) 
+                    await sendEmail(htmlPath, variables, textMsg, params, email, subject)
+                }
+                
+                return res.json(ticket)
+            })
+
+        } catch (error) {
+            error = ticketError(error)
+            return res.status(error.code).send(error.msg)
+        }
+    }
+
+    const readTicket = (req, res) => {
+        try {
+            const _id = req.params.id
+
+            Ticket.updateOne({_id}, {readed: true}).then( async () => {
+                const ticket = await Ticket.findOne({_id})
+                if(!ticket) throw 'Ticket não encontrado'
+                return res.json(ticket)
+            })
+            
+        } catch (error) {
+            error = ticketError(error)
+            return res.status(error.code).send(error.msg)
+        }
+    }
+
+    return {save, get, answerTicket, readTicket}
 }
