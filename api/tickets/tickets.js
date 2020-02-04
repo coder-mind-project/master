@@ -264,6 +264,9 @@ module.exports = app => {
         */
         
         try {
+        
+        const notReaded = req.query.nr || false
+        const forNotifications = req.query.fn || false
         var limit = parseInt(req.query.limit) || 10
         const tid = req.query.tid || null
         const type = req.query.type || null
@@ -271,6 +274,12 @@ module.exports = app => {
         const begin = req.query.begin ? new Date(req.query.begin) : new Date(new Date().setFullYear(new Date().getFullYear() - 100))
         const end = req.query.end ? new Date(req.query.end) : new Date(new Date().setFullYear(new Date().getFullYear() + 100))
         const order = req.query.order || null
+
+        if(notReaded && forNotifications){
+            const payload = await getNotifications()
+            if(!payload.status) throw payload.error
+            return res.json({tickets: payload.tickets})
+        }
 
         if(limit > 100) limit = 10
 
@@ -332,6 +341,47 @@ module.exports = app => {
         }
     }
 
+    const getNotifications = async (limit = 5) => {
+        if(limit > 10) limit = 5
+
+        try {
+            const tickets = await Ticket.aggregate([
+                {$match:
+                    {readed: false}
+                },
+                {$lookup: 
+                    {
+                        from: "users",
+                        localField: "userId",
+                        foreignField: "_id",
+                        as: "user"
+                    }
+                },
+                {$lookup: 
+                    {
+                        from: "users",
+                        localField: "adminId",
+                        foreignField: "_id",
+                        as: "admin"
+                    }
+                },
+                {$project: 
+                    {
+                        content: "$$ROOT",
+                        user: {$arrayElemAt: ['$user', 0]},
+                        admin: {$arrayElemAt: ['$admin', 0]}
+                    }
+                },
+                {$sort: 
+                    {'content.createdAt': -1}
+                }
+            ]).limit(limit)
+
+            return {status: true, tickets}
+        } catch (error) {
+            return {status: false, tickets: [], error}
+        }
+    }
 
     const answerTicket = async (req, res) => {
         try {

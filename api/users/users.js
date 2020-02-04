@@ -186,8 +186,6 @@ module.exports = app => {
 
                 await User.updateOne({_id: user._id}, updatedUser).then( async response => {
                     
-                    if(response.nModified === 0) throw 'Nenhum usuário foi alterado'
-
                     /** Verifica se o administrador está alterando dados de outros
                      *  Usuários para o envio da notificação por e-mail.
                      */
@@ -722,7 +720,6 @@ module.exports = app => {
 
             exists(password, 'É necessário informar sua senha para prosseguir')
             
-            
             const user = await User.findOne({_id, deleted: false})
             if(!user) throw 'Usuário não encontrado'
             
@@ -760,7 +757,7 @@ module.exports = app => {
             const accepted = await validateUserPass(_id, password)
 
             if(typeof accepted === 'string' && Boolean(accepted)) throw accepted
-            if(!accepted) throw 'Senha incorreta'
+            if(!accepted) throw 'Senha não confere, esqueceu sua senha?'
             
             res.status(204).send()
         } catch (error) {
