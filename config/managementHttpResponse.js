@@ -292,7 +292,9 @@ module.exports = app => {
             case 'É necessário informar sua senha para prosseguir':
             case 'Senha inválida':
             case 'Este e-mail já está cadastrado':
-            case 'Emissor inválido!':{
+            case 'Emissor inválido!':
+            case 'A senha precisa ter no mínimo 8 caracteres':
+            case 'Senha não confere, esqueceu sua senha?':{
                 reformulatedError.code = 400
                 break
             }
