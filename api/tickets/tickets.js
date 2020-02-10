@@ -276,7 +276,7 @@ module.exports = app => {
         const order = req.query.order || null
 
         if(notReaded && forNotifications){
-            const payload = await getNotifications()
+            const payload = await getNotifications(limit)
             if(!payload.status) throw payload.error
             return res.json({tickets: payload.tickets})
         }
