@@ -1,11 +1,8 @@
 const knex = require('knex')
-
-//Configuração de referencias de conexão com o banco de dados
-const {dbLocal, dbProduction} = require('../.env')
+const config = require('../knexfile.js')
 
 module.exports = app => {
-
-    const connection = knex(dbProduction.mysql);
-
+    const {development, production} = config
+    const connection = knex(development)
     app.knex = connection
 }

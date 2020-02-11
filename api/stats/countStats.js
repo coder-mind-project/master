@@ -51,13 +51,13 @@ module.exports = app => {
                 WHEN month = 12 THEN 'DEZEMBRO'
             END AS month,
             max(quantity) as views,
-            (SELECT max(count) from codermind.comments where month = a.month and year = ${year} and reference ${user ? `= '${user}'` : 'is null'}) as comments,
-            (SELECT max(count) from codermind.likes where month = a.month and year = ${year} and reference ${user ? `= '${user}'` : 'is null'}) as likes
+            (SELECT max(count) from comments where month = a.month and year = ${year} and reference ${user ? `= '${user}'` : 'is null'}) as comments,
+            (SELECT max(count) from likes where month = a.month and year = ${year} and reference ${user ? `= '${user}'` : 'is null'}) as likes
         from (
             select 
                 max(month) as month,
                 max(count) as quantity
-            from codermind.views 
+            from views 
             where year = ${year}
             and reference ${user ? `= '${user}'` : 'is null'}
             group by month) a
