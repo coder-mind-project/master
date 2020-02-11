@@ -1,6 +1,5 @@
 .env
 doc.yaml
-stats_database.sql
 
 /node_modules
 
