@@ -237,7 +237,8 @@ module.exports = app => {
                 })
 
                 await saveUser.save().then(async (response) => {
-                    const { htmlPath, variables, textMsg, params, email, subject } = await configMailInFourthCase(response, panel)
+                    const password = user.password
+                    const { htmlPath, variables, textMsg, params, email, subject } = await configMailInFourthCase(response, panel, password)
                     await sendMail(htmlPath, variables, textMsg, params, email, subject)
                     return res.status(201).send(response)
                 }).catch(error => {
@@ -368,7 +369,7 @@ module.exports = app => {
     /** Retorna a configuração do e-mail a ser enviado quando uma nova conta de usuário
      *  é criada.
      */
-    const configMailInFourthCase = (user, url) => {
+    const configMailInFourthCase = (user, url, password) => {
         const accessLevelPlural = user.type === 'admin' ? 'Administradores' : 'Autores'
         const accessLevel = user.type === 'admin' ? 'Administrador' : 'Autor'
         const deleteAccountLink = `${url.default}/remove-account?uid=${user.id}`
@@ -378,7 +379,7 @@ module.exports = app => {
         const variables = [
             {key: '__AccessLevel', value: accessLevelPlural},
             {key: '__email', value: user.email},
-            {key: '__password', value: user.password},
+            {key: '__password', value: password},
             {key: '__notAcceptAccountLink', value: deleteAccountLink},
             {key: '__AccessLevel', value: accessLevel},
             {key: '__url', value: url.default},
@@ -388,7 +389,7 @@ module.exports = app => {
         const params = {
             accessLevel,
             email: user.email,
-            password: user.password,
+            password: password,
             notAcceptAccountLink: deleteAccountLink,
             url: url.default
         }
