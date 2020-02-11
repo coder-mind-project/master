@@ -316,7 +316,7 @@ module.exports = app => {
         // Estatísticas para cada usuário da plataforma
         
         // Obter o arrays de _ids dos usuários
-        const users = await User.find({}, {_id: 1})
+        const users = await User.find({deleted: false}, {_id: 1})
         
         // Percorre o array obtendo as views e inserindo as views no banco SQL
         users.map(async user => {

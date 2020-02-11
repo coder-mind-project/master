@@ -4,7 +4,7 @@ exports.up = function(knex) {
         table.increments('id').primary()
         table.integer('month').unsigned()
         table.bigInteger('count').unsigned()
-        table.timestamp('generated_at')
+        table.timestamp('generated_at').defaultTo(knex.fn.now())
         table.integer('year').unsigned()
         table.string('reference')
         table.engine('InnoDB')
