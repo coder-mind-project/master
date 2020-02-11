@@ -8,7 +8,7 @@ exports.up = function(knex) {
         table.string('celphone').notNullable()
         table.string('password').notNullable()
         table.datetime('deleted_at').notNullable()
-        table.timestamp('emitted_at')
+        table.timestamp('emitted_at').defaultTo(knex.fn.now())
         table.engine('InnoDB')
         table.charset('utf8mb4')
     })
