@@ -192,7 +192,8 @@ module.exports = app => {
             else throw 'Ocorreu um erro ao enviar o e-mail'
 
         } catch (error) {
-            return res.status(500).send(error)
+            error = await errorRedeemPassword(error)
+            return res.status(error.code).send(error.msg)
         }
     }
 
@@ -207,7 +208,7 @@ module.exports = app => {
             })
 
             validateCpf(request.cpf, 'CPF inválido')
-            exists(request.celphone, 'Número de celular inválido')
+            exists(request.celphone, 'Número de telefone inválido')
             
             const user = await User.findOne({cpf: request.cpf, celphone: request.celphone, deleted: false})
 
@@ -253,7 +254,8 @@ module.exports = app => {
             else throw 'Ocorreu um erro ao enviar o e-mail'
 
         } catch (error) {
-            return res.status(500).send(error)
+            error = await errorRedeemPassword(error)
+            return res.status(error.code).send(error.msg)
         }
     }
 
