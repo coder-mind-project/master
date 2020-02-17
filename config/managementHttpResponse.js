@@ -386,8 +386,20 @@ module.exports = app => {
         switch(error){
             case 'Insira uma senha válida, de no mínimo 8 caracteres':
             case 'Confirmação de senha inválida, informe no mínimo 8 caracteres':
-            case 'As senhas não conferem':{
+            case 'As senhas não conferem':
+            case 'E-mail inválido':
+            case 'Captcha inválido':
+            case 'CPF inválido':
+            case 'Número de telefone inválido':{
                 reformulatedError.code = 400
+                break
+            }
+            case 'Não encontramos uma conta com este e-mail, tem certeza que seu e-mail está certo?':{
+                reformulatedError.code = 404
+                break
+            }
+            case 'Ocorreu um erro ao enviar o e-mail':{
+                reformulatedError.code = 500
                 break
             }
             case 'Ocorreu um erro ao alterar sua senha, se persistir reporte':{
