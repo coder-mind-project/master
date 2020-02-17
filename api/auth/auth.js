@@ -42,7 +42,7 @@ module.exports = app => {
 
             const user = await User.findOne({email: request.email})
 
-            if(!user) throw 'Não encontramos um cadastro com estas credenciais'
+            if(!user) throw 'E-mail ou senha inválidos'
             if(user.deleted) throw 'Sua conta esta suspensa, em caso de reinvidicação entre em contato com o administrador do sistema'
 
             const password = await encryptAuth(request.password)
@@ -77,7 +77,7 @@ module.exports = app => {
                     user
                 })
             }
-            else throw 'Senha incorreta, esqueceu sua senha?'
+            else throw 'E-mail ou senha inválidos'
 
         } catch (error) {
             error = await signInError(error)
