@@ -243,14 +243,13 @@ module.exports = app => {
         switch(error){
             case 'E-mail inválido':
             case 'É necessário informar uma senha':
-            case 'Não encontramos um cadastro com estas credenciais':
             case 'Captcha inválido':{
                 reformulatedError.code = 400
                 break
             }
             case 'Sua conta esta suspensa, em caso de reinvidicação entre em contato com o administrador do sistema':
             case 'Senha incorreta':
-            case 'Senha incorreta, esqueceu sua senha?': {
+            case 'E-mail ou senha inválidos': {
                 reformulatedError.code = 401
 
             }
