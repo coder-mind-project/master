@@ -13,7 +13,7 @@ module.exports = app => {
     const { validateEmail, exists, validateCpf, isEqual, validatePassword } = app.config.validation
     
     // Mongoose Model para usuarios
-    const { User } = app.config.mongooseModels
+    const { User } = app.config.database.schemas.mongoose
     
     // Configurações extras
     const { encryptAuth, encryptToken, decryptToken } = app.config.secrets
@@ -21,7 +21,7 @@ module.exports = app => {
     const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
 
 
-    const { validateTokenManagement, signInError, errorRedeemPassword } = app.config.managementHttpResponse
+    const { validateTokenManagement, signInError, errorRedeemPassword } = app.config.api.httpResponses
 
     const { secret_key, uri } = app.config.captcha
 
@@ -36,11 +36,13 @@ module.exports = app => {
             await rp({method: 'POST', uri: url, json: true}).then( response => {
                 if(!response.success) throw 'Captcha inválido'
             })
+            
+            const countUsers = await User.countDocuments()
 
-            validateEmail(request.email, 'E-mail inválido')
+            exists(request.email, 'É necessário informar um e-mail ou username')
             exists(request.password, 'É necessário informar uma senha')
-
-            const user = await User.findOne({email: request.email})
+            
+            const user = countUsers ? await User.findOne({email: request.email}) : await app.knex.select().from('users').where('username', request.email).orWhere('email', request.email).first()
 
             if(!user) throw 'E-mail ou senha inválidos'
             if(user.deleted) throw 'Sua conta esta suspensa, em caso de reinvidicação entre em contato com o administrador do sistema'
@@ -49,7 +51,7 @@ module.exports = app => {
 
             if(user.password === password) {
 
-                if(!user.firstLogin){
+                if(!user.firstLogin && !user.id){
                     await User.updateOne({_id: user._id},{firstLogin: true})
                 }
 
@@ -63,7 +65,7 @@ module.exports = app => {
                     iat: now,
                     exp: now + tenDaysLater,
                     user: {
-                        _id: user._id,
+                        _id: user._id || user.id,
                         name: user.name,
                         email: user.email,
                         tagAdmin: user.tagAdmin,
@@ -71,7 +73,6 @@ module.exports = app => {
                         platformStats: Boolean(user.platformStats)
                     }
                 }
-
                 return res.json({
                     token: jwt.encode(payload, authSecret),
                     user
@@ -109,9 +110,11 @@ module.exports = app => {
                 
                 if(payload.iss !== issuer) throw 'Acesso não autorizado'
 
-                const exist = await User.findOne({_id: user._id, deleted: false})
+                const origin = isNaN(user._id)
+
+                const exist = origin ? await User.findOne({_id: user._id, deleted: false}) : await app.knex.select().from('users').where('id', user._id).first()
                 
-                if(exist && exist._id) {
+                if(exist && (exist._id || exist.id)) {
                     
                     if(user.email !== exist.email) throw 'Acesso não autorizado, seu e-mail de acesso foi alterado.'
 
@@ -119,7 +122,12 @@ module.exports = app => {
                         payload.exp = (60*60*24*10)
                         token = await jwt.encode(payload, authSecret)
                     }
-
+                    
+                    if(exist.id){
+                        exist._id = exist.id
+                        delete exist.id
+                    }
+                    
                     exist.password = null
 
                     return res.json({

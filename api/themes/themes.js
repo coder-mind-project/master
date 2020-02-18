@@ -4,10 +4,10 @@ module.exports = app => {
     const {exists, validateLength} = app.config.validation
 
     // Mongoose model para temas
-    const {Theme} = app.config.mongooseModels
+    const {Theme} = app.config.database.schemas.mongoose
 
     // Responsável por gerar Mensagens de erro Personalizadas
-    const {errorTheme} = app.config.managementHttpResponse
+    const {errorTheme} = app.config.api.httpResponses
 
     const save = async (req, res) => {
         /* Responsável por persistir temas */

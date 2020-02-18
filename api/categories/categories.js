@@ -4,10 +4,10 @@ module.exports = app => {
     const { exists, validateLength } = app.config.validation
     
     // Mongoose model para categorias
-    const { Category } = app.config.mongooseModels
+    const { Category } = app.config.database.schemas.mongoose
     
     // Responsável por gerar Mensagens de erro Personalizadas
-    const { errorCategory } = app.config.managementHttpResponse
+    const { errorCategory } = app.config.api.httpResponses
 
     const save = async (req, res) => {
         /* Responsável por persistir categorias */

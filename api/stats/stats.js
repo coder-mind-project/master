@@ -1,6 +1,6 @@
 module.exports = app => {
 
-    const { Article } = app.config.mongooseModels
+    const { Article } = app.config.database.schemas.mongoose
     
     const { getLikesPerArticle } = app.api.articles.likes
 

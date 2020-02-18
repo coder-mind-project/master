@@ -1,4 +1,4 @@
-const fileManagement = require('../../config/fileManagement.js')
+const Image = require('../../config/serialization/images.js')
 
 const { issuer, panel } = require('../../.env')
 
@@ -10,7 +10,7 @@ const emailChangedMyAccountTxtMsg = require('../../mailer-templates/mail-text-ms
 module.exports = app => {
 
     // Mongoose model para usuario
-    const { User } = app.config.mongooseModels
+    const { User } = app.config.database.schemas.mongoose
     
     // Validação de dados
     const { exists, validateEmail, validateCpf, validatePassword, isEqual } = app.config.validation
@@ -22,7 +22,7 @@ module.exports = app => {
     const { encryptTag, encryptAuth, decryptAuth, encryptToken, decryptToken } = app.config.secrets
     
     // Gerenciamento de erros para usuários
-    const { userError } = app.config.managementHttpResponse
+    const { userError } = app.config.api.httpResponses
     
 
     const get = async (req, res) => {
@@ -47,7 +47,6 @@ module.exports = app => {
                         {name: {$regex: `${query}`, $options: 'i'}},
                         {gender: {$regex: `${query}`, $options: 'i'}},
                         {cpf: {$regex: `${query}`, $options: 'i'}},
-                        {telphone: {$regex: `${query}`, $options: 'i'}},
                         {celphone: {$regex: `${query}`, $options: 'i'}},
                     ]},
                     {deleted: deleted}
@@ -62,7 +61,6 @@ module.exports = app => {
                         {name: {$regex: `${query}`, $options: 'i'}},
                         {gender: {$regex: `${query}`, $options: 'i'}},
                         {cpf: {$regex: `${query}`, $options: 'i'}},
-                        {telphone: {$regex: `${query}`, $options: 'i'}},
                         {celphone: {$regex: `${query}`, $options: 'i'}},
                     ]},
                     {deleted: deleted}
@@ -117,7 +115,6 @@ module.exports = app => {
             exists(user.gender, 'Genero inválido')
             exists(user.type, 'Tipo de usuário inválido')
             validateCpf(user.cpf, 'CPF inválido')
-            exists(user.telphone, 'Número de telefone inválido')
             exists(user.celphone, 'Número de celular inválido')
 
             if(user._id){
@@ -225,7 +222,6 @@ module.exports = app => {
                     [user.type === 'admin' ? 'tagAdmin' : 'tagAuthor']: tag,
                     [user.type !== 'admin' ? 'tagAdmin' : 'tagAuthor']: null,
                     cpf: user.cpf,
-                    telphone: user.telphone,
                     celphone: user.celphone,
                     birthDate: user.birthDate,
                     address: user.address,
@@ -674,7 +670,7 @@ module.exports = app => {
             const currentDirectory = user.profilePhoto || ''
 
             if(req.file){
-                await fileManagement.compressImage(req.file, size, currentDirectory).then( async (newPath) => {
+                await Image.compressImage(req.file, size, currentDirectory).then( async (newPath) => {
                     const change = {
                         profilePhoto: newPath
                     }
@@ -812,13 +808,13 @@ module.exports = app => {
             const status = payload.status
             const users = payload.data
             if(!status) return
-            if(users.length === 0) throw 'Nenhum usuário informado'
+            if(users.length === 0) throw 'User not informed'
             app.knex.insert(users).into('users_removed_permanently').then( () => {
-                const msg = manually ? `${users.length} usuário removido permanentemente manualmente pelo próprio dono da conta às ${new Date()}` : `${users.length} usuário(s) removido(s) permanentemente por não acessar sua(s) conta(s) pela primeira vez dentro do prazo de 7 dias`
+                const msg = manually ? `${users.length} user(s) removed your account permanently [manually] at ${new Date()}.` : `${users.length} user(s) removed permanently because he(they) didn't authenticate for the first time.`
                 console.log(msg)
             })
         } catch (error) {
-            console.log('Erro ao gravar os usuários removidos permanentemente por não acessar suas contas pela primeira vez dentro do prazo de 7 dias')
+            console.log('Error: Removed users (Not authenticated the first time in 7 days) not inserted in database.')
         }
     }
 

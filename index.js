@@ -5,7 +5,7 @@ const mongoose = require('mongoose')
 const nodemailer = require('nodemailer')
 const fs = require('fs')
 
-require('./config/mongoDB')
+require('./config/database/mongoDB')
 
 app.mongo = mongoose
 app.express = express
@@ -13,19 +13,18 @@ app.nodemailer = nodemailer
 app.fs = fs
 
 consign()
-.include('./config/mysqlDB.js')
-.then('./config/middlewares.js')
+.include('./config/database/mysqlDB.js')
+.then('./config/api/middlewares.js')
 .then('./config/validation.js')
-.then('./config/managementHttpResponse.js')
+.then('./config/api/httpResponses.js')
 .then('./config/captcha.js')
 .then('./config/secrets.js')
 .then('./config/mailer.js')
-.then('./config/mongooseModels.js')
-.then('./config/passport.js')
-.then('./api/articles/management.js')
+.then('./config/database/schemas/mongoose.js')
+.then('./config/authentication/passport.js')
 .then('./api')
 .then('./config/cron.js')
-.then('./config/routes.js')
+.then('./config/api/routes.js')
 .into(app)
 
 const port = process.env.DEFAULTPORT || 3001

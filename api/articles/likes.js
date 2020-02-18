@@ -1,6 +1,6 @@
 module.exports = app => {
 
-    const { Like, User } = app.config.mongooseModels
+    const { Like, User } = app.config.database.schemas.mongoose
 
     const getLastLikes = (req, res) => {
         try {
@@ -88,7 +88,7 @@ module.exports = app => {
         }})
 
         app.knex('likes').insert({month: currentMonth + 1, count: likes, year: currentYear}).then( () => {
-            console.log(`**CRON** | Avaliações atualizadas as ${new Date()}`)
+            console.log(`**CRON** | likes updated at ${new Date()}`)
         })
     }
 

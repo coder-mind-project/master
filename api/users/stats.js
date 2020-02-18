@@ -4,7 +4,7 @@ const { authSecret, issuer } = require('../../.env')
 
 module.exports = app => {
 
-    const {User} = app.config.mongooseModels
+    const {User} = app.config.database.schemas.mongoose
 
     const definePlatformStats = (req, res) => {
         try {

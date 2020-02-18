@@ -3,11 +3,11 @@ const ticketAnsweredTxtMsg = require('../../mailer-templates/mail-text-msg/ticke
 
 module.exports = app => {
 
-    const { Ticket } = app.config.mongooseModels
+    const { Ticket } = app.config.database.schemas.mongoose
 
     const { validateEmail, exists } = app.config.validation
 
-    const { ticketError } = app.config.managementHttpResponse
+    const { ticketError } = app.config.api.httpResponses
 
     const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
 

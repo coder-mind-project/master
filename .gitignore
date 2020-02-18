@@ -1,7 +1,8 @@
 .env
-doc.yaml
+/doc/doc.yaml
 
 /node_modules
+/.vscode
 
 /public/imgs/*.webp
 

@@ -18,7 +18,6 @@ module.exports = app => {
         youtube: String,
         cpf: {type: String, unique: true},
         email: {type: String, unique: true},
-        telphone: {type: String, unique: true},
         celphone: {type: String, unique: true},
         address: String,
         number: Number,

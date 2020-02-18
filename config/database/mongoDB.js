@@ -1,9 +1,9 @@
 const mongoose = require('mongoose')
 
 //Configuração de referencias de conexão com o banco de dados
-const {dbLocal, dbProduction} = require('../.env')
+const {dbLocal, dbProduction, dbDevelopment} = require('../../.env')
 
-const config = dbProduction
+const config = dbDevelopment
 
 const url = config.mongo.url
 const user = config.mongo.user
@@ -18,7 +18,7 @@ mongoose.connect(url, {
     user,
     pass
 }).catch(e => {
-        const msg = `Error: Connection in mongo database failed, make sure your database is online - Stack: ${e}`
-        console.log('\x1b[41m%s\x1b[37m', msg, '\x1b[0m')
-    })
+    const msg = `Error: Connection in mongo database failed, make sure your database is online - Stack: ${e}`
+    console.log('\x1b[41m%s\x1b[37m', msg, '\x1b[0m')
+})
 

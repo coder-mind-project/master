@@ -3,7 +3,7 @@ const { webApp } = require('../../.env')
 
 module.exports = app => {
 
-    const { Comment, Article, User } = app.config.mongooseModels
+    const { Comment, Article, User } = app.config.database.schemas.mongoose
 
     const { validateLength } = app.config.validation
 
@@ -341,7 +341,7 @@ module.exports = app => {
         })
 
         app.knex('comments').insert({month: currentMonth + 1, count: comments, year: currentYear}).then( () => {
-            console.log(`**CRON** | Comentários atualizados as ${new Date()}`)
+            console.log(`**CRON** | comments updated at ${new Date()}`)
         })
     }
 
