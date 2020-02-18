@@ -1,7 +1,7 @@
 const fs = require('fs')
 const sharp = require('sharp')
 
-/* Responsável pelo gerenciamento de arquivos da aplicação */
+/* Responsável pelo gerenciamento de imagens da aplicação */
 
 /**
  *  1 - sharp é utilizado para a compressão de imagens
@@ -31,7 +31,7 @@ exports.compressImage = (file, size, currentDirectory) => {
                 if(!error){
                     //Caso não exista um arquivo, irá gerar um erro. Não existindo o arquivo existe e assim será removido.
                     await fs.unlink(file.path, (err) => {
-                        if(err) console.log('Erro ao remover o arquivo')
+                        if(err) console.log('Error: Remove file operation failed')
                     })
                 }
             })
@@ -41,7 +41,7 @@ exports.compressImage = (file, size, currentDirectory) => {
                     if(!error){
                         //Caso não exista um arquivo, irá gerar um erro. Não existindo o arquivo existe e assim será removido.
                         await fs.unlink(currentDirectory, (err) => {
-                            if(err) console.log('Erro ao remover o arquivo')
+                            if(err) console.log('Error: Remove file operation failed')
                         })
                     }
                 })

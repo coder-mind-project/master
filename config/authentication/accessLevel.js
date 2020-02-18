@@ -1,4 +1,4 @@
-const {notAcceptableResource} = require('./managementHttpResponse.js')()
+const {notAcceptableResource} = require('../api/httpResponses.js')()
 
 module.exports = {
     
@@ -8,7 +8,7 @@ module.exports = {
             if(isAdmin){
                 middleware(req, res, next)
             }else{
-                const error = await notAcceptableResource('Recurso não disponível para o usuário') 
+                const error = await notAcceptableResource('Resource not allowed for this user') 
                 return res.status(406).send(error.msg)
             }
         }

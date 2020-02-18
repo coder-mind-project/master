@@ -1,6 +1,6 @@
 module.exports = app => {
     
-    const { View, User } = app.config.mongooseModels
+    const { View, User } = app.config.database.schemas.mongoose
 
 
     const lastViews = (req, res) => {
@@ -100,7 +100,7 @@ module.exports = app => {
         }})
 
         app.knex('views').insert({month: currentMonth + 1, count: views, year: currentYear}).then( () => {
-            console.log(`**CRON** | Visualizações atualizadas as ${new Date()}`)
+            console.log(`**CRON** | views updated at ${new Date()}`)
         })
 
         
