@@ -23,7 +23,7 @@ module.exports = app => {
         try {
             var limit = parseInt(req.query.limit) || 10
             const query = req.query.query || ''
-            const page = req.query.page || 1
+            const page = parseInt(req.query.page) || 1
             const type = req.query.op || 'perUser'
 
             var config = req.user.user.tagAdmin ? {deleted: false} : {
@@ -38,6 +38,7 @@ module.exports = app => {
             }
 
             if(limit > 100) limit = 10
+            if(page < 1) page = 1
 
             let count = await Article.aggregate([
                 {$match : {$and: [

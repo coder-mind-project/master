@@ -242,6 +242,7 @@ module.exports = app => {
 
         switch(error){
             case 'E-mail inválido':
+            case 'É necessário informar um e-mail ou username':
             case 'É necessário informar uma senha':
             case 'Captcha inválido':{
                 reformulatedError.code = 400
