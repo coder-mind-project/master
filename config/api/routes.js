@@ -12,8 +12,8 @@ module.exports = app => {
     /* Resource for authentication */
     app.route('/auth')
         .post(app.api.auth.auth.signIn)
-        .patch(app.api.auth.auth.redeemPerEmail)
-        .put(app.api.auth.auth.redeemPerMoreInformations)
+        .patch(app.api.auth.redeemAccount.redeemPerEmail)
+        .put(app.api.auth.redeemAccount.redeemPerMoreInformations)
 
     app.route('/auth/logged')
         .all(app.config.authentication.passport.authenticate())
@@ -25,8 +25,8 @@ module.exports = app => {
         .post(app.api.auth.auth.validateToken)
 
     app.route('/redeem-password')
-        .post(app.api.auth.auth.validateTokenForRedeemAccount)
-        .patch(app.api.auth.auth.newPassFromRedeemAccount)
+        .post(app.api.auth.redeemAccount.validateToken)
+        .patch(app.api.auth.redeemAccount.changePassword)
 
     app.route('/users/settings')
         .patch(app.api.users.users.confirmEmail)

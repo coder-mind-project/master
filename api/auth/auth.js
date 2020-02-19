@@ -1,27 +1,20 @@
 const jwt = require('jwt-simple')
 const { authSecret, issuer, panel } = require('../../.env')
 const rp = require('request-promise')
-const nodemailer = require('nodemailer')
-
-const redeemAccountTextMsg = require('../../mailer-templates/mail-text-msg/redeemAccount1.js')
-const fs = require('fs')
 
 
 module.exports = app => {
     
     // Validações de dados
-    const { validateEmail, exists, validateCpf, isEqual, validatePassword } = app.config.validation
+    const { exists} = app.config.validation
     
     // Mongoose Model para usuarios
     const { User } = app.config.database.schemas.mongoose
     
     // Configurações extras
-    const { encryptAuth, encryptToken, decryptToken } = app.config.secrets
+    const { encryptAuth } = app.config.secrets
 
-    const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
-
-
-    const { validateTokenManagement, signInError, errorRedeemPassword } = app.config.api.httpResponses
+    const { validateTokenManagement, signInError } = app.config.api.httpResponses
 
     const { secret_key, uri } = app.config.captcha
 
@@ -145,180 +138,5 @@ module.exports = app => {
 
     }
 
-    const redeemPerEmail = async (req, res) => {
-        try {
-
-            const request = {...req.body}
-
-            const url = `${uri}?secret=${secret_key}&response=${request.response}`
-            
-            await rp({method: 'POST', uri: url, json: true}).then( response => {
-                if(!response.success) throw 'Captcha inválido'
-            })
-
-            validateEmail(request.email, 'E-mail inválido')
-
-            const user = await User.findOne({email: request.email, deleted: false})
-
-            if(!user) throw 'Não encontramos uma conta com este e-mail, tem certeza que seu e-mail está certo?'
-
-            const payload = {
-                generatedAt: Date.now(),
-                expireAt: Date.now() + (1000 * 60 * 60 * 12),
-                user: user._id
-            }
-
-            const token = await encryptToken(JSON.stringify(payload))
-
-            await User.updateOne({ _id: user._id },{ token })
-
-            const htmlMsg = fs.readFileSync('mailer-templates/redeemAccount1.html', 'utf8').replace('\n', '').replace('__user', user.name).replace('__token', token).replace('__token', token).replace('__url', panel.default).replace('__url', panel.default)
-
-            const transport = {
-                host: SMTP_SERVER,
-                port: PORT,
-                secure: SECURE,
-                auth: {
-                    user: USER,
-                    pass: PASSWORD
-                }
-            }
-
-            const transporter = nodemailer.createTransport(transport)
-
-            const mail = {
-                from: `"Agente Coder Mind" <${USER}>`,
-                to: request.email,
-                subject: 'Recuperação de senha',
-                text: redeemAccountTextMsg(user.name, panel.production, token),
-                html: htmlMsg,
-            }
-            
-            const info = await transporter.sendMail(mail)
-
-            if(info.messageId) return res.status(200).send('Enviamos um e-mail para você, as próximas instruções estarão por lá =D')
-            else throw 'Ocorreu um erro ao enviar o e-mail'
-
-        } catch (error) {
-            error = await errorRedeemPassword(error)
-            return res.status(error.code).send(error.msg)
-        }
-    }
-
-    const redeemPerMoreInformations = async (req, res) => {
-        try {
-            const request = {...req.body}
-
-            const url = `${uri}?secret=${secret_key}&response=${request.response}`
-            
-            await rp({method: 'POST', uri: url, json: true}).then( response => {
-                if(!response.success) throw 'Captcha inválido'
-            })
-
-            validateCpf(request.cpf, 'CPF inválido')
-            exists(request.celphone, 'Número de telefone inválido')
-            
-            const user = await User.findOne({cpf: request.cpf, celphone: request.celphone, deleted: false})
-
-            if(!user) throw 'Não foi possível verificar sua autenticidade, tente novamente ou entre em contato com o administrador do sistema'
-
-            const email = user.email
-            
-            const payload = {
-                generatedAt: Date.now(),
-                expireAt: Date.now() + (1000 * 60 * 60 * 12),
-                user: user._id
-            }
-
-            const token = await encryptToken(JSON.stringify(payload))
-
-            await User.updateOne({ _id: user._id },{ token })
-
-            const htmlMsg = fs.readFileSync('mailer-templates/redeemAccount1.html', 'utf8').replace('\n', '').replace('__user', user.name).replace('__token', token).replace('__token', token).replace('__url', panel.production).replace('__url', panel.production)
-
-            const transport = {
-                host: SMTP_SERVER,
-                port: PORT,
-                secure: SECURE,
-                auth: {
-                    user: USER,
-                    pass: PASSWORD
-                }
-            }
-
-            const transporter = nodemailer.createTransport(transport)
-
-            const mail = {
-                from: `"Agente Coder Mind" <${USER}>`,
-                to: email,
-                subject: 'Recuperação de senha',
-                text: redeemAccountTextMsg(user.name, panel.production, token),
-                html: htmlMsg,
-            }
-            
-            const info = await transporter.sendMail(mail)
-
-            if(info.messageId) return res.status(200).send(`Verificamos suas informações, entre no seu endereço de email: ${email} , enviaremos sua senha por lá =D`)
-            else throw 'Ocorreu um erro ao enviar o e-mail'
-
-        } catch (error) {
-            error = await errorRedeemPassword(error)
-            return res.status(error.code).send(error.msg)
-        }
-    }
-
-    const validateTokenForRedeemAccount = async (req, res) => {
-        try {
-            const token = req.body.token
-
-            if(!token) throw 'Token não informado'
-
-            const payload = JSON.parse(await decryptToken(token))
-
-            if(payload.generatedAt > Date.now()) throw 'Token inválido, solicite uma nova recuperação de senha'
-
-            if(payload.expireAt < Date.now()) throw 'Token expirado, solicite uma nova recuperação de senha'
-
-            const _id = payload.user
-
-            const user = await User.findOne({_id, deleted: false},{ _id: 1, name: 1, token: 1})
-
-            if(!user) throw 'Usuário não encontrado'
-
-            if(user.token !== token) throw 'Token inválido, solicite uma nova recuperação de senha'
-
-            res.status(200).send(user)
-        } catch (error) {
-            error = await validateTokenManagement(error)
-            res.status(error.code).send(error.msg) 
-        }
-    }
-
-    const newPassFromRedeemAccount = async (req, res) => {
-        try {
-            const payload = {...req.body}
-            
-            validatePassword(payload.firstField, 8, 'Insira uma senha válida, de no mínimo 8 caracteres')
-            validatePassword(payload.secondField, 8, 'Confirmação de senha inválida, informe no mínimo 8 caracteres')
-            
-            isEqual(payload.firstField, payload.secondField, 'As senhas não conferem')
-
-            const password = await encryptAuth(payload.firstField)
-            const _id = payload.user
-
-            const response = await User.updateOne({_id, deleted: false}, {password, token: null})
-            
-            if(response.nModified){
-                return res.status(200).send('Senha alterada com sucesso, você já pode realizar um novo login')
-            }else{
-                throw 'Ocorreu um erro ao alterar sua senha, se persistir reporte'
-            }
-
-        } catch (error) {
-            error = await errorRedeemPassword(error)
-            return res.status(error.code).send(error.msg)
-        }
-    }
-
-    return {signIn, validateToken, redeemPerEmail, redeemPerMoreInformations, validateTokenForRedeemAccount, newPassFromRedeemAccount}
+    return {signIn, validateToken}
 }

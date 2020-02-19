@@ -391,7 +391,8 @@ module.exports = app => {
             case 'E-mail inválido':
             case 'Captcha inválido':
             case 'CPF inválido':
-            case 'Número de telefone inválido':{
+            case 'Número de telefone inválido':
+            case 'É necessário fornecer um endereço de e-mail válido para contato':{
                 reformulatedError.code = 400
                 break
             }
