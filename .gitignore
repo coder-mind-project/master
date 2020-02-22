@@ -1,5 +1,4 @@
 .env
-/doc/doc.yaml
 
 /node_modules
 /.vscode

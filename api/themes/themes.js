@@ -1,67 +1,96 @@
+/**
+ * @function
+ * @module Themes
+ * @description Provide some middlewares functions.
+ * @param {Object} app - A app Object provided by consign.
+ * @returns {Object} Containing some middleware functions.
+ */
 module.exports = app => {
-  // Validação de dados
   const { exists, validateLength } = app.config.validation
 
-  // Mongoose model para temas
   const { Theme } = app.config.database.schemas.mongoose
 
-  // Responsável por gerar Mensagens de erro Personalizadas
   const { errorTheme } = app.config.api.httpResponses
 
+  /**
+   * @function
+   * @description Save a theme
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @returns {Object} A Theme Object representation
+   *
+   * @middlewareParams {String} id - Identifier of theme
+   */
   const save = async (req, res) => {
-    /* Responsável por persistir temas */
-
     const theme = { ...req.body }
 
-    try {
-      exists(theme.name, 'Tema não informado')
-      validateLength(theme.name, 30, 'bigger')
-      validateLength(theme.alias, 30, 'bigger')
-      validateLength(theme.description, 100, 'bigger')
-    } catch (msg) {
-      return res.status(400).send(msg)
-    }
+    const _id = req.params.id || null
 
     try {
-      if (!theme._id) {
-        delete theme._id
-        const newTheme = new Theme(theme)
+      /** Data validations */
+      exists(theme.name, {
+        name: 'name',
+        description: 'Tema não informado'
+      })
 
-        await newTheme
-          .save()
-          .then(response => res.status(201).send(response))
-          .catch(error => {
-            if (error.code === 11000) throw 'Ja existe tema com este nome'
-            else throw 'Ocorreu um erro desconhecido, se persistir reporte'
-          })
+      validateLength(theme.name, 30, 'bigger', {
+        name: 'name',
+        description: 'Tema muito grande, máximo permitido 30 caracteres'
+      })
+
+      if (theme.alias) {
+        validateLength(theme.alias, 30, 'bigger', {
+          name: 'alias',
+          description: 'Apelido muito grande, máximo permitido 30 caracteres'
+        })
+      }
+
+      if (theme.description) {
+        validateLength(theme.description, 100, 'bigger', {
+          name: 'description',
+          description: 'Descrição muito grande, máximo permitido 100 caracteres'
+        })
+      }
+      /** Ending data validations */
+
+      if (!_id) {
+        // Create a new theme
+        const result = await new Theme(theme).save()
+
+        if (result._id) return res.status(201).send(result)
+        throw result
       } else {
-        const _id = theme._id
-
-        await Theme.updateOne({ _id }, theme)
-          .then(() => res.status(204).send())
-          .catch(error => {
-            if (error.code === 11000) throw 'Ja existe tema com este nome'
-            else throw 'Ocorreu um erro desconhecido, se persistir reporte'
+        // Update a theme
+        await Theme.updateOne({ _id }, theme).then(() => {
+          Theme.findOne({ _id }).then(theme => {
+            return res.json(theme)
           })
+        })
       }
     } catch (error) {
-      error = await errorTheme(error)
-      return res.status(error.code).send(error.msg)
+      const stack = await errorTheme(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
+  /**
+   * @function
+   * @description Gets some themes
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {Number} limit - Limit themes per page
+   * @middlewareParams {String} query - Keyword to search for themes
+   * @middlewareParams {Number} page - Current page
+   *
+   * @returns {Object} A object containing count, limit and Themes Objects representations
+   */
   const get = async (req, res) => {
-    /*  Responsável por obter os temas por filtros de
-            palavras chave. Ocorrendo a possibilidade de limitar
-            por páginação e também obtendo a quantidade total de registros
-            por filtragem
-
-        */
-
     try {
       var limit = parseInt(req.query.limit) || 10
       const query = req.query.query || ''
-      const page = req.query.page || 1
+      const page = parseInt(req.query.page) || 1
 
       if (limit > 100) limit = 10
 
@@ -106,15 +135,20 @@ module.exports = app => {
         .limit(limit)
         .then(themes => res.json({ themes, count, limit }))
     } catch (error) {
-      return res
-        .status(500)
-        .send('Ops, ocorreu um erro ao recuperar as informações. Tente atualizar a página')
+      const stack = await errorTheme(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
+  /**
+   * @function
+   * @description Remove a theme
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - Identifier of theme
+   */
   const remove = async (req, res) => {
-    /* Responsável por remover o tema */
-
     try {
       const user = req.user.user
 
@@ -133,27 +167,41 @@ module.exports = app => {
 
       Theme.updateOne({ _id }, state).then(() => res.status(204).send())
     } catch (error) {
-      error = await errorTheme(error)
-      return res.status(error.code).send(error.msg)
+      const stack = await errorTheme(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
+  /**
+   * @function
+   * @description Get a theme by Id
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - Identifier of theme
+   *
+   * @returns {Object} A Theme Object representation
+   */
   const getOne = (req, res) => {
-    /* Responsável por obter o tema pelo ID */
-
     const _id = req.params.id
     Theme.findOne({ _id })
       .then(theme => res.json(theme))
       .catch(async error => {
-        error = await errorTheme(error)
-        return res.status(error.code).send(error.msg)
+        const stack = await errorTheme(error)
+        return res.status(stack.code).send(stack)
       })
   }
 
+  /**
+   * @deprecated since version 2.0
+   * @function
+   * @description Sets 'active' state in theme
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - Identifier of theme
+   */
   const active = async (req, res) => {
-    /* Responsável restaurar uma categoria excluída */
-    // Não implementado
-
     try {
       const _id = req.params.id
 
@@ -167,8 +215,8 @@ module.exports = app => {
 
       Theme.updateOne({ _id }, state).then(() => res.status(204).send())
     } catch (error) {
-      error = await errorTheme(error)
-      return res.status(error.code).send(error.msg)
+      const stack = await errorTheme(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
