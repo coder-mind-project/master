@@ -3,7 +3,9 @@
 #### Contact information:
 
 Owner: Coder Mind
+
 E-mail: allan.codermind@gmail.com
+
 License: **Not Defined**
 ___
 #### Docs:
