@@ -5,7 +5,9 @@ Available Languages:
  - [PT-BR](#pt-br)
 
 URL repository: <https://github.com/allanalves23/Coder-Mind-Panel-API>
+
 Doc version: 1.0
+
 For API version: 1.0.4 (master) 
 
 #### Contact
@@ -13,6 +15,8 @@ For API version: 1.0.4 (master)
  - E-mail: allan.codermind@gmail.com
  - Owner: Coder Mind
 ___
+
+## PT-BR
 
 ### Sumário
  
