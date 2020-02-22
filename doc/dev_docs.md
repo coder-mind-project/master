@@ -50,11 +50,11 @@ Um bom estudo antes de gerar novas entidades / coleções é realizar algumas pe
 
 > Estará sendo feito um relacionamento entre coleção (MongoDB) e entidade (MySQL)?
 
-Caso a resposta seja sim, então crie uma outra coleção e faça as relações nas consultas no MongoDB.
+- Caso a resposta seja sim, então crie uma outra coleção e faça as relações nas consultas no MongoDB.
 
 > Estará sendo criado uma coleção (MongoDB) / entidade (MySQL) para qual propósito?
 
-Caso o propósito seja criar uma coleção característica de informações das regras de negócio como: um conjunto de usuários ou artigos, deverá ser criado na base MongoDB. Caso por exemplo deseja-se cadastrar informações de estatísticas de artigos para economizar processamento a cada consulta desses dados, poderá ser feito uma migração dos resultados dessa consulta através de um agendador, e assim armazenar estes resultados numa tabela MySQL.
+- Caso o propósito seja criar uma coleção característica de informações das regras de negócio como: um conjunto de usuários ou artigos, deverá ser criado na base MongoDB. Caso por exemplo deseja-se cadastrar informações de estatísticas de artigos para economizar processamento a cada consulta desses dados, poderá ser feito uma migração dos resultados dessa consulta através de um agendador, e assim armazenar estes resultados numa tabela MySQL.
 
 Em resumo as principais tecnologias utilizadas são:
  
