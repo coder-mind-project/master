@@ -57,7 +57,6 @@ module.exports = app => {
       if (!_id) {
         // Create a new theme
         const result = await new Theme(theme).save()
-
         if (result._id) return res.status(201).send(result)
         throw result
       } else {
@@ -150,16 +149,30 @@ module.exports = app => {
    */
   const remove = async (req, res) => {
     try {
-      const user = req.user.user
-
-      if (!user.tagAdmin) throw 'Acesso não autorizado, somente administradores podem remover temas'
-
+      const { user } = { ...req.user }
       const _id = req.params.id
-
       const theme = await Theme.findOne({ _id })
 
-      if (!theme) throw 'Tema não encontrado'
-      if (theme.state === 'removed') throw 'Este tema já foi excluído'
+      if (!user.tagAdmin) {
+        throw {
+          name: 'remove',
+          description: 'Acesso não autorizado, somente administradores podem remover temas'
+        }
+      }
+
+      if (!theme) {
+        throw {
+          name: 'remove',
+          description: 'Tema não encontrado'
+        }
+      }
+
+      if (theme.state === 'removed') {
+        throw {
+          name: 'remove',
+          description: 'Este tema já foi excluído'
+        }
+      }
 
       const state = {
         state: 'removed'
