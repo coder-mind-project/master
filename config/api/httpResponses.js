@@ -21,59 +21,72 @@ module.exports = app => {
       msg: 'Ocorreu um erro desconhecido, se persistir reporte'
     }
 
-    if (stack.name === 'ValidationError') {
-      const { errors } = { ...stack }
+    switch (stack.name) {
+      case 'ValidationError': {
+        const { errors } = { ...stack }
 
-      if (errors.name) {
-        pending = 'name'
-        switch (errors.name.kind) {
-          case 'unique': {
-            reformulatedError.msg = 'Este tema já está cadastrado'
+        if (errors.name) {
+          pending = 'name'
+          switch (errors.name.kind) {
+            case 'unique': {
+              reformulatedError.msg = 'Este tema já está cadastrado'
+              break
+            }
+            default: {
+              reformulatedError.msg = 'Nome do tema não informado'
+            }
+          }
+        }
+
+        if (errors.alias) {
+          pending = 'alias'
+          reformulatedError.msg = 'Este apelido já está cadastrado'
+        }
+
+        reformulatedError.code = 400
+        break
+      }
+      case 'CastError': {
+        if (stack.kind === 'ObjectId') {
+          pending = 'id'
+          reformulatedError.msg = 'Identificador inválido'
+        }
+
+        reformulatedError.code = 400
+        break
+      }
+      default: {
+        const { name, description } = { ...stack }
+
+        switch (description) {
+          case 'Nome do tema não informado': {
+            reformulatedError.code = 400
+            break
+          }
+          case 'Ja existe tema com este nome': {
+            reformulatedError.code = 409
+            break
+          }
+          case 'Tema não encontrado': {
+            reformulatedError.code = 404
+            break
+          }
+          case 'Este tema já foi excluído': {
+            reformulatedError.code = 410
+            break
+          }
+          case 'Acesso não autorizado, somente administradores podem remover temas': {
+            reformulatedError.code = 401
             break
           }
           default: {
-            reformulatedError.msg = 'Nome do tema não informado'
+            reformulatedError.code = 400
           }
         }
+
+        pending = name
+        reformulatedError.msg = description
       }
-
-      if (errors.alias) {
-        pending = 'alias'
-        reformulatedError.msg = 'Este apelido já está cadastrado'
-      }
-
-      reformulatedError.code = 400
-    } else {
-      const { name, description } = { ...stack }
-
-      switch (description) {
-        case 'Nome do tema não informado': {
-          reformulatedError.code = 400
-          break
-        }
-        case 'Ja existe tema com este nome': {
-          reformulatedError.code = 409
-          break
-        }
-        case 'Tema não encontrado': {
-          reformulatedError.code = 404
-          break
-        }
-        case 'Este tema já foi excluído': {
-          reformulatedError.code = 410
-          break
-        }
-        case 'Acesso não autorizado, somente administradores podem remover temas': {
-          reformulatedError.code = 401
-          break
-        }
-        default: {
-          reformulatedError.code = 400
-        }
-      }
-
-      pending = name
-      reformulatedError.msg = description
     }
 
     reformulatedError[pending] = 'pending'

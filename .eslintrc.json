@@ -17,6 +17,7 @@
     "rules": {
         "no-throw-literal": "off",
         "no-unused-vars": "off",
-        "space-before-function-paren": "off"
+        "space-before-function-paren": "off",
+        "no-console": "error"
     }
 }
