@@ -22,7 +22,7 @@ module.exports = app => {
     try {
       var limit = parseInt(req.query.limit) || 10
       const query = req.query.query || ''
-      const page = parseInt(req.query.page) || 1
+      let page = parseInt(req.query.page) || 1
       const type = req.query.op || 'perUser'
 
       var config = req.user.user.tagAdmin
@@ -299,13 +299,29 @@ module.exports = app => {
     /* Realiza o envio da(s) imagem(ns) do artigo */
 
     try {
-      const _id = req.body.idArticle
+      const _id = req.params.id
 
-      const size = parseInt(req.query.size) || 512
-      const path = req.query.path || ''
+      if (!_id) throw 'Artigo não encontrado'
+
+      let path = ''
+
+      switch (req.method) {
+        case 'POST': {
+          path = 'smallImg'
+          break
+        }
+        case 'PATCH': {
+          path = 'mediumImg'
+          break
+        }
+        case 'PUT': {
+          path = 'bigImg'
+          break
+        }
+      }
 
       if (!path) {
-        throw 'Ocorreu um problema ao enviar a imagem, se persistir reporte'
+        throw 'Verbo não aceitável para este recurso, é razoável consultar a documentação'
       }
 
       const article = await Article.findOne({ _id })
@@ -313,6 +329,7 @@ module.exports = app => {
       if (!article) throw 'Artigo não encontrado'
 
       const currentDirectory = article[path] || ''
+      const size = parseInt(req.query.size) || 512
 
       if (req.file) {
         Image.compressImage(req.file, size, currentDirectory).then(async newPath => {
