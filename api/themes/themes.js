@@ -20,11 +20,10 @@ module.exports = app => {
    *
    * @returns {Object} A Theme Object representation
    *
-   * @middlewareParams {String} id - Identifier of theme
+   * @middlewareParams {String} id - Theme identifier
    */
   const save = async (req, res) => {
     const theme = { ...req.body }
-
     const _id = req.params.id || null
 
     try {
@@ -52,7 +51,7 @@ module.exports = app => {
           description: 'Descrição muito grande, máximo permitido 100 caracteres'
         })
       }
-      /** Ending data validations */
+      /** End data validations */
 
       if (!_id) {
         // Create a new theme
@@ -87,7 +86,7 @@ module.exports = app => {
    */
   const get = async (req, res) => {
     try {
-      var limit = parseInt(req.query.limit) || 10
+      let limit = parseInt(req.query.limit) || 10
       const query = req.query.query || ''
       const page = parseInt(req.query.page) || 1
 
@@ -145,20 +144,12 @@ module.exports = app => {
    * @param {Object} req - Request object provided by Express.js
    * @param {Object} res - Response object provided by Express.js
    *
-   * @middlewareParams {String} id - Identifier of theme
+   * @middlewareParams {String} id - Theme identifier
    */
   const remove = async (req, res) => {
     try {
-      const { user } = { ...req.user }
       const _id = req.params.id
       const theme = await Theme.findOne({ _id })
-
-      if (!user.tagAdmin) {
-        throw {
-          name: 'remove',
-          description: 'Acesso não autorizado, somente administradores podem remover temas'
-        }
-      }
 
       if (!theme) {
         throw {
@@ -191,7 +182,7 @@ module.exports = app => {
    * @param {Object} req - Request object provided by Express.js
    * @param {Object} res - Response object provided by Express.js
    *
-   * @middlewareParams {String} id - Identifier of theme
+   * @middlewareParams {String} id - Theme identifier
    *
    * @returns {Object} A Theme Object representation
    */
