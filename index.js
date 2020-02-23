@@ -13,23 +13,23 @@ app.nodemailer = nodemailer
 app.fs = fs
 
 consign()
-.include('./config/database/mysqlDB.js')
-.then('./config/api/middlewares.js')
-.then('./config/validation.js')
-.then('./config/api/httpResponses.js')
-.then('./config/captcha.js')
-.then('./config/secrets.js')
-.then('./config/mailer.js')
-.then('./config/database/schemas/mongoose.js')
-.then('./config/authentication/passport.js')
-.then('./api')
-.then('./config/cron.js')
-.then('./config/api/routes.js')
-.into(app)
+  .include('./config/database/mysqlDB.js')
+  .then('./config/api/middlewares.js')
+  .then('./config/validation.js')
+  .then('./config/api/httpResponses.js')
+  .then('./config/captcha.js')
+  .then('./config/secrets.js')
+  .then('./config/mailer.js')
+  .then('./config/database/schemas/mongoose.js')
+  .then('./config/authentication/passport.js')
+  .then('./api')
+  .then('./config/cron.js')
+  .then('./config/api/routes.js')
+  .into(app)
 
 const port = process.env.DEFAULTPORT || 3001
 
 app.listen(port, () => {
-    console.log(`Server running at port ${port}`)
+  // eslint-disable-next-line no-console
+  console.log(`Server running at port ${port}`)
 })
-
