@@ -1,2 +1,4 @@
 /node_modules
 /public/imgs/*.webp
+/.vscode
+.env
