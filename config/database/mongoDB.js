@@ -2,7 +2,6 @@ const mongoose = require('mongoose')
 
 // Configuração de referencias de conexão com o banco de dados
 const { dbLocal, dbProduction, dbDevelopment } = require('../../.env')
-
 const config = dbDevelopment
 
 const url = config.mongo.url
@@ -21,5 +20,6 @@ mongoose
   })
   .catch(e => {
     const msg = `Error: Connection in mongo database failed, make sure your database is online - Stack: ${e}`
+    // eslint-disable-next-line no-console
     console.log('\x1b[41m%s\x1b[37m', msg, '\x1b[0m')
   })
