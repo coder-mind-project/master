@@ -1,40 +1,35 @@
 module.exports = app => {
-    
-    const getViews = app.api.articles.views.getStats
-    const getComments = app.api.articles.comments.getStats
-    const getLikes = app.api.articles.likes.getStats
+  const getViews = app.api.articles.views.getStats
+  const getComments = app.api.articles.comments.getStats
+  const getLikes = app.api.articles.likes.getStats
 
-    const { viewsJob, getChartViews } = app.api.articles.views
-    const { commentsJob } = app.api.articles.comments
-    const { likesJob, getChartLikes } = app.api.articles.likes 
+  const { viewsJob, getChartViews } = app.api.articles.views
+  const { commentsJob } = app.api.articles.comments
+  const { likesJob, getChartLikes } = app.api.articles.likes
 
-    const defineMonthDescribed = require('../../config/validation')().defineMonthDescribed
+  const defineMonthDescribed = require('../../config/validation')().defineMonthDescribed
 
+  const get = async (req, res) => {
+    try {
+      const year = req.query.y || new Date().getFullYear()
 
-    const get = async (req, res) => {
-        try {
+      const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
 
-            const year  = req.query.y || new Date().getFullYear()
+      const views = (await getViews(user)).views
+      const comments = (await getComments(user)).comments
+      const likes = (await getLikes(user)).likes
 
-            const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
+      const chartData = await getStatsForChart(year, user)
 
-            const views = (await getViews(user)).views
-            const comments = (await getComments(user)).comments
-            const likes = (await getLikes(user)).likes
-
-            const chartData = await getStatsForChart(year, user)
-            
-            return res.json({views, comments, likes, chartData})
-        } catch (error) {
-            return res.status(500).send('Ocorreu um erro ao obter as estatísticas, se persistir reporte')
-        }
+      return res.json({ views, comments, likes, chartData })
+    } catch (error) {
+      return res.status(500).send('Ocorreu um erro ao obter as estatísticas, se persistir reporte')
     }
+  }
 
-
-    const getStatsForChart = async (year, user = null) => {
-        try {
-            
-            const result = await app.knex.raw(`select
+  const getStatsForChart = async (year, user = null) => {
+    try {
+      const result = await app.knex.raw(`select
             month as month_numbered,
             CASE 
                 WHEN month = 1 THEN 'JANEIRO'
@@ -51,8 +46,12 @@ module.exports = app => {
                 WHEN month = 12 THEN 'DEZEMBRO'
             END AS month,
             max(quantity) as views,
-            (SELECT max(count) from comments where month = a.month and year = ${year} and reference ${user ? `= '${user}'` : 'is null'}) as comments,
-            (SELECT max(count) from likes where month = a.month and year = ${year} and reference ${user ? `= '${user}'` : 'is null'}) as likes
+            (SELECT max(count) from comments where month = a.month and year = ${year} and reference ${
+        user ? `= '${user}'` : 'is null'
+      }) as comments,
+            (SELECT max(count) from likes where month = a.month and year = ${year} and reference ${
+        user ? `= '${user}'` : 'is null'
+      }) as likes
         from (
             select 
                 max(month) as month,
@@ -79,70 +78,93 @@ module.exports = app => {
             END
         ORDER BY
             month_numbered;`)
-            
-            const data = {
-                monthNumbered: [],
-                month: [],
-                views: [],
-                comments: [],
-                likes: [],
-                originalDataPacket: result[0]
-            }
-            
-            for (let i = 1; i <= 12; i++) {
-                data.monthNumbered.push(result[0].filter(elem => elem.month_numbered === i).length > 0 ? result[0].filter(elem => elem.month_numbered === i)[0].month_numbered : i)
-                data.month.push(result[0].filter(elem => elem.month_numbered === i).length > 0 ? result[0].filter(elem => elem.month_numbered === i)[0].month : defineMonthDescribed(i))
-                data.views.push(result[0].filter(elem => elem.month_numbered === i).length > 0 ? result[0].filter(elem => elem.month_numbered === i)[0].views : 0)
-                data.comments.push(result[0].filter(elem => elem.month_numbered === i).length > 0 ? result[0].filter(elem => elem.month_numbered === i)[0].comments : 0)
-                data.likes.push(result[0].filter(elem => elem.month_numbered === i).length > 0 ? result[0].filter(elem => elem.month_numbered === i)[0].likes : 0)
-            }
 
-            return data
-        } catch (error) {
-            throw 'Ocorreu um erro ao obter as estatísticas, se persistir reporte'
-        }
+      const data = {
+        monthNumbered: [],
+        month: [],
+        views: [],
+        comments: [],
+        likes: [],
+        originalDataPacket: result[0]
+      }
+
+      for (let i = 1; i <= 12; i++) {
+        data.monthNumbered.push(
+          result[0].filter(elem => elem.month_numbered === i).length > 0
+            ? result[0].filter(elem => elem.month_numbered === i)[0].month_numbered
+            : i
+        )
+        data.month.push(
+          result[0].filter(elem => elem.month_numbered === i).length > 0
+            ? result[0].filter(elem => elem.month_numbered === i)[0].month
+            : defineMonthDescribed(i)
+        )
+        data.views.push(
+          result[0].filter(elem => elem.month_numbered === i).length > 0
+            ? result[0].filter(elem => elem.month_numbered === i)[0].views
+            : 0
+        )
+        data.comments.push(
+          result[0].filter(elem => elem.month_numbered === i).length > 0
+            ? result[0].filter(elem => elem.month_numbered === i)[0].comments
+            : 0
+        )
+        data.likes.push(
+          result[0].filter(elem => elem.month_numbered === i).length > 0
+            ? result[0].filter(elem => elem.month_numbered === i)[0].likes
+            : 0
+        )
+      }
+
+      return data
+    } catch (error) {
+      throw 'Ocorreu um erro ao obter as estatísticas, se persistir reporte'
     }
+  }
 
-    const lastSincronization = async (req, res) => {
-        try {
-            const result = await getLastSincronization()
-            res.json(result)
-        } catch (error) {
-            res.status(500).send('Ocorreu um erro ao obter as estatísticas, se persistir reporte')
-        }
+  const lastSincronization = async (req, res) => {
+    try {
+      const result = await getLastSincronization()
+      res.json(result)
+    } catch (error) {
+      res.status(500).send('Ocorreu um erro ao obter as estatísticas, se persistir reporte')
     }
+  }
 
-    const getLastSincronization = () => {
-        return app.knex.select('generated_at as generatedAt').from('views').orderBy('id', 'desc').first()
-    }   
+  const getLastSincronization = () => {
+    return app.knex
+      .select('generated_at as generatedAt')
+      .from('views')
+      .orderBy('id', 'desc')
+      .first()
+  }
 
-    const sincronizeManually = async (req, res) => {
-        try {
-            await viewsJob()
-            await commentsJob()
-            await likesJob()
+  const sincronizeManually = async (req, res) => {
+    try {
+      await viewsJob()
+      await commentsJob()
+      await likesJob()
 
-            const response = await getLastSincronization() 
-            
-            res.json(response)
+      const response = await getLastSincronization()
 
-        } catch (error) {
-            res.status(500).send('Ocorreu um erro ao sincronizar as estatísticas, se persistir reporte')
-        }
+      res.json(response)
+    } catch (error) {
+      res.status(500).send('Ocorreu um erro ao sincronizar as estatísticas, se persistir reporte')
     }
+  }
 
-    const getArticleStatsForChart = async (req, res) => {
-        try {
-            const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
+  const getArticleStatsForChart = async (req, res) => {
+    try {
+      const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
 
-            const views = await getChartViews(user)
-            const likes = await getChartLikes(user)
+      const views = await getChartViews(user)
+      const likes = await getChartLikes(user)
 
-            res.json({views,likes})
-        } catch (error) {
-            res.status(500).send(error)
-        }
+      res.json({ views, likes })
+    } catch (error) {
+      res.status(500).send(error)
     }
+  }
 
-    return { get, getStatsForChart, lastSincronization, sincronizeManually, getArticleStatsForChart }
+  return { get, getStatsForChart, lastSincronization, sincronizeManually, getArticleStatsForChart }
 }
