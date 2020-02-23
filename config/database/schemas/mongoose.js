@@ -107,13 +107,18 @@ module.exports = app => {
   const category = new app.mongo.Schema({
     _id: { type: app.mongo.Schema.ObjectId, auto: true },
     name: { type: String, unique: true },
-    theme: Object,
+    theme: { type: Object, required: true },
     alias: String,
     description: String,
-    state: String
+    state: { type: String, required: true, default: 'active' }
   })
 
   category.plugin(validator)
+  category.pre('updateOne', function(next) {
+    this.options.runValidators = true
+    this.options.context = 'query'
+    next()
+  })
   const Category = app.mongo.model('categories', category)
 
   // Schema para as visualizações dos artigos
