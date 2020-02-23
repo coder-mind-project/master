@@ -38,11 +38,6 @@ module.exports = app => {
           }
         }
 
-        if (errors.alias) {
-          pending = 'alias'
-          reformulatedError.msg = 'Este apelido já está cadastrado'
-        }
-
         reformulatedError.code = 400
         break
       }
@@ -59,12 +54,9 @@ module.exports = app => {
         const { name, description } = { ...stack }
 
         switch (description) {
-          case 'Nome do tema não informado': {
-            reformulatedError.code = 400
-            break
-          }
+          case 'Nome do tema não informado':
           case 'Ja existe tema com este nome': {
-            reformulatedError.code = 409
+            reformulatedError.code = 400
             break
           }
           case 'Tema não encontrado': {
@@ -93,55 +85,74 @@ module.exports = app => {
     return reformulatedError
   }
 
-  /*  Responsável por verificar o código de erro
-        devolvido pela api do mongoose
-        Usado pela api de categories. Usado única e
-        exclusivamente para verificar o tipo de ocorrencia de erro
-        ao persistir uma categoria. Para assim
-        gerar uma mensagem de precisão do erro ocorrido.
-    */
-  const errorCategory = error => {
+  /**
+   * @function
+   * @description Manage a error responses for Category module
+   * @param {Object} stack - A raw Error stack
+   * @returns {Object} - A refined Error stack
+   *
+   * @forModule Category
+   */
+  const errorCategory = stack => {
+    let pending = ''
     const reformulatedError = {
       code: 500,
       msg: 'Ocorreu um erro desconhecido, se persistir reporte'
     }
 
-    if (typeof error !== 'string') {
-      if (error.name === 'CastError') {
-        reformulatedError.code = 404
-        reformulatedError.msg = 'Categoria não encontrada'
-      }
+    switch (stack.name) {
+      case 'ValidationError': {
+        const { errors } = { ...stack }
 
-      return reformulatedError
-    }
+        if (errors.name) {
+          pending = 'name'
+          switch (errors.name.kind) {
+            case 'unique': {
+              reformulatedError.msg = 'Esta categoria já está cadastrada'
+              break
+            }
+            default: {
+              reformulatedError.msg = 'Nome da categoria não informado'
+            }
+          }
+        }
 
-    if (error.trim() === '') return reformulatedError
-
-    switch (error) {
-      case 'Categoria não informada': {
         reformulatedError.code = 400
         break
       }
-      case 'Ja existe categoria com este nome': {
-        reformulatedError.code = 409
+      case 'CastError': {
+        if (stack.kind === 'ObjectId') {
+          pending = 'id'
+          reformulatedError.msg = 'Identificador inválido'
+        }
+
+        reformulatedError.code = 400
         break
       }
-      case 'Categoria não encontrada': {
-        reformulatedError.code = 404
-        break
-      }
-      case 'Este categoria já foi excluída': {
-        reformulatedError.code = 410
-        break
-      }
-      case 'Acesso não autorizado, somente administradores podem remover categorias': {
-        reformulatedError.code = 401
-        break
+      default: {
+        const { name, description } = { ...stack }
+
+        switch (description) {
+          case 'Nome da categoria não informado':
+          case 'Tema não informado':
+          case 'Categoria muito grande, máximo permitido são 30 caracteres':
+          case 'Apelido muito grande, máximo permitido são 30 caracteres':
+          case 'Descrição muito grande, máximo permitido são de 100 caracteres': {
+            reformulatedError.code = 400
+            break
+          }
+          case 'Categoria não encontrada':
+          case 'Identificador do tema não encontrado': {
+            reformulatedError.code = 404
+          }
+        }
+
+        pending = name
+        reformulatedError.msg = description
       }
     }
 
-    reformulatedError.msg = error
-
+    reformulatedError[pending] = 'pending'
     return reformulatedError
   }
 
