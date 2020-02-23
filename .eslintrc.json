@@ -18,6 +18,8 @@
         "no-throw-literal": "off",
         "no-unused-vars": "off",
         "space-before-function-paren": "off",
-        "no-console": "error"
+        "no-console": "error",
+        "no-var": "error",
+        "no-param-reassign": "error"
     }
 }
