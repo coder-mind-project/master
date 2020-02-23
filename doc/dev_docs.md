@@ -5,9 +5,7 @@ Available Languages:
  - [PT-BR](#pt-br)
 
 URL repository: <https://github.com/allanalves23/Coder-Mind-Panel-API>
-
 Doc version: 1.0
-
 For API version: 1.0.4 (master) 
 
 #### Contact
@@ -15,8 +13,6 @@ For API version: 1.0.4 (master)
  - E-mail: allan.codermind@gmail.com
  - Owner: Coder Mind
 ___
-
-## PT-BR
 
 ### Sumário
  
@@ -50,11 +46,11 @@ Um bom estudo antes de gerar novas entidades / coleções é realizar algumas pe
 
 > Estará sendo feito um relacionamento entre coleção (MongoDB) e entidade (MySQL)?
 
-- Caso a resposta seja sim, então crie uma outra coleção e faça as relações nas consultas no MongoDB.
+Caso a resposta seja sim, então crie uma outra coleção e faça as relações nas consultas no MongoDB.
 
 > Estará sendo criado uma coleção (MongoDB) / entidade (MySQL) para qual propósito?
 
-- Caso o propósito seja criar uma coleção característica de informações das regras de negócio como: um conjunto de usuários ou artigos, deverá ser criado na base MongoDB. Caso por exemplo deseja-se cadastrar informações de estatísticas de artigos para economizar processamento a cada consulta desses dados, poderá ser feito uma migração dos resultados dessa consulta através de um agendador, e assim armazenar estes resultados numa tabela MySQL.
+Caso o propósito seja criar uma coleção característica de informações das regras de negócio como: um conjunto de usuários ou artigos, deverá ser criado na base MongoDB. Caso por exemplo deseja-se cadastrar informações de estatísticas de artigos para economizar processamento a cada consulta desses dados, poderá ser feito uma migração dos resultados dessa consulta através de um agendador, e assim armazenar estes resultados numa tabela MySQL.
 
 Em resumo as principais tecnologias utilizadas são:
  
@@ -136,12 +132,13 @@ ___
 
 ### Schemas 
 
- - [Artigo](#artigo)
- - [Tema](#tema)
-
 Os schemas são parte importante para a geração de modelos dentro da aplicação, estes que permitem uma fácil interação com o código para realizar as principais operações dentro de um banco de dados.
 
-#### Artigo
+ - [Artigo](#artigo)
+ - [Tema](#tema)
+ - [Categoria](#categoria)
+
+### Artigo
 
 **Descrição:** Representa um artigo.
 
@@ -170,7 +167,7 @@ Os schemas são parte importante para a geração de modelos dentro da aplicaç�
 | publishAt | Indica a data que o artigo foi publicado. | Date | Não | Não | null |
 
 
-#### Tema
+### Tema
 
 **Descrição:** Representa um tema.
 
@@ -181,3 +178,17 @@ Os schemas são parte importante para a geração de modelos dentro da aplicaç�
 | alias | Apelido / nome alternativo.| String | Não | Não | null |
 | description | Descrição sobre o tema. | String | Não | Não | null |
 | state | Estado do tema | String | Sim | Não | enum('active', 'inactive', 'removed') |
+
+
+### Categoria
+
+**Descrição:** Representa uma categoria.
+
+| Atributo / Campo | Descrição | Tipo | Obrigatório | Único | Padrão |
+|--|--|--|--|--|--|
+| _id | Identificador da categoria| ObjectId | Sim | Sim | N/D |
+| name | Nome da categoria| String | Sim | Sim | N/D |
+| alias | Apelido / nome alternativo.| String | Não | Não | null |
+| description | Descrição sobre a categoria. | String | Não | Não | null |
+| Tema| Tema da categoria| [Tema](#tema)| Sim| Não | N/Ð|
+| state | Estado da categoria | String | Sim | Não | enum('active', 'inactive', 'removed') |
