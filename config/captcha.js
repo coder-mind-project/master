@@ -1,8 +1,16 @@
-module.exports = app => {
-    const site_key = '6LdaWc0UAAAAADuDPPovaKqF6iOGXTKHekzkkK09'
-    const secret_key = '6LdaWc0UAAAAAJot_S9m19uidRRZ6ApnSBb2qWvG'
-    const uri = 'https://www.google.com/recaptcha/api/siteverify'
+const { CAPTCHA_SITE_KEY, CAPTCHA_SECRET_KEY } = require('../.env')
 
-    
-    return {site_key, secret_key, uri}
+/**
+ * @function
+ * @module catpcha
+ * @description Provide captcha service validation.
+ * @param {Object} app - A app Object provided by consign.
+ * @returns {Object} Containing public and private keys for validation.
+ */
+module.exports = app => {
+  const url = 'https://www.google.com/recaptcha/api/siteverify'
+  const siteKey = CAPTCHA_SITE_KEY
+  const secretKey = CAPTCHA_SITE_KEY
+
+  return { siteKey, secretKey, url }
 }
