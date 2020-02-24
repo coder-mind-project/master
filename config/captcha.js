@@ -10,7 +10,7 @@ const { CAPTCHA_SITE_KEY, CAPTCHA_SECRET_KEY } = require('../.env')
 module.exports = app => {
   const url = 'https://www.google.com/recaptcha/api/siteverify'
   const siteKey = CAPTCHA_SITE_KEY
-  const secretKey = CAPTCHA_SITE_KEY
+  const secretKey = CAPTCHA_SECRET_KEY
 
   return { siteKey, secretKey, url }
 }
