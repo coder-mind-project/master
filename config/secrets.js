@@ -1,79 +1,111 @@
 const crypto = require('crypto')
-const {algorithmForTag, tagSecret, binEncodeTag, encodeTag, algorithmForAuth, authSecret, binEncodeAuth, encodeAuth, cipherDefaultPackage } = require('../.env') 
+const { SECRET_TAG_PACKAGE, SECRET_AUTH_PACKAGE, SECRET_DEFAULT_PACKAGE } = require('../.env')
 
-/*  Usado para definir as configurações de segurança da aplicação
-    Como algoritmos de ciphers e alguns encodings
-
-    Até o momento está sendo definido para tags de administradores e autores
-    e senhas de usuários
-*/
-
+/**
+ * @function
+ * @module secrets
+ * @description Provide some functions for aplying cryptography.
+ * @param {Object} app - A app Object provided by consign.
+ * @returns {Object} Containing some encrypts and decrypts functions.
+ */
 module.exports = app => {
+  /**
+   * @function
+   * @description Encrypt an user tag.
+   * @param {String} tag - A user information.
+   * @returns {String} A user tag.
+   */
+  const encryptTag = tag => {
+    const { algorithm, secret, binEncode, encode } = SECRET_TAG_PACKAGE
 
-    const encryptTag = (tag) => {
-        /*  Realiza o cipher para tags */
-        
-        let cipher = crypto.createCipher(algorithmForTag, tagSecret)
-        let crypted = cipher.update(tag, binEncodeTag, encodeTag)
-        crypted += cipher.final(encodeTag)
-        
-        return crypted
-    }
-    
-    const decryptTag = (tagEncrypted) => {
-        /*  Realiza o decipher para tags */
-        
-        let decipher = crypto.createDecipher(algorithmForTag, tagSecret)
-        let res = decipher.update(tagEncrypted, encodeTag, binEncodeTag)
-        res += decipher.final(binEncodeTag)
-        
-        return res
-    }
-    
-    const encryptAuth = (password) => {
-        /*  Realiza o cipher para autenticação (senhas) */
-        
-        let cipher = crypto.createCipher(algorithmForAuth, authSecret)
-        let crypted = cipher.update(password, binEncodeAuth, encodeAuth)
-        crypted += cipher.final(encodeAuth)
-        
-        return crypted
-    }
-    
-    const decryptAuth = (password) => {
-        /*  Realiza o decipher para autenticação (senhas) */
-        
-        let decipher = crypto.createDecipher(algorithmForAuth, authSecret)
-        let res = decipher.update(password, encodeAuth, binEncodeAuth)
-        res += decipher.final(binEncodeAuth)
-        
-        return res
-    }
+    const cipher = crypto.createCipher(algorithm, secret)
+    let crypted = cipher.update(tag, binEncode, encode)
+    crypted += cipher.final(encode)
 
-    const encryptToken = (text) => {
-        /*  Realiza o cipher para autenticação (senhas) e confirmacao de email */
+    return crypted
+  }
 
-        const {algorithm, secret, binEncode, encode} = cipherDefaultPackage
-        
-        let cipher = crypto.createCipher(algorithm, secret)
+  /**
+   * @function
+   * @description Decrypt an user tag.
+   * @param {String} tagEncrypted - A user tag.
+   * @returns {String} A user information.
+   */
+  const decryptTag = tagEncrypted => {
+    const { algorithm, secret, binEncode, encode } = SECRET_TAG_PACKAGE
 
-        let crypted = cipher.update(text, binEncode, encode)
-        
-        crypted += cipher.final(encode)
-        
-        return crypted
-    }
-    
-    const decryptToken = (tag) => {
-        /*  Realiza o decipher para autenticação (senhas) e confirmacao de email */
-        const {algorithm, secret, binEncode, encode} = cipherDefaultPackage
+    const decipher = crypto.createDecipher(algorithm, secret)
+    let res = decipher.update(tagEncrypted, encode, binEncode)
+    res += decipher.final(binEncode)
 
-        let decipher = crypto.createDecipher(algorithm, secret)
-        let res = decipher.update(tag, encode, binEncode)
-        res += decipher.final(binEncode)
-        
-        return res
-    }
+    return res
+  }
 
-    return {encryptTag, decryptTag, encryptAuth, decryptAuth, encryptToken, decryptToken}
+  /**
+   * @function
+   * @description Encrypt an user password.
+   * @param {String} password - User password.
+   * @returns {String} A ciphered user password.
+   */
+  const encryptAuth = password => {
+    const { algorithm, secret, binEncode, encode } = SECRET_AUTH_PACKAGE
+
+    const cipher = crypto.createCipher(algorithm, secret)
+    let crypted = cipher.update(password, binEncode, encode)
+    crypted += cipher.final(encode)
+
+    return crypted
+  }
+
+  /**
+   * @function
+   * @description Decrypt an user password.
+   * @param {String} password - A ciphered password.
+   * @returns {String} A real user password.
+   */
+  const decryptAuth = password => {
+    const { algorithm, secret, binEncode, encode } = SECRET_AUTH_PACKAGE
+
+    const decipher = crypto.createDecipher(algorithm, secret)
+    let res = decipher.update(password, encode, binEncode)
+    res += decipher.final(binEncode)
+
+    return res
+  }
+
+  /**
+   * @function
+   * @description Encrypt a generic token.
+   * @param {String} text - Text content to be a token.
+   * @returns {String} Efective Token.
+   */
+  const encryptToken = text => {
+    const { algorithm, secret, binEncode, encode } = SECRET_DEFAULT_PACKAGE
+
+    const cipher = crypto.createCipher(algorithm, secret)
+
+    let crypted = cipher.update(text, binEncode, encode)
+
+    crypted += cipher.final(encode)
+
+    return crypted
+  }
+
+  /**
+   * @function
+   * @description Decrypt a token generated by "encryptToken" function.
+   * @param {String} token - Token.
+   * @returns {String} A real text content.
+   */
+  const decryptToken = token => {
+    const { algorithm, secret, binEncode, encode } = SECRET_DEFAULT_PACKAGE
+
+    const decipher = crypto.createDecipher(algorithm, secret)
+    let res = decipher.update(token, encode, binEncode)
+    res += decipher.final(binEncode)
+
+    return res
+  }
+
+  return { encryptTag, decryptTag, encryptAuth, decryptAuth, encryptToken, decryptToken }
 }
