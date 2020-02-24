@@ -156,11 +156,37 @@ module.exports = app => {
     return reformulatedError
   }
 
-  /*  Responsável por verificar o código de erro
-        devolvido pela da api do mongoose
-        Usado pela API de articles, porém pode ser usada em
-        Qualquer outro caso que envolva URLs personalizadas.
-    */
+  const authError = stack => {
+    let pending = ''
+    const reformulatedError = {
+      code: 500,
+      msg: 'Ocorreu um erro desconhecido, se persistir reporte'
+    }
+
+    const { name, description } = { ...stack }
+
+    switch (description) {
+      case 'Captcha inválido':
+      case 'É necessário informar um e-mail ou username':
+      case 'É necessário informar uma senha':
+      case 'Descrição muito grande, máximo permitido são de 100 caracteres': {
+        reformulatedError.code = 400
+        break
+      }
+      case 'Sua conta esta suspensa, em caso de reinvidicação entre em contato com o administrador do sistema':
+      case 'E-mail ou senha inválidos': {
+        reformulatedError.code = 401
+        break
+      }
+    }
+
+    pending = name
+    reformulatedError.msg = description
+
+    reformulatedError[pending] = 'pending'
+    return reformulatedError
+  }
+
   const errorArticle = error => {
     const reformulatedError = {
       code: 500,
@@ -224,67 +250,6 @@ module.exports = app => {
       case 'Esse artigo esta excluído, não é possível inativá-lo': {
         reformulatedError.code = 410
         break
-      }
-    }
-
-    reformulatedError.msg = error
-
-    return reformulatedError
-  }
-
-  const validateTokenManagement = error => {
-    const reformulatedError = {
-      code: 500,
-      msg: 'Ocorreu um erro desconhecido, se persistir reporte'
-    }
-
-    if (typeof error !== 'string') return reformulatedError
-    if (error.trim() === '') return reformulatedError
-
-    switch (error) {
-      case 'Acesso não autorizado':
-      case 'Token inválido, solicite uma nova recuperação de senha':
-      case 'Token expirado, solicite uma nova recuperação de senha':
-      case 'Acesso não autorizado, seu e-mail de acesso foi alterado.': {
-        reformulatedError.code = 401
-        break
-      }
-      case 'Token não informado': {
-        reformulatedError.code = 400
-        break
-      }
-      case 'Usuário não encontrado': {
-        reformulatedError.code = 404
-        break
-      }
-    }
-
-    reformulatedError.msg = error
-
-    return reformulatedError
-  }
-
-  const signInError = error => {
-    const reformulatedError = {
-      code: 500,
-      msg: 'Ocorreu um erro desconhecido, se persistir reporte'
-    }
-
-    if (typeof error !== 'string') return reformulatedError
-    if (error.trim() === '') return reformulatedError
-
-    switch (error) {
-      case 'E-mail inválido':
-      case 'É necessário informar um e-mail ou username':
-      case 'É necessário informar uma senha':
-      case 'Captcha inválido': {
-        reformulatedError.code = 400
-        break
-      }
-      case 'Sua conta esta suspensa, em caso de reinvidicação entre em contato com o administrador do sistema':
-      case 'Senha incorreta':
-      case 'E-mail ou senha inválidos': {
-        reformulatedError.code = 401
       }
     }
 
@@ -486,10 +451,9 @@ module.exports = app => {
   return {
     errorTheme,
     errorCategory,
+    authError,
     errorArticle,
     errorManagementArticles,
-    validateTokenManagement,
-    signInError,
     userError,
     errorView,
     notAcceptableResource,
