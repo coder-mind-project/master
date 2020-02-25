@@ -1,15 +1,23 @@
-const { smtpUser, smtpPassword } = require('../.env')
+const { SMTP_SETTINGS } = require('../.env')
 
+/**
+ * @function
+ * @module mailer
+ * @description Provide SMTP settings for send emails through app object by consign.
+ * @param {Object} app - A app Object provided by consign.
+ * @returns {Object} SMTP Settings.
+ */
 module.exports = app => {
-    const SMTP_SERVER = 'smtp.umbler.com'
-    const PORT = 587
-    const SECURE = false
+  const { server, user, passport, port, secure, receiver } = SMTP_SETTINGS
 
-    const USER = smtpUser
-    const PASSWORD = smtpPassword
+  const SMTP_SERVER = server
+  const PORT = port
+  const SECURE = secure
 
-    const RECEIVER = 'allan.codermind@gmail.com'
+  const USER = user
+  const PASSWORD = passport
 
+  const RECEIVER = receiver
 
-    return { SMTP_SERVER, PORT, SECURE, USER, PASSWORD, RECEIVER}
+  return { SMTP_SERVER, PORT, SECURE, USER, PASSWORD, RECEIVER }
 }
