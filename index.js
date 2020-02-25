@@ -1,3 +1,8 @@
+/**
+ * @module app
+ * @description A index of App
+ */
+
 const express = require('express')
 const app = express()
 const consign = require('consign')
