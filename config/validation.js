@@ -159,9 +159,9 @@ module.exports = app => {
    */
   const validateBirthDate = (date, minYear, msg) => {
     exists(date, msg)
-    date = date.split('-')
-    if (date[0] < minYear) throw `Anos menores de ${minYear} não são aceitos`
-    if (date[0] >= app.moment().get('year')) {
+    const aux = date.split('-')
+    if (aux[0] < minYear) throw `Anos menores de ${minYear} não são aceitos`
+    if (aux[0] >= app.moment().get('year')) {
       throw msg || 'Datas maiores que hoje não são permitidas'
     }
   }
@@ -195,11 +195,12 @@ module.exports = app => {
    * @param {String} msg A Throwable message.
    */
   const validateLength = (value, length, method, msg) => {
+    let type = method
     if (!method || (method !== 'bigger' && method !== 'smaller' && method !== 'biggerOrEqual')) {
-      method = 'bigger'
+      type = 'bigger'
     }
 
-    switch (method) {
+    switch (type) {
       case 'bigger': {
         if (value.trim().length > length) throw msg || `Máximo permitido ${length} caracteres`
         break
