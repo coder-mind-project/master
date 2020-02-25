@@ -1,4 +1,4 @@
-const { CAPTCHA_SITE_KEY, CAPTCHA_SECRET_KEY } = require('../.env')
+const { CAPTCHA_URL, CAPTCHA_SITE_KEY, CAPTCHA_SECRET_KEY } = require('../.env')
 
 /**
  * @function
@@ -8,7 +8,7 @@ const { CAPTCHA_SITE_KEY, CAPTCHA_SECRET_KEY } = require('../.env')
  * @returns {Object} Containing public and private keys for validation.
  */
 module.exports = app => {
-  const url = 'https://www.google.com/recaptcha/api/siteverify'
+  const url = CAPTCHA_URL
   const siteKey = CAPTCHA_SITE_KEY
   const secretKey = CAPTCHA_SECRET_KEY
 
