@@ -7,8 +7,11 @@ Available Languages:
 Just click in your preference and enjoy!
 
 URL production: <https://cm-gestao-v1.allanalves23.top>
+
 Need release for development? [Contact us](mailto:allan.codermind@gmail.com) 
+
 Doc version: 1.0
+
 For API version: 1.0.4 (master) 
 
 #### Contact
