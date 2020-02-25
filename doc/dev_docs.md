@@ -21,8 +21,8 @@ ___
 	 - [Aplicação](#aplicação)
 	 - [Desenvolvimento](#desenvolvimento)
   - [Base de dados](#banco)
-	  - [MongoDB](#mysql)
-		  - Schemas
+	  - [MongoDB](#mongodb)
+		  - [Schemas](#schemas)
 	  - MySQL 
 		  - Entidades
 		  - Relacionamentos
