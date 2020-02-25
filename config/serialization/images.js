@@ -2,21 +2,20 @@
 const fs = require('fs')
 const sharp = require('sharp')
 
-/* Responsável pelo gerenciamento de imagens da aplicação */
-
 /**
- *  1 - sharp é utilizado para a compressão de imagens
- *
- *
+ * @function
+ * @description Compress an image to format .webp.
+ * @param {Object} file A object containing an image attributes.
+ * @param {Number} size Size of the image.
+ * @param {String} currentImage A current image path if one exists.
+ * @param {Number} imageQuality Quality of image. 0 for min and 100 for max.
+ * @returns {String} A path of compressed image.
  */
+exports.compressImage = (file, size, currentImage, imageQuality = 100) => {
+  let quality = parseInt(imageQuality)
+  if (quality < 0 || quality > 100) quality = 100
 
-exports.compressImage = (file, size, currentDirectory) => {
-  /* Responsável por comprimir as imagens enviadas para .webp */
-
-  /* Define a qualidade da imagem resultante comprimida pelo sharp */
-  const quality = 80
-
-  const path = `${file.path}.webp`
+  const fileName = `${file.path}.webp`
 
   return sharp(file.path)
     .resize(size)
@@ -26,61 +25,49 @@ exports.compressImage = (file, size, currentDirectory) => {
     })
     .toBuffer()
     .then(async data => {
-      // Verificação de existência do arquivo
-      await fs.access(file.path, async error => {
+      fs.access(file.path, error => {
         if (!error) {
-          // Caso não exista um arquivo, irá gerar um erro. Não existindo o arquivo existe e assim será removido.
-          await fs.unlink(file.path, err => {
+          fs.unlink(file.path, err => {
             if (err) console.log('Error: Remove file operation failed')
           })
         }
       })
 
-      if (currentDirectory) {
-        await fs.access(currentDirectory, async error => {
+      if (currentImage) {
+        fs.access(currentImage, error => {
           if (!error) {
-            // Caso não exista um arquivo, irá gerar um erro. Não existindo o arquivo existe e assim será removido.
-            await fs.unlink(currentDirectory, err => {
+            fs.unlink(currentImage, err => {
               if (err) console.log('Error: Remove file operation failed')
             })
           }
         })
       }
 
-      // Reescrita do mesmo arquivo só que comprimido
-      await fs.writeFile(path, data, err => {
+      fs.writeFile(fileName, data, err => {
         if (err) {
           throw err
         }
       })
 
-      return path
+      return fileName
     })
 }
-
-exports.removeImage = async path => {
-  /* Responsável por remover a imagem do disco */
-
+/**
+ * @function
+ * @description Remove a image.
+ * @param {String} path Path of the image.
+ */
+exports.removeImage = path => {
   try {
-    /* Verifica se a imagem existe */
-    await fs.access(path, async error => {
+    fs.access(path, error => {
       if (!error) {
-        // Caso exista, irá remover o arquivo
-        await fs.unlink(path, err => {
+        fs.unlink(path, err => {
           if (err) throw false
         })
       } else {
-        /*  Caso entre no else, significa que não foi
-                    possível encontrar a imagem
-                */
-
         throw false
       }
     })
-
-    /*  Chegando neste ponto significa que a imagem foi
-            encontrada e removida com êxito
-        */
     return true
   } catch (error) {
     return error
