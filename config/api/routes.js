@@ -221,11 +221,11 @@ module.exports = app => {
     .post(app.api.tickets.tickets.save)
     .get(isAdmin(app.api.tickets.tickets.get))
 
+  app.route('/tickets/not-authenticated').post(app.api.tickets.tickets.save)
+
   app
     .route('/tickets/:id')
     .all(app.config.authentication.passport.authenticate())
     .put(app.api.tickets.tickets.answerTicket)
     .patch(app.api.tickets.tickets.readTicket)
-
-  app.route('/tickets/not-authenticated').post(app.api.tickets.tickets.save)
 }
