@@ -8,14 +8,14 @@ const { SMTP_SETTINGS } = require('../.env')
  * @returns {Object} SMTP Settings.
  */
 module.exports = app => {
-  const { server, user, passport, port, secure, receiver } = SMTP_SETTINGS
+  const { server, user, password, port, secure, receiver } = SMTP_SETTINGS
 
   const SMTP_SERVER = server
   const PORT = port
   const SECURE = secure
 
   const USER = user
-  const PASSWORD = passport
+  const PASSWORD = password
 
   const RECEIVER = receiver
 
