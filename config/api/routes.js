@@ -228,4 +228,5 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .put(app.api.tickets.tickets.answerTicket)
     .patch(app.api.tickets.tickets.readTicket)
+    .get(app.api.tickets.tickets.getById)
 }
