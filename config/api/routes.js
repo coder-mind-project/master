@@ -1,13 +1,23 @@
 const multer = require('../serialization/multer')
 const { isAdmin } = require('../authentication/accessLevel')
 
+/**
+ *  @function
+ *  @module Routes
+ *  @description Provide routes to access resources.
+ *  @param {Object} app - A app Object provided by consign.
+ */
 module.exports = app => {
-  /* Resource for public access */
+  /**
+   * @name Public
+   * @description Access to static resources
+   */
   app.use('/public', app.express.static('public'))
 
-  /* AUTHENTICATION RESOURCES */
-
-  /* Resource for authentication */
+  /**
+   * @name Authentication
+   * @description Authentication resources
+   */
   app
     .route('/auth')
     .post(app.api.auth.auth.signIn)
@@ -16,28 +26,20 @@ module.exports = app => {
 
   app
     .route('/auth/logged')
+    .post(app.api.auth.auth.validateToken)
     .all(app.config.authentication.passport.authenticate())
     .patch(isAdmin(app.api.users.users.validateAdminPassword))
     .put(app.api.users.users.validateUserPassword)
 
-  /* Resource for verify authentication */
-  app.route('/validate_token').post(app.api.auth.auth.validateToken)
-
   app
-    .route('/redeem-password')
+    .route('/auth/rescue')
     .post(app.api.auth.redeemAccount.validateToken)
     .patch(app.api.auth.redeemAccount.changePassword)
 
-  app
-    .route('/users/settings')
-    .patch(app.api.users.users.confirmEmail)
-    .post(app.api.users.users.cancelChangeEmail)
-
-  app.route('/users/settings/:id').delete(app.api.users.users.removePermanently)
-
-  /* ARTICLES RESOURCES */
-
-  /* Resource for general management. EX: get some articles, create, update */
+  /**
+   * @name Articles
+   * @description Articles resources
+   */
   app
     .route('/articles')
     .all(app.config.authentication.passport.authenticate())
@@ -45,13 +47,11 @@ module.exports = app => {
     .post(app.api.articles.articles.save)
     .put(app.api.articles.articles.save)
 
-  /* Resource for management of articles with custom uris */
   app
     .route('/articles/:url')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.articles.getOne)
 
-  /* Resource for general management. ex: publish, delete, getByID, boost, etc */
   app
     .route('/articles/management/:id')
     .all(app.config.authentication.passport.authenticate())
@@ -59,7 +59,6 @@ module.exports = app => {
     .patch(app.api.articles.articles.management)
     .get(app.api.articles.articles.getOneById)
 
-  /* Resource for img's management */
   app
     .route('/articles/img/:id')
     .all(app.config.authentication.passport.authenticate())
@@ -68,21 +67,20 @@ module.exports = app => {
     .put(multer.single('bigImg'), app.api.articles.articles.pushImage)
     .delete(app.api.articles.articles.removeImage)
 
-  /* Resource for articles stats */
   app
     .route('/articles/stats/:id')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.stats.stats.get)
 
-  /* Resource for articles comments */
   app
     .route('/articles/comments/:id')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.comments.getComments)
 
-  /* USERS RESORUCES */
-
-  /* Resource for general management. Ex: get some users, create, update, change passwords */
+  /**
+   * @name Users
+   * @description Users resources
+   */
   app
     .route('/users')
     .all(app.config.authentication.passport.authenticate())
@@ -90,7 +88,6 @@ module.exports = app => {
     .post(isAdmin(app.api.users.users.save))
     .patch(isAdmin(app.api.users.users.changePassword))
 
-  /* Resource for management of users with informed ID */
   app
     .route('/users/:id')
     .all(app.config.authentication.passport.authenticate())
@@ -112,23 +109,29 @@ module.exports = app => {
     .patch(app.api.users.users.cancelChangeEmail)
     .post(app.api.users.users.resendMail)
 
-  /* Resource for img's management */
   app
     .route('/users/img/:id')
     .all(app.config.authentication.passport.authenticate())
     .patch(multer.single('profilePhoto'), app.api.users.users.configProfilePhoto)
     .delete(app.api.users.users.removeProfilePhoto)
 
-  /* THEMES RESOURCES */
+  app
+    .route('/users/settings')
+    .patch(app.api.users.users.confirmEmail)
+    .post(app.api.users.users.cancelChangeEmail)
 
-  /* Resource for general management. Ex: get some themes, create, update */
+  app.route('/users/settings/:id').delete(app.api.users.users.removePermanently)
+
+  /**
+   * @name Themes
+   * @description Themes resources
+   */
   app
     .route('/themes')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.themes.themes.get)
     .post(isAdmin(app.api.themes.themes.save))
 
-  /* Resource for management of themes with informed ID */
   app
     .route('/themes/:id')
     .all(app.config.authentication.passport.authenticate())
@@ -136,16 +139,16 @@ module.exports = app => {
     .delete(isAdmin(app.api.themes.themes.remove))
     .put(isAdmin(app.api.themes.themes.save))
 
-  /* CATEGORIES RESOURCES */
-
-  /* Resorce for general management. Ex: get some categories, create, update */
+  /**
+   * @name Categories
+   * @description Categories resources
+   */
   app
     .route('/categories')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.categories.categories.get)
     .post(isAdmin(app.api.categories.categories.save))
 
-  /* Resource for management of categories with informed ID */
   app
     .route('/categories/:id')
     .all(app.config.authentication.passport.authenticate())
@@ -153,15 +156,15 @@ module.exports = app => {
     .get(app.api.categories.categories.getOne)
     .put(isAdmin(app.api.categories.categories.save))
 
-  /* Resource for management of categories through theme's ID */
   app
     .route('/categories/theme/:id')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.categories.categories.getByTheme)
 
-  /* COMMENTS RESOURCES */
-
-  /* Resource for management of comments */
+  /**
+   * @name Comments
+   * @description Comments resources
+   */
   app
     .route('/comments')
     .all(app.config.authentication.passport.authenticate())
@@ -174,25 +177,28 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.comments.getHistory)
 
-  /* VIEWS RESOURCES */
-
-  /* Resource for management of views */
+  /**
+   * @name Views
+   * @description Views resources
+   */
   app
     .route('/views')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.views.getViews)
 
-  /* LIKES RESOURCES */
-
-  /* Resource for management of likes */
+  /**
+   * @name Likes
+   * @description Likes resources
+   */
   app
     .route('/likes')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.likes.getLastLikes)
 
-  /* STATS RESOURCES */
-
-  /* Resource for management of stats */
+  /**
+   * @name Statistics
+   * @description Statistics resources
+   */
   app
     .route('/stats')
     .all(app.config.authentication.passport.authenticate())
@@ -214,14 +220,19 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .patch(app.api.users.stats.definePlatformStats)
 
-  /* TICKETS RESOURCES */
+  /**
+   * @name Tickets
+   * @description Tickets resources
+   */
   app
     .route('/tickets')
     .all(app.config.authentication.passport.authenticate())
     .post(app.api.tickets.tickets.save)
     .get(isAdmin(app.api.tickets.tickets.get))
 
-  app.route('/tickets/not-authenticated').post(app.api.tickets.tickets.save)
+  app.route('/tickets/unauthenticated').post(app.api.tickets.tickets.save)
+
+  app.route('/tickets/notifications').get(app.api.tickets.tickets.getOnlyNotReaded)
 
   app
     .route('/tickets/:id')
