@@ -8,7 +8,7 @@
 module.exports = app => {
   /**
    * @function
-   * @description Manage a error responses for Theme module
+   * @description Manage error responses for Theme module
    * @param {Object} stack - A raw Error stack
    * @returns {Object} - A refined Error stack
    *
@@ -87,7 +87,7 @@ module.exports = app => {
 
   /**
    * @function
-   * @description Manage a error responses for Category module
+   * @description Manage error responses for Category module
    * @param {Object} stack - A raw Error stack
    * @returns {Object} - A refined Error stack
    *
@@ -409,42 +409,63 @@ module.exports = app => {
     return reformulatedError
   }
 
-  const ticketError = error => {
+  /**
+   * @function
+   * @description Manage error responses for Ticket module
+   * @param {Object} stack - A raw Error stack
+   * @returns {Object} - A refined Error stack
+   *
+   * @forModule Ticket
+   */
+  const ticketError = stack => {
+    let pending = ''
     const reformulatedError = {
       code: 500,
       msg: 'Ocorreu um erro desconhecido, se persistir reporte'
     }
 
-    if (typeof error !== 'string') return reformulatedError
-    if (error.trim() === '') return reformulatedError
+    switch (stack.name) {
+      case 'CastError': {
+        if (stack.kind === 'ObjectId') {
+          pending = 'id'
+          reformulatedError.msg = 'Identificador inválido'
+        }
 
-    switch (error) {
-      case 'É necessário descrever seu problema para enviar o ticket':
-      case 'E-mail inválido, tente fornecer um e-mail válido!':
-      case 'Código não informado, é necessário informar o código.':
-      case 'Data de alteração não informada.':
-      case 'Este é um código inválido, caso esteja inserindo o código corretamente, nos envie um ticket de reporte de bugs':
-      case 'Informe o software que ocorreu o bug':
-      case 'Informe o dispositivo que ocorreu o bug':
-      case 'Informe o browser / navegador em que ocorreu o bug':
-      case 'Informe o local em que deseja a melhoria!':
-      case 'Informe um tipo de ticket válido!':
-      case 'É necessário informar uma reposta': {
         reformulatedError.code = 400
         break
       }
-      case 'Acesso negado': {
-        reformulatedError.code = 401
-        break
-      }
-      case 'Ticket não encontrado': {
-        reformulatedError.code = 404
-        break
+      default: {
+        const { name, description } = { ...stack }
+        switch (description) {
+          case 'É necessário descrever seu problema para enviar o ticket':
+          case 'E-mail inválido, tente fornecer um e-mail válido':
+          case 'Código não informado, é necessário informar o código':
+          case 'Data de alteração não informada':
+          case 'Este é um código inválido, caso esteja inserindo o código corretamente, nos envie um ticket de reporte de bugs':
+          case 'Informe o software que ocorreu o bug':
+          case 'Informe o dispositivo que ocorreu o bug':
+          case 'Informe o browser / navegador em que ocorreu o bug':
+          case 'Informe o local em que deseja a melhoria':
+          case 'Informe um tipo de ticket válido':
+          case 'É necessário informar uma reposta': {
+            reformulatedError.code = 400
+            break
+          }
+          case 'Acesso negado': {
+            reformulatedError.code = 401
+            break
+          }
+          case 'Ticket não encontrado': {
+            reformulatedError.code = 404
+            break
+          }
+        }
+        pending = name
+        reformulatedError.msg = description
       }
     }
 
-    reformulatedError.msg = error
-
+    reformulatedError[pending] = 'pending'
     return reformulatedError
   }
 
