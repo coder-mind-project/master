@@ -10,7 +10,7 @@ module.exports = app => {
 
   const { Theme } = app.config.database.schemas.mongoose
 
-  const { errorTheme } = app.config.api.httpResponses
+  const { themeError } = app.config.api.httpResponses
 
   /**
    * @function
@@ -60,14 +60,28 @@ module.exports = app => {
         throw result
       } else {
         // Update a theme
-        await Theme.updateOne({ _id }, theme).then(() => {
-          Theme.findOne({ _id }).then(theme => {
-            return res.json(theme)
-          })
-        })
+        await Theme.updateOne({ _id }, theme)
+
+        const result = await Theme.findOne({ _id })
+
+        if (!result) {
+          throw {
+            name: 'remove',
+            description: 'Tema não encontrado'
+          }
+        }
+
+        if (result.state === 'removed') {
+          throw {
+            name: 'remove',
+            description: 'Este tema foi excluído'
+          }
+        }
+
+        return res.json(result)
       }
     } catch (error) {
-      const stack = await errorTheme(error)
+      const stack = await themeError(error)
       return res.status(stack.code).send(stack)
     }
   }
@@ -97,10 +111,7 @@ module.exports = app => {
           $match: {
             $and: [
               {
-                $or: [
-                  { name: { $regex: `${query}`, $options: 'i' } },
-                  { alias: { $regex: `${query}`, $options: 'i' } }
-                ]
+                $or: [{ name: { $regex: `${query}`, $options: 'i' } }, { alias: { $regex: `${query}`, $options: 'i' } }]
               },
               {
                 state: 'active'
@@ -117,10 +128,7 @@ module.exports = app => {
           $match: {
             $and: [
               {
-                $or: [
-                  { name: { $regex: `${query}`, $options: 'i' } },
-                  { alias: { $regex: `${query}`, $options: 'i' } }
-                ]
+                $or: [{ name: { $regex: `${query}`, $options: 'i' } }, { alias: { $regex: `${query}`, $options: 'i' } }]
               },
               {
                 state: 'active'
@@ -133,7 +141,7 @@ module.exports = app => {
         .limit(limit)
         .then(themes => res.json({ themes, count, limit }))
     } catch (error) {
-      const stack = await errorTheme(error)
+      const stack = await themeError(error)
       return res.status(stack.code).send(stack)
     }
   }
@@ -171,7 +179,7 @@ module.exports = app => {
 
       Theme.updateOne({ _id }, state).then(() => res.status(204).send())
     } catch (error) {
-      const stack = await errorTheme(error)
+      const stack = await themeError(error)
       return res.status(stack.code).send(stack)
     }
   }
@@ -186,14 +194,30 @@ module.exports = app => {
    *
    * @returns {Object} A Theme Object representation
    */
-  const getOne = (req, res) => {
-    const _id = req.params.id
-    Theme.findOne({ _id })
-      .then(theme => res.json(theme))
-      .catch(async error => {
-        const stack = await errorTheme(error)
-        return res.status(stack.code).send(stack)
-      })
+  const getOne = async (req, res) => {
+    try {
+      const _id = req.params.id
+      const theme = await Theme.findOne({ _id })
+
+      if (!theme) {
+        throw {
+          name: 'themes',
+          description: 'Tema não encontrado'
+        }
+      }
+
+      if (theme.state === 'removed') {
+        throw {
+          name: 'themes',
+          description: 'Este tema foi excluído'
+        }
+      }
+
+      return res.json(theme)
+    } catch (error) {
+      const stack = await themeError(error)
+      return res.status(stack.code).send(stack)
+    }
   }
 
   /**
@@ -209,7 +233,7 @@ module.exports = app => {
     try {
       const _id = req.params.id
 
-      const theme = await Theme.findOne({ _id, state: 'active' })
+      const theme = await Theme.findOne({ _id })
 
       if (!theme) throw 'Tema não encontrado'
 
@@ -219,7 +243,7 @@ module.exports = app => {
 
       Theme.updateOne({ _id }, state).then(() => res.status(204).send())
     } catch (error) {
-      const stack = await errorTheme(error)
+      const stack = await themeError(error)
       return res.status(stack.code).send(stack)
     }
   }
