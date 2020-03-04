@@ -447,7 +447,7 @@ module.exports = app => {
           case 'Informe o browser / navegador em que ocorreu o bug':
           case 'Informe o local em que deseja a melhoria':
           case 'Informe um tipo de ticket válido':
-          case 'É necessário informar uma reposta': {
+          case 'É necessário informar uma resposta': {
             reformulatedError.code = 400
             break
           }
@@ -461,10 +461,9 @@ module.exports = app => {
           }
         }
         pending = name
-        reformulatedError.msg = description
+        reformulatedError[name === 'msg' ? 'message' : 'msg'] = description
       }
     }
-
     reformulatedError[pending] = 'pending'
     return reformulatedError
   }
