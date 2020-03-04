@@ -14,7 +14,7 @@ module.exports = app => {
    *
    * @forModule Theme
    */
-  const errorTheme = stack => {
+  const themeError = stack => {
     let pending = ''
     const reformulatedError = {
       code: 500,
@@ -63,7 +63,8 @@ module.exports = app => {
             reformulatedError.code = 404
             break
           }
-          case 'Este tema já foi excluído': {
+          case 'Este tema já foi excluído':
+          case 'Este tema foi excluído': {
             reformulatedError.code = 410
             break
           }
@@ -93,7 +94,7 @@ module.exports = app => {
    *
    * @forModule Category
    */
-  const errorCategory = stack => {
+  const categoryError = stack => {
     let pending = ''
     const reformulatedError = {
       code: 500,
@@ -144,6 +145,12 @@ module.exports = app => {
           case 'Categoria não encontrada':
           case 'Identificador do tema não encontrado': {
             reformulatedError.code = 404
+            break
+          }
+          case 'Esta categoria já foi excluída':
+          case 'Esta categoria foi excluída': {
+            reformulatedError.code = 410
+            break
           }
         }
 
@@ -348,23 +355,24 @@ module.exports = app => {
     return reformulatedError
   }
 
-  const notAcceptableResource = error => {
+  const notAcceptableResource = stack => {
     const reformulatedError = {
       code: 500,
       msg: 'Ocorreu um erro desconhecido, se persistir reporte'
     }
 
-    if (typeof error !== 'string') return reformulatedError
-    if (error.trim() === '') return reformulatedError
-
-    switch (error) {
-      case 'Recurso não disponível para o usuário': {
+    const { name, description, problem, solution } = stack
+    switch (description) {
+      case 'Recurso não disponível para o usuário':
+      case 'Resource not allowed for this user': {
         reformulatedError.code = 403
         break
       }
     }
 
-    reformulatedError.msg = error
+    reformulatedError.msg = description
+    reformulatedError.problem = problem
+    reformulatedError.solution = solution
 
     return reformulatedError
   }
@@ -469,8 +477,8 @@ module.exports = app => {
   }
 
   return {
-    errorTheme,
-    errorCategory,
+    themeError,
+    categoryError,
     authError,
     errorArticle,
     errorManagementArticles,
