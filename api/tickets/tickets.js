@@ -31,7 +31,7 @@ module.exports = app => {
    * @middlewareParams {Date} end - End date of ticket create.
    * @middlewareParams {String} order - Order of tickets results. Default ascending, see the docs for reviews all types.
    *
-   * @returns {Array<Object>} List of tickets, see the docs for more details.
+   * @returns {Array<Ticket>} List of tickets, see the docs for more details.
    */
   const get = async (req, res) => {
     try {
@@ -204,17 +204,43 @@ module.exports = app => {
 
   /**
    * @function
-   * @description Get ticket by id.
+   * @description Middleware to get only one ticket by id.
    * @param {Object} req - Request object provided by Express.js
    * @param {Object} res - Response object provided by Express.js
    *
    * @middlewareParams {String} tid - String of ticket object id representation, see the docs for more details.
+   * @returns {Ticket} A ticket.
    */
-  const getById = (req, res) => {
+  const getOne = async (req, res) => {
     try {
       const _id = req.params.id
 
-      Ticket.aggregate([
+      const { status, ticket, error } = await getById(_id)
+
+      if (!status && typeof error === 'string') {
+        throw {
+          name: 'id',
+          description: error
+        }
+      }
+
+      return res.json(ticket)
+    } catch (error) {
+      const stack = ticketError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Get a ticket by ID.
+   * @param {String} _id
+   *
+   * @returns {Object} Contains indicators of operations and the ticket.
+   */
+  const getById = async _id => {
+    try {
+      const tickets = await Ticket.aggregate([
         {
           $match: {
             _id: app.mongo.Types.ObjectId.isValid(_id) ? app.mongo.Types.ObjectId(_id) : null
@@ -238,18 +264,100 @@ module.exports = app => {
         },
         {
           $project: {
-            content: '$$ROOT',
+            content: {
+              readed: '$readed',
+              type: '$type',
+              dateOccurrence: '$dateOccurrence',
+              adminId: '$adminId',
+              userId: '$userId',
+              email: '$email',
+              msg: '$msg',
+              createdAt: '$createdAt',
+              updatedAt: '$updatedAt'
+            },
             user: { $arrayElemAt: ['$user', 0] },
-            admin: { $arrayElemAt: ['$admin', 0] }
+            admin: { $arrayElemAt: ['$admin', 0] },
+            responses: '$responses'
+          }
+        },
+        {
+          $unwind: { path: '$responses', preserveNullAndEmptyArrays: true }
+        },
+        {
+          $project: {
+            content: 1,
+            user: 1,
+            admin: 1,
+            response: '$responses',
+            responseAdminId: { $toObjectId: '$responses.adminId' },
+            responseUserId: { $toObjectId: '$responses.userId' }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'responseAdminId',
+            foreignField: '_id',
+            as: 'response.admin'
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'responseUserId',
+            foreignField: '_id',
+            as: 'response.user'
+          }
+        },
+        {
+          $group: {
+            _id: '$_id',
+            content: { $first: '$content' },
+            user: { $first: '$user' },
+            admin: { $first: '$admin' },
+            responses: {
+              $push: {
+                $cond: {
+                  if: { $anyElementTrue: [['$response.index']] },
+                  then: {
+                    index: '$response.index',
+                    adminId: '$response.adminId',
+                    userId: '$response.userId',
+                    createdAt: '$response.createdAt',
+                    msg: '$response.msg',
+                    admin: { $arrayElemAt: ['$response.admin', 0] },
+                    user: { $arrayElemAt: ['$response.user', 0] }
+                  },
+                  else: null
+                }
+              }
+            }
+          }
+        },
+        {
+          $project: {
+            content: 1,
+            user: 1,
+            admin: 1,
+            responses: {
+              $cond: {
+                if: { $anyElementTrue: [[{ $arrayElemAt: ['$responses', 0] }]] },
+                then: '$responses',
+                else: null
+              }
+            }
           }
         }
-      ]).then(tickets => res.json(tickets[0]))
+      ])
+
+      if (tickets.length === 0) {
+        throw 'Ticket não encontrado'
+      }
+      return { status: true, ticket: tickets[0] }
     } catch (error) {
-      const stack = ticketError(error)
-      return res.status(stack.code).send(stack)
+      return { status: false, ticket: null, error }
     }
   }
-
   /**
    * @function
    * @description Get only tickets not readed.
@@ -308,13 +416,14 @@ module.exports = app => {
           }
         },
         {
-          $sort: { 'content.createdAt': order === 'desc' ? -1 : 1 }
+          $sort: { 'content.createdAt': order === 'asc' ? 1 : -1 }
         }
       ])
         .limit(limit)
         .then(tickets => res.json({ count, tickets }))
     } catch (error) {
-      return { status: false, tickets: [], error }
+      const stack = ticketError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
@@ -373,7 +482,7 @@ module.exports = app => {
         }
       }
 
-      return op.status ? res.status(204).send() : { name: 'ticketType', description: op.msg }
+      return op.status ? res.status(201).send() : { name: 'ticketType', description: op.msg }
     } catch (error) {
       const stack = ticketError(error)
       return res.status(stack.code).send(stack)
@@ -732,23 +841,32 @@ module.exports = app => {
 
       responses.push(response)
 
-      Ticket.updateOne({ _id }, { responses }).then(async r => {
-        if (r.nModified === 0) {
-          throw {
-            name: 'pushResponse',
-            description: 'Houve um problema para salvar a sua resposta, por favor tente novamente mais tarde'
-          }
+      const r = await Ticket.updateOne({ _id }, { responses })
+
+      if (r.nModified === 0) {
+        throw {
+          name: 'pushResponse',
+          description: 'Houve um problema para salvar a sua resposta, por favor tente novamente mais tarde'
         }
+      }
 
-        ticket = await Ticket.findOne({ _id })
+      const payload = await getById(_id)
 
-        if (send) {
-          const { htmlPath, variables, textMsg, params, email, subject } = configEmailTicket(ticket, msg)
-          await sendEmail(htmlPath, variables, textMsg, params, email, subject)
+      if (!payload.status && typeof payload.error === 'string') {
+        throw {
+          name: 'id',
+          description: payload.error
         }
+      }
 
-        return res.json(ticket)
-      })
+      ticket = payload.ticket
+
+      if (send) {
+        const { htmlPath, variables, textMsg, params, email, subject } = configEmailTicket(ticket, msg)
+        await sendEmail(htmlPath, variables, textMsg, params, email, subject)
+      }
+
+      return res.json(ticket)
     } catch (error) {
       const stack = ticketError(error)
       return res.status(stack.code).send(stack)
@@ -769,6 +887,13 @@ module.exports = app => {
     try {
       const _id = req.params.id
 
+      if (!app.mongo.Types.ObjectId.isValid(_id)) {
+        throw {
+          name: 'ticket',
+          description: 'Ticket não encontrado'
+        }
+      }
+
       Ticket.updateOne({ _id }, { readed: true }).then(async () => {
         const ticket = await Ticket.findOne({ _id })
 
@@ -787,5 +912,5 @@ module.exports = app => {
     }
   }
 
-  return { save, get, getById, getOnlyNotReaded, answerTicket, readTicket }
+  return { save, get, getOne, getOnlyNotReaded, answerTicket, readTicket }
 }
