@@ -10,7 +10,7 @@ module.exports = app => {
 
   const { Category } = app.config.database.schemas.mongoose
 
-  const { errorCategory } = app.config.api.httpResponses
+  const { categoryError } = app.config.api.httpResponses
 
   /**
    * @function
@@ -72,7 +72,7 @@ module.exports = app => {
         // Update a category
         await Category.updateOne({ _id }, category)
 
-        const result = await Category.findOne({ _id, state: 'active' })
+        const result = await Category.findOne({ _id })
 
         if (!result) {
           throw {
@@ -81,10 +81,17 @@ module.exports = app => {
           }
         }
 
+        if (result.state === 'removed') {
+          throw {
+            name: 'categories',
+            description: 'Esta categoria foi excluída'
+          }
+        }
+
         return res.json(result)
       }
     } catch (error) {
-      const stack = await errorCategory(error)
+      const stack = await categoryError(error)
       return res.status(stack.code).send(stack)
     }
   }
@@ -144,7 +151,7 @@ module.exports = app => {
         .limit(limit)
         .then(categories => res.json({ categories, count, limit }))
     } catch (error) {
-      const stack = await errorCategory(error)
+      const stack = await categoryError(error)
       return res.status(stack.code).send(stack)
     }
   }
@@ -165,7 +172,7 @@ module.exports = app => {
         state: 'removed'
       }
 
-      const category = await Category.findOne({ _id, state: 'active' })
+      const category = await Category.findOne({ _id })
 
       if (!category) {
         throw {
@@ -174,9 +181,16 @@ module.exports = app => {
         }
       }
 
+      if (category.state === 'removed') {
+        throw {
+          name: 'categories',
+          description: 'Esta categoria já foi excluída'
+        }
+      }
+
       Category.updateOne({ _id }, state).then(() => res.status(204).send())
     } catch (error) {
-      const stack = await errorCategory(error)
+      const stack = await categoryError(error)
       return res.status(stack.code).send(stack)
     }
   }
@@ -191,20 +205,28 @@ module.exports = app => {
    *
    * @returns {Object} A Category Object representation
    */
-  const getOne = (req, res) => {
-    const _id = req.params.id
-    Category.findOne({ _id, state: 'active' })
-      .then(category => {
-        if (!category) {
-          throw { name: 'categories', description: 'Categoria não encontrada' }
-        } else {
-          return res.json(category)
+  const getOne = async (req, res) => {
+    try {
+      const _id = req.params.id
+      const category = await Category.findOne({ _id })
+
+      if (!category) {
+        throw {
+          name: 'categories',
+          description: 'Categoria não encontrada'
         }
-      })
-      .catch(async error => {
-        const stack = await errorCategory(error)
-        return res.status(stack.code).send(stack)
-      })
+      }
+
+      if (category.state === 'removed') {
+        throw {
+          name: 'categories',
+          description: 'Esta categoria foi excluída'
+        }
+      }
+    } catch (error) {
+      const stack = await categoryError(error)
+      return res.status(stack.code).send(stack)
+    }
   }
 
   /**
@@ -243,7 +265,7 @@ module.exports = app => {
         }
       ]).then(categories => res.json(categories))
     } catch (error) {
-      const stack = await errorCategory(error)
+      const stack = await categoryError(error)
       return res.status(stack.code).send(stack)
     }
   }
@@ -269,7 +291,7 @@ module.exports = app => {
 
       Category.updateOne({ _id }, state).then(() => res.status(204).send())
     } catch (error) {
-      const stack = await errorCategory(error)
+      const stack = await categoryError(error)
       return res.status(stack.code).send(stack)
     }
   }
