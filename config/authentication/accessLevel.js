@@ -7,8 +7,13 @@ module.exports = {
       if (isAdmin) {
         middleware(req, res, next)
       } else {
-        const error = await notAcceptableResource('Resource not allowed for this user')
-        return res.status(403).send(error.msg)
+        const stack = await notAcceptableResource({
+          name: 'isNotAdmin',
+          description: 'Resource not allowed for this user',
+          problem: 'Current user is not admin',
+          solution: 'Login with admin user'
+        })
+        return res.status(403).send(stack)
       }
     }
   }
