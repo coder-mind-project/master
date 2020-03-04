@@ -232,12 +232,15 @@ module.exports = app => {
 
   app.route('/tickets/unauthenticated').post(app.api.tickets.tickets.save)
 
-  app.route('/tickets/notifications').get(app.api.tickets.tickets.getOnlyNotReaded)
+  app
+    .route('/tickets/notifications')
+    .all(app.config.authentication.passport.authenticate())
+    .get(isAdmin(app.api.tickets.tickets.getOnlyNotReaded))
 
   app
     .route('/tickets/:id')
     .all(app.config.authentication.passport.authenticate())
-    .put(app.api.tickets.tickets.answerTicket)
-    .patch(app.api.tickets.tickets.readTicket)
-    .get(app.api.tickets.tickets.getById)
+    .put(isAdmin(app.api.tickets.tickets.answerTicket))
+    .patch(isAdmin(app.api.tickets.tickets.readTicket))
+    .get(isAdmin(app.api.tickets.tickets.getById))
 }
