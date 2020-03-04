@@ -48,15 +48,19 @@ module.exports = app => {
         description: 'Categoria muito grande, máximo permitido são 30 caracteres'
       })
 
-      validateLength(category.alias, 30, 'bigger', {
-        name: 'alias',
-        description: 'Apelido muito grande, máximo permitido são 30 caracteres'
-      })
+      if (category.alias) {
+        validateLength(category.alias, 30, 'bigger', {
+          name: 'alias',
+          description: 'Apelido muito grande, máximo permitido são 30 caracteres'
+        })
+      }
 
-      validateLength(category.description, 100, 'bigger', {
-        name: 'name',
-        description: 'Descrição muito grande, máximo permitido são de 100 caracteres'
-      })
+      if (category.description) {
+        validateLength(category.description, 100, 'bigger', {
+          name: 'name',
+          description: 'Descrição muito grande, máximo permitido são de 100 caracteres'
+        })
+      }
       /* End data validations */
 
       if (!_id) {
@@ -66,11 +70,18 @@ module.exports = app => {
         throw result
       } else {
         // Update a category
-        await Category.updateOne({ _id }, category).then(() => {
-          Category.findOne({ _id }).then(category => {
-            res.json(category)
-          })
-        })
+        await Category.updateOne({ _id }, category)
+
+        const result = await Category.findOne({ _id, state: 'active' })
+
+        if (!result) {
+          throw {
+            name: 'categories',
+            description: 'Categoria não encontrada'
+          }
+        }
+
+        return res.json(result)
       }
     } catch (error) {
       const stack = await errorCategory(error)
@@ -103,10 +114,7 @@ module.exports = app => {
           $match: {
             $and: [
               {
-                $or: [
-                  { name: { $regex: `${query}`, $options: 'i' } },
-                  { alias: { $regex: `${query}`, $options: 'i' } }
-                ]
+                $or: [{ name: { $regex: `${query}`, $options: 'i' } }, { alias: { $regex: `${query}`, $options: 'i' } }]
               },
               {
                 state: 'active'
@@ -123,10 +131,7 @@ module.exports = app => {
           $match: {
             $and: [
               {
-                $or: [
-                  { name: { $regex: `${query}`, $options: 'i' } },
-                  { alias: { $regex: `${query}`, $options: 'i' } }
-                ]
+                $or: [{ name: { $regex: `${query}`, $options: 'i' } }, { alias: { $regex: `${query}`, $options: 'i' } }]
               },
               {
                 state: 'active'
@@ -156,15 +161,17 @@ module.exports = app => {
     try {
       const _id = req.params.id
 
-      if (!_id) {
-        throw {
-          name: 'remove',
-          description: 'Categoria não encontrada'
-        }
-      }
-
       const state = {
         state: 'removed'
+      }
+
+      const category = await Category.findOne({ _id, state: 'active' })
+
+      if (!category) {
+        throw {
+          name: 'categories',
+          description: 'Categoria não encontrada'
+        }
       }
 
       Category.updateOne({ _id }, state).then(() => res.status(204).send())
@@ -186,8 +193,14 @@ module.exports = app => {
    */
   const getOne = (req, res) => {
     const _id = req.params.id
-    Category.findOne({ _id })
-      .then(category => res.json(category))
+    Category.findOne({ _id, state: 'active' })
+      .then(category => {
+        if (!category) {
+          throw { name: 'categories', description: 'Categoria não encontrada' }
+        } else {
+          return res.json(category)
+        }
+      })
       .catch(async error => {
         const stack = await errorCategory(error)
         return res.status(stack.code).send(stack)
