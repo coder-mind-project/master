@@ -242,5 +242,5 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .put(isAdmin(app.api.tickets.tickets.answerTicket))
     .patch(isAdmin(app.api.tickets.tickets.readTicket))
-    .get(isAdmin(app.api.tickets.tickets.getById))
+    .get(isAdmin(app.api.tickets.tickets.getOne))
 }
