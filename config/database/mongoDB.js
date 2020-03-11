@@ -4,9 +4,6 @@ const { dbLocal, dbProduction, dbDevelopment } = require('../../.env')
 const config = dbDevelopment
 
 const url = config.mongo.url
-const user = config.mongo.user
-const pass = config.mongo.pass
-const dbName = config.mongo.dbName
 
 /**
  * @function
@@ -15,10 +12,7 @@ const dbName = config.mongo.dbName
 mongoose
   .connect(url, {
     useNewUrlParser: true,
-    useCreateIndex: true,
-    dbName,
-    user,
-    pass
+    useCreateIndex: true
   })
   .catch(e => {
     const msg = `Error: Connection in mongo database failed, make sure your database is online - Stack: ${e}`
