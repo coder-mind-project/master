@@ -4,18 +4,31 @@ const sharp = require('sharp')
 
 /**
  * @function
- * @description Compress an image to format .webp.
- * @param {Object} file A object containing an image attributes.
- * @param {Number} size Size of the image.
- * @param {String} currentImage A current image path if one exists.
- * @param {Number} imageQuality Quality of image. 0 for min and 100 for max.
+ * @description Compress an image to format .webp in specific folder.
+ * @param {Object} settings Settings of image compressing. Look at settings attributes below.
+ *
+ * @property {Object} file - A object containing an image attributes.
+ * @property {Number} size - Size of the image.
+ * @property {String} currentImage - A current image path if one exists.
+ * @property {Number} imageQuality - Quality of image. 0 for min and 100 for max.
+ * @property {String} folder - Folder destination after image root directory
+ *
  * @returns {String} A path of compressed image.
  */
-exports.compressImage = (file, size, currentImage, imageQuality = 100) => {
-  let quality = parseInt(imageQuality)
+exports.compressImage = settings => {
+  const { file, size, currentImage, imageQuality, folder } = settings
+
+  let quality = parseInt(imageQuality) || 100
   if (quality < 0 || quality > 100) quality = 100
 
-  const fileName = `${file.path}.webp`
+  /**
+   * @example file.destination = "./public/imgs/"
+   * @example folder = "<folder-name>/"
+   * Attention to "/" character after folder name.
+   * @example file.filename = "<file-name>"
+   * Attention the details that the image has no extension.
+   */
+  const fileName = `${file.destination}${folder}${file.filename}.webp`
 
   return sharp(file.path)
     .resize(size)
