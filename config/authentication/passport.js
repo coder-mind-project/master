@@ -24,7 +24,7 @@ module.exports = app => {
     const _id = payload.user._id
     const countUser = await User.countDocuments()
     if (countUser) {
-      User.findOne({ _id, deleted: false })
+      User.findOne({ _id, deletedAt: null })
         .then(user => {
           done(null, user ? { ...payload } : false)
         })
