@@ -76,7 +76,7 @@ module.exports = app => {
         }
       }
 
-      if (user.deleted) {
+      if (user.deletedAt) {
         throw {
           name: 'authentication',
           description:
@@ -154,7 +154,7 @@ module.exports = app => {
 
       // prettier-ignore
       const exist = origin
-        ? await User.findOne({ _id: user._id, deleted: false })
+        ? await User.findOne({ _id: user._id, deletedAt: null })
         : await app.knex
           .select()
           .from('users')
