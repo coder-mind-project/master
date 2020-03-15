@@ -33,14 +33,16 @@ module.exports = app => {
       customUrl: { type: String, unique: true },
       publicProfile: { type: Boolean, default: false },
       platformStats: { type: Boolean, default: false },
-      firstLogin: { type: Boolean, default: false },
       confirmEmail: String,
       confirmEmailToken: String,
-      lastEmailTokenSendAt: Number
+      lastEmailTokenSendAt: Number,
+      firstLoginAt: { type: Date, default: null },
+      deletedAt: { type: Date, default: null }
     },
     {
       timestamps: {
-        createdAt: 'created_at'
+        createdAt: 'createdAt',
+        updatedAt: 'updatedAt'
       }
     }
   )
