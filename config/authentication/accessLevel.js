@@ -1,5 +1,10 @@
 const { notAcceptableResource } = require('../api/httpResponses.js')()
 
+/**
+ *  @module AccessLevel
+ *  @description Validate users access level for the middleware access.
+ *  @returns {Object} Containing some middleware functions for validate users access level.
+ */
 module.exports = {
   isAdmin: middleware => {
     return async (req, res, next) => {
