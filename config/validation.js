@@ -36,34 +36,6 @@ module.exports = app => {
 
   /**
    * @function
-   * @description Compare whether first value is equal to second value.
-   * @param {Any} first String, Arrays, Boolean, etc.
-   * @param {Any} second String, Arrays, Boolean, etc.
-   * @param {String} msg A Throwable message.
-   */
-  const isEqual = (first, second, msg = 'The first value is equal to second value') => {
-    if (first !== second) throw msg
-  }
-
-  /**
-   * @function
-   * @description Compare whether first value isn't equal to second value.
-   * @param {Any} first String, Arrays, Boolean, etc.
-   * @param {Any} second String, Arrays, Boolean, etc.
-   * @param {String} msg A Throwable message.
-   */
-  const notEqual = (first, second, msg = "The first value isn't equal to second value") => {
-    try {
-      isEqual(first, second, msg)
-    } catch (msg) {
-      return
-    }
-
-    throw msg
-  }
-
-  /**
-   * @function
    * @description Validates a password.
    * @param {String} password A string password not ciphered.
    * @param {Number} length Maximum size for password.
@@ -76,26 +48,6 @@ module.exports = app => {
 
   /**
    * @function
-   * @description Validates a CPF
-   * @param {String} cpf A Cpf.
-   * @param {String} msg A Throwable message.
-   */
-  const validateCpf = (cpf, msg = 'This CPF is not correct') => {
-    exists(cpf, msg)
-    if (cpf.length < 14) throw msg
-    if (cpf.includes(' ')) throw msg
-    cpf.split('').forEach((char, index) => {
-      if (index === 3 || index === 7) {
-        if (char !== '.') throw msg
-      } else if (index === 11) {
-        if (char !== '-') throw msg
-      } else {
-        if (isNaN(parseInt(char))) throw msg
-      }
-    })
-  }
-  /**
-   * @function
    * @description Validates a email.
    * @param {String} email A Email.
    * @param {String} msg A Throwable message.
@@ -103,51 +55,6 @@ module.exports = app => {
   const validateEmail = (email, msg = 'This email is not correct') => {
     exists(email, msg)
     if (!(email.includes('@') && email.includes('.'))) throw msg
-  }
-
-  /**
-   * @function
-   * @description Validates a Cnpj.
-   * @param {String} cnpj A Cnpj.
-   * @param {String} msg A Throwable message.
-   */
-  const validateCnpj = (cnpj, msg = 'This Cnpj is not correct') => {
-    exists(cnpj, msg)
-
-    if (cnpj.length < 18) throw msg
-    if (cnpj.includes(' ')) throw msg
-    cnpj.split('').forEach((char, index) => {
-      if (index === 2 || index === 6) {
-        if (char !== '.') throw msg
-      } else if (index === 10) {
-        if (char !== '/') throw msg
-      } else if (index === 15) {
-        if (char !== '-') throw msg
-      } else {
-        if (isNaN(parseInt(char))) throw msg
-      }
-    })
-  }
-
-  /**
-   * @function
-   * @description Validates a RG.
-   * @param {String} rg A RG.
-   * @param {String} msg A Throwable message.
-   */
-  const validateRg = (rg, msg = 'This RG is not correct') => {
-    exists(rg, msg)
-    if (rg.length < 12) throw msg
-    if (rg.includes(' ')) throw msg
-    rg.split('').forEach((char, index) => {
-      if (index === 2 || index === 6) {
-        if (char !== '.') throw msg
-      } else if (index === 10) {
-        if (char !== '-') throw msg
-      } else {
-        if (isNaN(parseInt(char))) throw msg
-      }
-    })
   }
 
   /**
@@ -163,26 +70,6 @@ module.exports = app => {
     if (aux[0] < minYear) throw `Anos menores de ${minYear} não são aceitos`
     if (aux[0] >= app.moment().get('year')) {
       throw msg || 'Datas maiores que hoje não são permitidas'
-    }
-  }
-
-  /**
-   * @function
-   * @description Validates a Brazil postal code.
-   * @param {String} postalcode A Postal code (In Brazil).
-   * @param {String} msg A Throwable message.
-   */
-  const validatePostalCode = (postalcode, msg) => {
-    if (postalcode) {
-      if (postalcode.length > 9) throw msg
-
-      postalcode.split('').forEach((char, index) => {
-        if (index === 5) {
-          if (char !== '-') throw msg
-        } else {
-          if (isNaN(parseInt(char))) throw msg
-        }
-      })
     }
   }
 
@@ -287,15 +174,9 @@ module.exports = app => {
   return {
     exists,
     notExists,
-    isEqual,
-    notEqual,
     validatePassword,
     validateEmail,
-    validateCpf,
-    validateRg,
-    validateCnpj,
     validateBirthDate,
-    validatePostalCode,
     validateLength,
     defineMonthDescribed
   }
