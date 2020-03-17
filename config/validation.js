@@ -42,6 +42,7 @@ module.exports = app => {
    * @param {String} msg A Throwable message.
    */
   const validatePassword = (password, length, msg = 'This password is weak') => {
+    exists(password, msg)
     if (password.length < length) throw msg || `A senha precisa ter no mínimo ${length} caracteres`
     if (password.includes(' ')) throw msg || 'A senha não pode conter espaços em branco'
   }
