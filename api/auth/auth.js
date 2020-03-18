@@ -47,8 +47,6 @@ module.exports = app => {
         }
       })
 
-      const countUsers = await User.countDocuments()
-
       exists(request.email, {
         name: 'emailOrUsername',
         description: 'É necessário informar um e-mail ou username'
@@ -58,6 +56,8 @@ module.exports = app => {
         name: 'password',
         description: 'É necessário informar uma senha'
       })
+
+      const countUsers = await User.countDocuments({ deletedAt: null })
 
       // prettier-ignore
       const user = countUsers
@@ -87,8 +87,10 @@ module.exports = app => {
       const password = await encryptAuth(request.password)
 
       if (user.password === password) {
-        if (!user.firstLogin && !user.id) {
-          await User.updateOne({ _id: user._id }, { firstLogin: true })
+        if (!user.firstLoginAt && countUsers) {
+          const today = new Date()
+          const result = await User.updateOne({ _id: user._id }, { firstLoginAt: today })
+          if (result.nModified) user.firstLoginAt = today
         }
 
         user.password = null
