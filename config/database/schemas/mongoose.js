@@ -48,6 +48,11 @@ module.exports = app => {
   )
 
   user.plugin(validator)
+  user.pre('updateOne', function(next) {
+    this.options.runValidators = true
+    this.options.context = 'query'
+    next()
+  })
   const User = app.mongo.model('users', user)
 
   // Schema para os artigos do sistema
