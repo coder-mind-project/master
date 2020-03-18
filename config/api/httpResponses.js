@@ -163,6 +163,14 @@ module.exports = app => {
     return reformulatedError
   }
 
+  /**
+   * @function
+   * @description Manage error responses for Auth module
+   * @param {Object} stack - A raw Error stack
+   * @returns {Object} - A refined Error stack
+   *
+   * @forModule Auth
+   */
   const authError = stack => {
     let pending = ''
     const reformulatedError = {
@@ -265,72 +273,124 @@ module.exports = app => {
     return reformulatedError
   }
 
-  const userError = error => {
+  /**
+   * @function
+   * @description Manage error responses for Users module
+   * @param {Object} stack - A raw Error stack
+   * @returns {Object} - A refined Error stack
+   *
+   * @forModule Users
+   */
+  const userError = stack => {
+    let pending = ''
     const reformulatedError = {
       code: 500,
       msg: 'Ocorreu um erro desconhecido, se persistir reporte'
     }
 
-    if (typeof error !== 'string') {
-      if (error.name === 'CastError') {
-        reformulatedError.code = 404
-        reformulatedError.msg = 'Usuário não encontrado'
-      }
+    switch (stack.name) {
+      case 'ValidationError': {
+        const { errors } = { ...stack }
 
-      return reformulatedError
-    }
+        if (errors) {
+          if (errors.customUrl && errors.customUrl.kind === 'unique') {
+            pending = 'customUrl'
+            reformulatedError.msg = 'Esta url personalizada já está cadastrada'
+          } else if (errors.email && errors.email.kind === 'unique') {
+            pending = 'email'
+            reformulatedError.msg = 'Este e-mail já esta associado a uma outra conta, tente outro endereço de e-mail'
+          } else {
+            if (errors.cellphone && errors.cellphone.kind === 'unique') {
+              pending = 'cellphone'
+              reformulatedError.msg = 'Este número de telefone já esta associado a uma outra conta, tente outro número'
+            } else {
+              pending = 'MongoDB'
+              reformulatedError.msg = 'Existe alguma restrição não mapeada, por favor reporte este problema'
+            }
+          }
+        }
 
-    if (error.trim() === '') return reformulatedError
-
-    switch (error) {
-      case 'Nome inválido':
-      case 'E-mail inválido':
-      case 'Genero inválido':
-      case 'Tipo de usuário inválido':
-      case 'CPF inválido':
-      case 'Número de telefone inválido':
-      case 'Número de celular inválido':
-      case 'Ja existe cadastro com essas informações':
-      case 'Está Url customizada já esta associada a outro usuário, tente uma outra url':
-      case 'É necessário informar sua senha para prosseguir':
-      case 'Senha inválida':
-      case 'Este e-mail já está cadastrado':
-      case 'Emissor inválido!':
-      case 'A senha precisa ter no mínimo 8 caracteres':
-      case 'Senha não confere, esqueceu sua senha?': {
         reformulatedError.code = 400
         break
       }
-      case 'Acesso negado, somente administradores podem remover outros usuários':
-      case 'Acesso negado, somente administradores podem alterar a senha de outros usuários':
-      case 'Senha incorreta': {
-        reformulatedError.code = 401
+      case 'CastError': {
+        if (stack.kind === 'ObjectId') {
+          pending = 'id'
+          reformulatedError.msg = 'Identificador inválido'
+        }
+
+        reformulatedError.code = 400
         break
       }
-      case 'Token não reconhecido, se persistir reporte':
-      case 'Token expirado, solicite uma nova troca de e-mail':
-      case 'Este usuário não pode ser removido': {
-        reformulatedError.code = 403
-        break
-      }
-      case 'Usuário não encontrado': {
-        reformulatedError.code = 404
-        break
-      }
-      case 'Este usuário já foi removido':
-      case 'Imagem já removida':
-      case 'Este usuário já foi restaurado': {
-        reformulatedError.code = 410
-        break
-      }
-      case 'Já foi enviado um e-mail a pouco tempo, espere um pouco até enviar outro novamente. Verifique sua caixa de spam.': {
-        reformulatedError.code = 429
-        break
+      default: {
+        const { name, description } = { ...stack }
+
+        switch (description) {
+          case 'Nome inválido':
+          case 'E-mail inválido':
+          case 'Genero inválido':
+          case 'Tipo de usuário inválido':
+          case 'Número de celular inválido':
+          case 'Número de telefone inválido':
+          case 'Ja existe cadastro com essas informações':
+          case 'Url personalizada inválida':
+          case 'Está Url customizada já esta associada a outro usuário, tente uma outra url':
+          case 'É necessário informar sua senha para prosseguir':
+          case 'Senha inválida':
+          case 'Senha não informada':
+          case 'Este e-mail já está cadastrado':
+          case 'Emissor inválido!':
+          case 'A senha precisa ter no mínimo 8 caracteres':
+          case 'Senha inválida, é necessário pelo menos 8 caracteres':
+          case 'Senha de confirmação inválida, é necessário pelo menos 8 caracteres':
+          case 'As senhas não coincidem':
+          case 'Senha não confere, esqueceu sua senha?':
+          case 'Este endereço de e-mail já está cadastrado': {
+            reformulatedError.code = 400
+            break
+          }
+          case 'Acesso negado, somente administradores podem alterar a senha de outros usuários':
+          case 'Senha incorreta':
+          case 'Emissor inválido': {
+            reformulatedError.code = 401
+            break
+          }
+          case 'Token não reconhecido, se persistir reporte':
+          case 'Token expirado, solicite uma nova troca de e-mail':
+          case 'Acesso negado, somente administradores podem remover outros usuários':
+          case 'Este usuário não pode ser removido':
+          case 'Recurso não disponível para este usuário':
+          case 'Não permitido para acessar este recurso': {
+            reformulatedError.code = 403
+            break
+          }
+          case 'Usuário não encontrado':
+          case 'Imagem não encontrada':
+          case 'Não existe pendência de troca de e-mail': {
+            reformulatedError.code = 404
+            break
+          }
+          case 'Este usuário já foi removido':
+          case 'Imagem já removida':
+          case 'Este usuário já foi restaurado': {
+            reformulatedError.code = 410
+            break
+          }
+          case 'Já foi enviado um e-mail a pouco tempo, espere um pouco até enviar outro novamente. Verifique sua caixa de spam.': {
+            reformulatedError.code = 429
+            break
+          }
+          default: {
+            reformulatedError.code = 500
+          }
+        }
+
+        pending = name
+        reformulatedError.msg = description
       }
     }
 
-    reformulatedError.msg = error
-
+    reformulatedError[pending] = 'pending'
     return reformulatedError
   }
 
@@ -355,13 +415,21 @@ module.exports = app => {
     return reformulatedError
   }
 
+  /**
+   * @function
+   * @description Manage error responses for AccessLevel module
+   * @param {Object} stack - A raw Error stack
+   * @returns {Object} - A refined Error stack
+   *
+   * @forModule AccessLevel
+   */
   const notAcceptableResource = stack => {
     const reformulatedError = {
       code: 500,
       msg: 'Ocorreu um erro desconhecido, se persistir reporte'
     }
 
-    const { name, description, problem, solution } = stack
+    const { description, problem, solution } = stack
     switch (description) {
       case 'Recurso não disponível para o usuário':
       case 'Resource not allowed for this user': {
