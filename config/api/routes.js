@@ -28,8 +28,7 @@ module.exports = app => {
     .route('/auth/logged')
     .post(app.api.auth.auth.validateToken)
     .all(app.config.authentication.passport.authenticate())
-    .patch(isAdmin(app.api.users.users.validateAdminPassword))
-    .put(app.api.users.users.validateUserPassword)
+    .patch(app.api.users.users.validateUserPassword)
 
   app
     .route('/auth/rescue')
