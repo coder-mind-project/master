@@ -85,7 +85,6 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .get(isAdmin(app.api.users.users.get))
     .post(isAdmin(app.api.users.users.save))
-    .patch(isAdmin(app.api.users.users.changePassword))
 
   app
     .route('/users/:id')
@@ -93,12 +92,13 @@ module.exports = app => {
     .get(app.api.users.users.getOne)
     .delete(app.api.users.users.remove)
     .post(app.api.users.users.changeMyPassword)
-    .patch(app.api.users.users.updateExtraInfo)
+    .patch(app.api.users.users.saveByMySelf)
     .put(app.api.users.users.save)
 
   app
     .route('/users/configs/:id')
     .all(app.config.authentication.passport.authenticate())
+    .post(isAdmin(app.api.users.users.changePassword))
     .patch(isAdmin(app.api.users.users.restore))
     .put(app.api.users.users.remove)
 
