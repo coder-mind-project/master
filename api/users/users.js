@@ -2,872 +2,921 @@ const Image = require('../../config/serialization/images.js')
 
 const { issuer, panel } = require('../../.env')
 
-const newAccountTxtMsg = require('../../mailer-templates/mail-text-msg/newAccount')
-const userChangedTxtMsg = require('../../mailer-templates/mail-text-msg/userChanged')
-const userChangedToOldMailTxtMsg = require('../../mailer-templates/mail-text-msg/userChangedToOldMail')
-const emailChangedMyAccountTxtMsg = require('../../mailer-templates/mail-text-msg/emailChangedMyAccount')
-
+/**
+ *  @function
+ *  @module Users
+ *  @description Manage users, provide some middleware functions.
+ *  @param {Object} app - A app Object provided by consign.
+ *  @returns {Object} Containing some middleware functions for provide users management.
+ */
 module.exports = app => {
-  // Mongoose model para usuario
   const { User } = app.config.database.schemas.mongoose
 
-  // Validação de dados
-  const { exists, validateEmail, validateCpf, validatePassword, isEqual } = app.config.validation
+  const { exists, validateEmail, validatePassword, validateLength } = app.config.validation
 
-  // Configurações SMTP
-  const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
-
-  // Configurações de criptografia
   const { encryptTag, encryptAuth, decryptAuth, encryptToken, decryptToken } = app.config.secrets
 
-  // Gerenciamento de erros para usuários
+  const { sendEmail } = app.api.users.emails
+
   const { userError } = app.config.api.httpResponses
 
+  /**
+   * @function
+   * @description Gets some users
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {Number} limit - Limit users per page
+   * @middlewareParams {String} query - Keyword to search for users
+   * @middlewareParams {Number} page - Current page
+   * @middlewareParams {String} deleted - Sets only deleted users
+   *
+   * @returns {Object} A object containing count, limit and Themes Objects representations
+   */
   const get = async (req, res) => {
-    /*  Responsável por obter os usuarios por filtros de
-            palavras chave. Ocorrendo a possibilidade de limitar
-            por paginação e também obtendo a quantidade total de registros
-            por filtragem
-         */
-
     try {
-      var limit = parseInt(req.query.limit) || 10
+      let limit = parseInt(req.query.limit) || 10
       const query = req.query.query || ''
       const page = req.query.page || 1
+      const order = req.query.order || 'desc'
 
       const deleted = Boolean(req.query.deleted) || false
 
       if (limit > 100) limit = 10
 
-      let count = await User.aggregate([
+      const count = await User.countDocuments({
+        $and: [
+          {
+            $or: [
+              { name: { $regex: `${query}`, $options: 'i' } },
+              { email: { $regex: `${query}`, $options: 'i' } },
+              { cellphone: { $regex: `${query}`, $options: 'i' } }
+            ]
+          },
+          { deletedAt: deleted ? { $ne: null } : null }
+        ]
+      })
+
+      const users = await User.aggregate([
         {
           $match: {
             $and: [
               {
                 $or: [
                   { name: { $regex: `${query}`, $options: 'i' } },
-                  { gender: { $regex: `${query}`, $options: 'i' } },
-                  { cpf: { $regex: `${query}`, $options: 'i' } },
-                  { celphone: { $regex: `${query}`, $options: 'i' } }
+                  { email: { $regex: `${query}`, $options: 'i' } },
+                  { cellphone: { $regex: `${query}`, $options: 'i' } }
                 ]
               },
-              { deleted: deleted }
+              { deletedAt: deleted ? { $ne: null } : null }
             ]
           }
-        }
-      ]).count('id')
-
-      count = count.length > 0 ? count.reduce(user => user).id : 0
-
-      User.aggregate([
+        },
         {
-          $match: {
-            $and: [
-              {
-                $or: [
-                  { name: { $regex: `${query}`, $options: 'i' } },
-                  { gender: { $regex: `${query}`, $options: 'i' } },
-                  { cpf: { $regex: `${query}`, $options: 'i' } },
-                  { celphone: { $regex: `${query}`, $options: 'i' } }
-                ]
-              },
-              { deleted: deleted }
-            ]
+          $project: {
+            password: 0
+          }
+        },
+        {
+          $sort: {
+            createdAt: order === 'asc' ? 1 : -1
           }
         }
       ])
         .skip(page * limit - limit)
         .limit(limit)
-        .then(users => {
-          users = users.map(user => {
-            delete user.password
-            return user
-          })
-          return res.json({ users, count, limit })
-        })
+
+      return res.json({ users, count, limit })
     } catch (error) {
-      return res.status(500).send(error)
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
+  /**
+   * @function
+   * @description Get user by ID
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - The User identifier
+   *
+   * @returns {Object} An User
+   */
   const getOne = async (req, res) => {
-    /* Responsável por obter o usuario pelo ID */
-
     try {
       const _id = req.params.id
-      const user = await User.findOne({ _id })
-      if (!user) throw 'Usuário não encontrado'
+      const user = await User.findOne({ _id, deletedAt: null }, { password: 0 })
+
+      if (!user) {
+        throw {
+          name: 'id',
+          description: 'Usuário não encontrado'
+        }
+      }
 
       return res.json(user)
     } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
+  /**
+   * @function
+   * @description Save an user
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @returns {Object} A User Object representation
+   *
+   * @middlewareParams {String} id - The User identifier
+   */
   const save = async (req, res) => {
-    /* Responsável por persistir usuarios */
-
-    const user = { ...req.body }
-
-    const admin = req.user.user.tagAdmin ? req.user.user : null
-
-    /*  Verifica se o campo confirmEmail está setado
-            (em caso de alterar seu proprio email o campo confirmEmail estará definido)
-         */
-    const email = user.confirmEmail ? user.confirmEmail : user.email
-
     try {
-      /** Validação dos campos inputados */
-      exists(user.name, 'Nome inválido')
-      validateEmail(email, 'E-mail inválido')
-      exists(user.gender, 'Genero inválido')
-      exists(user.type, 'Tipo de usuário inválido')
-      validateCpf(user.cpf, 'CPF inválido')
-      exists(user.celphone, 'Número de celular inválido')
+      const user = req.body
+      const _id = req.params.id
+      const dispatchEmail = req.query.sm || 'no' // Available values: 'yes' and 'no' (default)
 
-      if (user._id) {
-        /** Busca o usuário cadastrado */
-        const find = await User.findOne({ _id: user._id })
+      exists(user.name, {
+        name: 'name',
+        description: 'É necessário informar um nome'
+      })
 
-        if (!find) throw 'Usuário não encontrado'
+      validateEmail(user.email, {
+        name: 'email',
+        description: 'Email inválido'
+      })
 
-        let updatedUser = {}
+      exists(user.gender, {
+        name: 'gender',
+        description: 'É necessário informar um genero'
+      })
 
-        /** Verifica a possibilidade de o usuário autenticado estar alterando
-         *  seu próprio e-mail cadastrado
-         */
-        if (user.confirmEmail && req.user.user.email !== email) {
-          /** Verifica se o novo e-mail a ser cadastro ja existe
-           *  em outros usuários
-           */
-          const emailAlreadyExists = await User.findOne({ email })
+      // Verify the user type, available values: 'author' and 'admin'
+      if (user.type !== 'admin' && user.type !== 'author') {
+        throw {
+          name: 'type',
+          description: "Tipo de usuário inválido, escolha entre 'author' e 'admin'"
+        }
+      }
 
-          if (emailAlreadyExists) throw 'Este e-mail já está cadastrado'
+      if (user.cellphone && (user.cellphone.length < 10 || isNaN(user.cellphone))) {
+        throw {
+          name: 'cellphone',
+          description: 'Número de telefone inválido'
+        }
+      }
 
-          /** Configuração para geração do token e também para persitir
-           *  O campo de futuro e-mail
-           */
+      // Update an user
+      if (_id) {
+        exists(user.customUrl, {
+          name: 'customUrl',
+          description: 'Url personalizada inválida'
+        })
+
+        const found = await User.findOne({ _id, deletedAt: null })
+
+        if (!found) {
+          throw {
+            name: 'id',
+            description: 'Usuário não encontrado'
+          }
+        }
+
+        const updatedUser = await formatUserToUpdate(user, found)
+
+        await User.updateOne({ _id }, updatedUser)
+
+        const userUpdated = await User.findOne({ _id }, { password: 0 })
+
+        // Send email to the user that have changed account
+        if (dispatchEmail === 'yes') {
+          const purpose = found.email !== updatedUser.email ? 'advanced-change-account' : 'simple-change-account'
           const payload = {
-            issuer,
-            _id: user._id,
-            createdAt: Date.now(),
-            expireAt: Date.now() + 1000 * 60 * 60 * 24 * 2,
-            oldEmail: req.user.user.email,
-            newEmail: email
+            _id,
+            admin: req.user.user,
+            oldEmail: found.email
           }
 
-          const token = await encryptToken(JSON.stringify(payload))
-
-          updatedUser.confirmEmail = email
-          ;(updatedUser.confirmEmailToken = token), (updatedUser.lastEmailTokenSendAt = Date.now())
+          sendEmail(purpose, payload)
         }
 
-        /** Formata os campos de usuário em casos de troca de perfil
-         *  de usuário (entre autor e admin e vice versa)
-         */
-        updatedUser = {
-          ...(await formatUserToUpdate(user, find)),
-          confirmEmail: updatedUser.confirmEmail,
-          confirmEmailToken: updatedUser.confirmEmailToken,
-          lastEmailTokenSendAt: updatedUser.lastEmailTokenSendAt
-        }
-
-        /** Caso o usuário autenticado seja administrador
-         *  e ele esteja alterando os dados do um outro usuário
-         *  será guardado o antigo e-mail deste usuário para o envio
-         *  de notificação
-         */
-        const oldEmail =
-          admin && admin._id !== user._id && user.email !== find.email ? find.email : null
-
-        /** Caso o usuário esteja mudando seu próprio e-mail
-         *  Será deletado o atributo email para preservar o
-         *  email antigo na base de dados
-         */
-        if (updatedUser.confirmEmail) delete updatedUser.email
-
-        await User.updateOne({ _id: user._id }, updatedUser)
-          .then(async response => {
-            /** Verifica se o administrador está alterando dados de outros
-             *  Usuários para o envio da notificação por e-mail.
-             */
-            if (admin && admin._id !== user._id) {
-              const {
-                htmlPath,
-                variables,
-                textMsg,
-                params,
-                email,
-                subject
-              } = await configMailInFirstCase(user._id, admin)
-              await sendMail(htmlPath, variables, textMsg, params, email, subject)
-
-              if (oldEmail) {
-                const {
-                  htmlPath,
-                  variables,
-                  textMsg,
-                  params,
-                  email,
-                  subject
-                } = await configMailInSecondCase(user._id, admin, oldEmail, panel)
-                await sendMail(htmlPath, variables, textMsg, params, email, subject)
-              }
-            }
-
-            if (updatedUser.confirmEmail && req.user.user.email !== email) {
-              const {
-                htmlPath,
-                variables,
-                textMsg,
-                params,
-                email,
-                subject
-              } = await configMailInThirdCase(updatedUser, panel)
-              await sendMail(htmlPath, variables, textMsg, params, email, subject)
-            }
-
-            const userUpdated = await User.findOne({ _id: user._id }, { password: 0 })
-
-            return res.json(userUpdated)
-          })
-          .catch(error => {
-            if (error.code === 11000) throw 'Ja existe cadastro com essas informações'
-            else throw 'Ocorreu um erro desconhecido, se persistir reporte'
-          })
+        return res.json(userUpdated)
       } else {
-        validatePassword(user.password, 8)
+        // Create an user
+        validatePassword(user.password, 8, {
+          name: 'password',
+          description: 'Informe uma senha de pelo menos 8 caracteres'
+        })
 
-        const tag = encryptTag(user.cpf)
+        const tag = encryptTag(user.email)
         const password = encryptAuth(user.password)
 
         const saveUser = new User({
           name: user.name,
           email: user.email,
           gender: user.gender,
-          [user.type === 'admin' ? 'tagAdmin' : 'tagAuthor']: tag,
-          [user.type !== 'admin' ? 'tagAdmin' : 'tagAuthor']: null,
-          cpf: user.cpf,
-          celphone: user.celphone,
+          cellphone: user.cellphone,
           birthDate: user.birthDate,
           address: user.address,
           number: user.number,
-          password: password,
-          deleted: false,
-          firstLogin: false,
-          customUrl: tag.replace('==', '')
+          [user.type === 'admin' ? 'tagAdmin' : 'tagAuthor']: tag,
+          [user.type !== 'admin' ? 'tagAdmin' : 'tagAuthor']: null,
+          password,
+          customUrl: tag
         })
 
-        await saveUser
-          .save()
-          .then(async response => {
-            const password = user.password
-            const {
-              htmlPath,
-              variables,
-              textMsg,
-              params,
-              email,
-              subject
-            } = await configMailInFourthCase(response, panel, password)
-            await sendMail(htmlPath, variables, textMsg, params, email, subject)
-            return res.status(201).send(response)
-          })
-          .catch(error => {
-            if (error.code === 11000) throw 'Ja existe cadastro com essas informações'
-          })
+        const newUser = await saveUser.save()
+
+        // Send email to the user that have created account
+        if (dispatchEmail === 'yes') {
+          const purpose = 'account-created'
+          const payload = {
+            user: newUser
+          }
+
+          sendEmail(purpose, payload)
+        }
+
+        return res.status(201).send(newUser)
       }
     } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
   /**
-   * Retorna a configuração do-email a ser enviado quando o administrador estiver
-   * alterando os dados de um usuário que não seja ele. Será enviado sempre para
-   * o novo e-mail cadastrado.
+   * @function
+   * @description Resend the email for change email address of the user who requested it.
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - The User identifier
    */
-  const configMailInFirstCase = async (_id, admin) => {
-    const user = await User.findOne({ _id })
-    const htmlPath = 'mailer-templates/userChanged.html'
-
-    const variables = [
-      { key: '__username', value: user.name },
-      { key: '__username', value: user.name },
-      { key: '__cpf', value: user.cpf },
-      { key: '__celphone', value: user.celphone },
-      { key: '__email', value: user.email },
-      { key: '__password', value: decryptAuth(user.password) },
-      { key: '__accessLevel', value: user.tagAdmin ? 'Administrador' : 'Autor' },
-      { key: '___idUserAdmin', value: admin._id },
-      {
-        key: '__changeDate',
-        value: `${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`
-      }
-    ]
-
-    const params = {
-      username: user.name,
-      cpf: user.cpf,
-      celphone: user.celphone,
-      email: user.email,
-      password: user.password,
-      accessLevel: user.tagAdmin ? 'Administrador' : 'Autor',
-      _idUserAdmin: admin._id,
-      changeDate: `${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString(
-        'pt-BR'
-      )}`
-    }
-
-    const textMsg = userChangedTxtMsg
-
-    const email = user.email
-
-    const subject = 'Seus dados foram alterados!'
-
-    const payload = { htmlPath, variables, params, textMsg, email, subject }
-
-    return payload
-  }
-
-  /**
-   * Retorna a configuração do-email a ser enviado quando o administrador estiver
-   * alterando os dados de um usuário que não seja ele e tenha alterado o e-mail
-   * deste usuário fazendo com que seja enviado o a mensagem para o antigo
-   * e-mail cadastrado.
-   */
-  const configMailInSecondCase = async (_id, admin, oldEmail, url) => {
-    const user = await User.findOne({ _id })
-    const htmlPath = 'mailer-templates/userChangedToOldMail.html'
-
-    const variables = [
-      { key: '___url', value: url.default },
-      { key: '___idAdmin', value: admin._id },
-      { key: '___idUser', value: user._id },
-      { key: '__email', value: oldEmail },
-      {
-        key: '__date',
-        value: `${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`
-      },
-      { key: '___idAdmin', value: admin._id },
-      { key: '___idUser', value: user._id },
-      {
-        key: '__date',
-        value: `${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`
-      },
-      { key: '__url', value: panel.default }
-    ]
-
-    const params = {
-      _idAdmin: user.name,
-      _idUser: user.name,
-      email: admin._id,
-      date: `${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`
-    }
-
-    const textMsg = userChangedToOldMailTxtMsg
-
-    const email = oldEmail
-
-    const subject = 'Este e-mail foi desvinculado a sua conta!'
-
-    const payload = { htmlPath, variables, params, textMsg, email, subject }
-
-    return payload
-  }
-
-  /** Retorna a configuração do e-mail a ser enviado quando o usuário estiver
-   *  trocando seu próprio e-mail de cadastro.
-   */
-  const configMailInThirdCase = (user, url) => {
-    const htmlPath = 'mailer-templates/emailChangedMyAccount.html'
-
-    const variables = [
-      { key: '__username', value: user.name },
-      { key: '__token', value: user.confirmEmailToken },
-      { key: '__token', value: user.confirmEmailToken },
-      { key: '__url', value: url.default },
-      { key: '__url', value: url.default }
-    ]
-
-    const params = {
-      username: user.name,
-      token: user.confirmEmailToken,
-      url: url.default
-    }
-
-    const textMsg = emailChangedMyAccountTxtMsg
-
-    const email = user.confirmEmail
-
-    const subject = 'Confirmação de e-mail'
-
-    const payload = { htmlPath, variables, params, textMsg, email, subject }
-
-    return payload
-  }
-
-  /** Retorna a configuração do e-mail a ser enviado quando uma nova conta de usuário
-   *  é criada.
-   */
-  const configMailInFourthCase = (user, url, password) => {
-    const accessLevelPlural = user.type === 'admin' ? 'Administradores' : 'Autores'
-    const accessLevel = user.type === 'admin' ? 'Administrador' : 'Autor'
-    const deleteAccountLink = `${url.default}/remove-account?uid=${user.id}`
-
-    const htmlPath = 'mailer-templates/newAccount.html'
-
-    const variables = [
-      { key: '__AccessLevel', value: accessLevelPlural },
-      { key: '__email', value: user.email },
-      { key: '__password', value: password },
-      { key: '__notAcceptAccountLink', value: deleteAccountLink },
-      { key: '__AccessLevel', value: accessLevel },
-      { key: '__url', value: url.default },
-      { key: '__url', value: url.default }
-    ]
-
-    const params = {
-      accessLevel,
-      email: user.email,
-      password: password,
-      notAcceptAccountLink: deleteAccountLink,
-      url: url.default
-    }
-
-    const textMsg = newAccountTxtMsg
-
-    const email = user.email
-
-    const subject = 'Seja bem vindo a Coder Mind!'
-
-    const payload = { htmlPath, variables, params, textMsg, email, subject }
-
-    return payload
-  }
-
-  const sendMail = async (htmlPath, variables, txtMsgFunction, params, email, subject) => {
-    let htmlMsg = app.fs.readFileSync(htmlPath, 'utf8')
-
-    variables.forEach(variable => {
-      htmlMsg = htmlMsg.replace(variable.key, variable.value)
-    })
-
-    const transport = {
-      host: SMTP_SERVER,
-      port: PORT,
-      secure: SECURE,
-      auth: {
-        user: USER,
-        pass: PASSWORD
-      }
-    }
-
-    const transporter = app.nodemailer.createTransport(transport)
-
-    const mail = {
-      from: `"Agente Coder Mind" <${USER}>`,
-      to: email,
-      subject: subject,
-      text: txtMsgFunction(params),
-      html: htmlMsg
-    }
-
-    const info = await transporter.sendMail(mail)
-
-    return Boolean(info.messageId)
-  }
-
-  const resendMail = async (req, res) => {
+  const resendEmail = async (req, res) => {
     try {
       const user = { ...req.body }
-
       const _id = req.params.id
 
-      const find = await User.findOne({ _id }, { lastEmailTokenSendAt: 1 })
+      const find = await User.findOne({ _id, deletedAt: null }, { lastEmailTokenSendAt: 1 })
 
-      if (!find) throw 'Usuário não encontrado'
-
-      const token = JSON.parse(decryptToken(user.confirmEmailToken))
-
-      if (token.issuer !== issuer) throw 'Emissor inválido!'
-
-      const diff = Date.now() - Number(find.lastEmailTokenSendAt)
-
-      if (diff < 1000 * 60 * 10) {
-        throw 'Já foi enviado um e-mail a pouco tempo, espere um pouco até enviar outro novamente. Verifique sua caixa de spam.'
-      }
-
-      await User.updateOne({ _id }, { lastEmailTokenSendAt: Date.now() })
-
-      const { htmlPath, variables, textMsg, params, email, subject } = configMailInThirdCase(
-        user,
-        panel
-      )
-      const send = await sendMail(htmlPath, variables, textMsg, params, email, subject)
-
-      if (send) {
-        res
-          .status(200)
-          .send(
-            'E-mail reenviado com sucesso, verifique sua caixa de entrada. Caso não encontre verifique a caixa de spam'
-          )
-      } else throw 'Ocorreu um erro ao enviar o e-mail, por favor tente mais tarde'
-    } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
-    }
-  }
-
-  const cancelChangeEmail = async (req, res) => {
-    try {
-      let _id = req.params.id
-
-      if (!_id) {
-        const token = req.body.token
-
-        const user = await User.findOne({ confirmEmailToken: token })
-        if (!user) throw 'Token não reconhecido, se persistir reporte'
-
-        const payload = JSON.parse(decryptToken(token))
-        _id = payload._id
-      }
-
-      User.updateOne({ _id }, { confirmEmail: null, confirmEmailToken: null }).then(response => {
-        if (response.nModified === 1) {
-          return res.status(200).send('Alteração de e-mail cancelada com sucesso!')
-        } else throw 'Ocorreu um problema ao remover a alteração de e-mail, se persistir reporte!'
-      })
-    } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
-    }
-  }
-
-  const updateExtraInfo = async (req, res) => {
-    /* Responsável por atualizar as informações sociais (ou informações extras) do usuario/autor */
-    const user = { ...req.body }
-    const _id = req.params.id
-
-    try {
-      if (!_id) throw 'Usuário não encontrado'
-
-      if (user.customUrl) {
-        const customUrl = user.customUrl
-        const existsUser = await User.findOne({ customUrl, _id: { $ne: _id } })
-
-        if (existsUser) {
-          throw 'Está Url customizada já esta associada a outro usuário, tente uma outra url'
+      if (!find) {
+        throw {
+          name: '_id',
+          description: 'Usuário não encontrado'
         }
       }
 
-      User.updateOne({ _id }, user).then(() => res.status(204).send())
+      const token = JSON.parse(decryptToken(user.confirmEmailToken))
+
+      // Validate the token issuer
+      if (token.issuer !== issuer) {
+        throw {
+          name: 'issuer',
+          description: 'Emissor inválido!'
+        }
+      }
+
+      // Validate cooldown for resend multiple email sends
+      const diff = Date.now() - Number(find.lastEmailTokenSendAt)
+
+      // 3 minutes of interval
+      if (diff < 1000 * 60 * 3) {
+        throw {
+          name: 'manyRequest',
+          description:
+            'Já foi enviado um e-mail a pouco tempo, espere um pouco até enviar outro novamente. Verifique sua caixa de spam.'
+        }
+      }
+
+      // Generate a new confirm email token
+      await User.updateOne({ _id }, { lastEmailTokenSendAt: Date.now() })
+
+      // Send the email
+      const purpose = 'request-change-email'
+      const payload = {
+        user
+      }
+
+      const result = await sendEmail(purpose, payload)
+
+      if (!result.status) {
+        throw {
+          name: 'sendEmail',
+          description: 'Ocorreu um erro ao enviar o e-mail, por favor reporte este problema'
+        }
+      }
+
+      return res.status(204).send()
     } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
-  const formatUserToUpdate = async (userToUpdate, userInDatabase) => {
-    /*  Responsável por trocar a tag entre Admin e autor e vice e versa
-            Quando ocorrer a troca de tipo de usuário ao persistir a mudança
-        */
+  /**
+   * @function
+   * @description Cancel the email change not confirmed in new user email address, invalidating the confirmEmailToken.
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - The User identifier
+   */
+  const cancelChangeEmail = async (req, res) => {
+    try {
+      const _id = req.params.id
 
+      const user = await User.findOne({ _id, deletedAt: null }, { password: 0 })
+      if (!user) {
+        throw {
+          name: '_id',
+          description: 'Usuário não encontrado'
+        }
+      }
+
+      const token = user.confirmEmailToken
+
+      if (!token) {
+        throw {
+          name: 'token',
+          description: 'Não existe pendência de troca de e-mail'
+        }
+      }
+
+      const payload = JSON.parse(decryptToken(token))
+
+      // Validate canceling origin, user token owner are allowed
+      const userRequest = req.user.user
+      if (payload._id !== _id || _id !== userRequest._id) {
+        throw {
+          name: 'forbidden',
+          description: 'Não permitido para acessar este recurso'
+        }
+      }
+
+      // Validate the token issuer
+      if (payload.issuer !== issuer || payload.oldEmail !== user.email || payload.newEmail !== user.confirmEmail) {
+        throw {
+          name: 'token',
+          description: 'Token inválido'
+        }
+      }
+
+      await User.updateOne({ _id, deletedAt: null }, { confirmEmail: null, confirmEmailToken: null })
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - The User identifier
+   * @middlewareParams {Object} User - The User Object representation
+   */
+  const saveByMySelf = async (req, res) => {
+    try {
+      const user = { ...req.body }
+      const _id = req.params.id
+
+      const userRequest = req.user.user
+
+      if (userRequest._id !== _id) {
+        throw {
+          name: 'forbidden',
+          description: 'Não permitido para acessar este recurso'
+        }
+      }
+
+      exists(user.name, {
+        name: 'name',
+        description: 'Nome inválido'
+      })
+
+      exists(user.email, {
+        name: 'email',
+        description: 'E-mail inválido'
+      })
+
+      exists(user.gender, {
+        name: 'gender',
+        description: 'Gênero inválido'
+      })
+
+      exists(user.customUrl, {
+        name: 'customUrl',
+        description: 'Url personalizada inválida'
+      })
+
+      if (user.cellphone && (user.cellphone.length < 10 || isNaN(user.cellphone))) {
+        throw {
+          name: 'cellphone',
+          description: 'Número de celular inválido'
+        }
+      }
+
+      const found = await User.findOne({ _id, deletedAt: null }, { password: 0 })
+
+      if (found.email !== user.email) {
+        const emailAlreadyExists = await User.findOne({ email: user.email }, { email: 1 })
+
+        if (emailAlreadyExists) {
+          throw {
+            name: 'email',
+            description: 'Este endereço de e-mail já está cadastrado'
+          }
+        }
+
+        user.confirmEmail = user.email
+        user.email = found.email
+
+        const payload = {
+          issuer,
+          _id,
+          createdAt: Date.now(),
+          expireAt: Date.now() + 1000 * 60 * 60 * 24 * 2,
+          oldEmail: user.email,
+          newEmail: user.confirmEmail
+        }
+
+        const token = await encryptToken(JSON.stringify(payload))
+
+        user.confirmEmailToken = token
+        user.lastEmailTokenSendAt = Date.now()
+      }
+
+      await User.updateOne({ _id, deletedAt: null }, user)
+
+      // If the user changed their own email
+      if (user.confirmEmail) {
+        // Send the email containing a token for confirm a new email address
+        const purpose = 'request-change-email'
+        const payload = { user }
+
+        sendEmail(purpose, payload)
+      }
+
+      const updatedUser = await User.findOne({ _id, deletedAt: null }, { password: 0 })
+
+      return res.json(updatedUser)
+    } catch (error) {
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Change current tag if level access is changed
+   * @param {Object} userToUpdate - User data to be updated
+   * @param {Object} userInDatabase - Current User data
+   *
+   * @returns {Object} A User Object representation
+   */
+  const formatUserToUpdate = async (userToUpdate, userInDatabase) => {
     if (userInDatabase.tagAdmin && userToUpdate.type !== 'admin') {
       userToUpdate.tagAdmin = null
-      userToUpdate.tagAuthor = encryptTag(userToUpdate.cpf)
-    } else if (userInDatabase.tagAuthor && userToUpdate.type === 'admin') {
-      userToUpdate.tagAdmin = encryptTag(userToUpdate.cpf)
-      userToUpdate.tagAuthor = null
+      userToUpdate.tagAuthor = encryptTag(userToUpdate._id)
     }
 
-    delete userToUpdate.password
+    if (userInDatabase.tagAuthor && userToUpdate.type === 'admin') {
+      userToUpdate.tagAdmin = encryptTag(userToUpdate._id)
+      userToUpdate.tagAuthor = null
+    }
 
     return userToUpdate
   }
 
+  /**
+   * @function
+   * @description Remove/Delete an user
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - The User identifier
+   */
   const remove = async (req, res) => {
-    /* Responsável por remover usuários */
-
     try {
       const _id = req.params.id
-      const userRequest = req.user.user
-      let password = ''
+      const { user } = req.user
 
-      if (!_id) throw 'Usuário não encontrado'
-
-      if (!userRequest.tagAdmin && userRequest._id !== _id) {
-        throw 'Acesso negado, somente administradores podem remover outros usuários'
+      if (!user.tagAdmin && user._id !== _id) {
+        throw {
+          name: 'forbidden',
+          description: 'Acesso negado, somente administradores podem remover outros usuários'
+        }
       }
 
+      // If method is equal to 'PUT', the user has requested to remove own account
       if (req.method === 'PUT') {
-        exists(req.body.password, 'Senha não informada')
+        exists(req.body.password, {
+          name: 'password',
+          description: 'Senha não informada'
+        })
 
-        password = await encryptAuth(req.body.password)
-        const user = await User.findOne({ _id }, { _id, password })
-        if (!user) throw 'Usuário não encontrado'
+        const password = await encryptAuth(req.body.password)
 
-        if (password !== user.password) throw 'Senha incorreta'
+        const found = await User.findOne({ _id }, { _id, password })
+
+        if (!found) {
+          throw {
+            name: '_id',
+            description: 'Usuário não encontrado'
+          }
+        }
+
+        if (password !== found.password) {
+          throw {
+            name: 'password',
+            description: 'Senha não confere, esqueceu sua senha?'
+          }
+        }
       }
 
-      const update = await User.updateOne({ _id }, { deleted: true })
+      const today = new Date()
+      const result = await User.updateOne({ _id }, { deletedAt: today })
 
-      if (update.nModified > 0) return res.status(204).send()
-      else throw 'Este usuário já foi removido'
+      if (!result.nModified) {
+        throw {
+          name: '_id',
+          description: 'Este usuário já foi removido'
+        }
+      }
+
+      return res.status(204).send()
     } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
-  const removePermanently = async (req, res) => {
-    /*  Remove o usuário permanentemente da base de dados */
-    const _id = req.params.id
-
+  /**
+   * @function
+   * @private
+   * @description Remove a user permanently
+   * @param {String} _id The user identifier
+   *
+   * @returns {Promise}
+   */
+  const deleteUser = async _id => {
     try {
+      const result = await User.deleteOne({ _id })
+      Promise.resolve(result)
+
+      return result
+    } catch (error) {
+      Promise.reject(error)
+    }
+  }
+
+  /**
+   * @function
+   * @description Remove/Delete an User permanently.
+   * This middleware is not accessible for production releases, use only for development.
+   * To use, add a new route and point to this middleware.
+   *
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - The User identifier
+   */
+  const removePermanently = async (req, res) => {
+    try {
+      const _id = req.params.id
+
       const user = await User.findOne({ _id })
 
-      if (!user) throw 'Usuário não encontrado'
+      if (!user) {
+        throw {
+          name: '_id',
+          description: 'Usuário não encontrado'
+        }
+      }
 
-      if (user.firstLogin) throw 'Este usuário não pode ser removido'
+      const result = await deleteUser(_id)
 
-      User.deleteOne({ _id }).then(async response => {
+      if (result.deletedCount) {
         const payload = {
-          status: Boolean(response.deletedCount > 0),
+          status: true,
           data: [
             {
               _id: user.id,
               name: user.name,
-              cpf: user.cpf,
-              celphone: user.celphone,
+              celphone: user.cellphone,
               password: user.password,
               deleted_at: new Date()
             }
           ]
         }
 
-        await writeRemovedUsers(payload, true)
-        if (response.deletedCount > 0) return res.status(200).send('Conta removida com sucesso!')
+        // Write removed users in another database
+        writeRemovedUsers(payload, true)
 
-        throw 'Ocorreu um problema ao remover a conta da base de dados'
-      })
+        return res.status(204).send()
+      }
     } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
+  /**
+   * @function
+   * @description Restore a deleted user (Only for soft deleted users).
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - The User identifier
+   */
   const restore = async (req, res) => {
-    // Responsável por restaurar o usuário
     try {
       const _id = req.params.id
 
-      const update = await User.updateOne({ _id }, { deleted: false })
+      const result = await User.updateOne({ _id }, { deletedAt: null })
 
-      if (update.nModified > 0) return res.status(204).send()
-      else throw 'Este usuário já foi restaurado'
-    } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
-    }
-  }
-
-  const changePassword = async (req, res) => {
-    /* Responsável por alterar a senha de qualquer usuário */
-
-    try {
-      const user = { ...req.body }
-      const userRequest = req.user.user
-
-      if (!userRequest.tagAdmin && userRequest._id !== user._id) {
-        throw 'Acesso negado, somente administradores podem alterar a senha de outros usuários'
-      }
-
-      validatePassword(user.password, 8)
-      const password = encryptAuth(user.password)
-      const _id = user._id
-      User.updateOne({ _id }, { password }).then(() => res.status(204).send())
-    } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
-    }
-  }
-
-  const changeMyPassword = async (req, res) => {
-    /* Middleware responsável por alterar a senha do usuario da requisição */
-
-    try {
-      const pass = { ...req.body }
-      const _id = req.params.id
-
-      validatePassword(pass.firstField, 8, 'Senha inválida, é necessário pelo menos 8 caracteres')
-      validatePassword(
-        pass.secondField,
-        8,
-        'Senha confirmada inválida, é necessário pelo menos 8 caracteres'
-      )
-      isEqual(pass.firstField, pass.secondField, 'As senhas não coincidem')
-
-      const password = encryptAuth(pass.firstField)
-
-      User.updateOne({ _id }, { password }).then(() => res.status(204).send())
-    } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
-    }
-  }
-
-  const configProfilePhoto = async (req, res) => {
-    try {
-      const _id = req.body.idUser
-
-      const size = 512
-
-      const user = await User.findOne({ _id })
-
-      delete user.password
-
-      if (!user) throw 'Usuário não encontrado'
-
-      const currentDirectory = user.profilePhoto || ''
-
-      if (req.file) {
-        await Image.compressImage(req.file, size, currentDirectory).then(async newPath => {
-          const change = {
-            profilePhoto: newPath
-          }
-
-          await User.updateOne({ _id }, change)
-
-          return res.status(200).send(newPath)
-        })
-      } else {
-        throw 'Ocorreu um erro desconhecido, se persistir reporte'
-      }
-    } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
-    }
-  }
-
-  const removeProfilePhoto = async (req, res) => {
-    try {
-      const _id = req.params.id
-
-      const change = {
-        profilePhoto: ''
-      }
-
-      await User.updateOne({ _id }, change)
-        .then(response => {
-          if (response.nModified !== 1) throw 'Imagem já removida'
-          return res.status(204).send()
-        })
-        .catch(error => {
-          throw error
-        })
-    } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
-    }
-  }
-
-  const validateAdminPassword = async (req, res) => {
-    try {
-      const _id = req.user.user._id
-      const password = req.body.password
-
-      exists(password, 'É necessário informar sua senha para prosseguir')
-
-      const user = await User.findOne({ _id, deleted: false })
-      if (!user) throw 'Usuário não encontrado'
-
-      const pass = await encryptAuth(password)
-
-      if (user.password === pass) return res.status(204).send()
-      else throw 'Senha inválida'
-    } catch (error) {
-      error = await userError(error)
-      res.status(error.code).send(error.msg)
-    }
-  }
-
-  const validateUserPass = async (_id, password) => {
-    // Responsável por validar a senha atual do usuário
-    try {
-      const pass = await encryptAuth(password)
-
-      const user = await User.findOne({ _id })
-
-      if (!user) throw 'Usuário não encontrado'
-
-      return user.password === pass
-    } catch (error) {
-      return error
-    }
-  }
-
-  const validateUserPassword = async (req, res) => {
-    // Middleware responsável por validar a senha atual do usuário
-    try {
-      const _id = req.body._id
-      const password = req.body.password
-
-      const accepted = await validateUserPass(_id, password)
-
-      if (typeof accepted === 'string' && Boolean(accepted)) throw accepted
-      if (!accepted) throw 'Senha não confere, esqueceu sua senha?'
-
-      res.status(204).send()
-    } catch (error) {
-      error = await userError(error)
-      res.status(error.code).send(error.msg)
-    }
-  }
-
-  const validateFirstLoginTime = async () => {
-    /*  Verifica os novos usuários que nunca logaram
-            na aplicação onde os mesmo estejam fora do prazo
-            de 7 dias após a criação da conta.
-        */
-    try {
-      const users = await User.find({ firstLogin: false })
-
-      if (!users || users.length === 0) throw 'Nenhum usuário encontrado'
-
-      const usersDeleted = []
-
-      for (let i = 0; i < users.length; i++) {
-        if (users[i].created_at.getTime() + 1000 * 60 * 60 * 24 * 7 < Date.now()) {
-          const result = await User.deleteOne({ _id: users[i]._id })
-
-          if (result && result.deletedCount !== 0) {
-            const userDeleted = {
-              _id: users[i].id,
-              name: users[i].name,
-              cpf: users[i].cpf,
-              celphone: users[i].celphone,
-              password: users[i].password,
-              deleted_at: new Date()
-            }
-
-            usersDeleted.push(userDeleted)
-          }
+      if (!result.nModified) {
+        throw {
+          name: '_id',
+          description: 'Este usuário já foi restaurado'
         }
       }
 
-      if (usersDeleted.length === 0) throw 'Nenhum usuário a remover'
+      return res.status(204).send()
+    } catch (error) {
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
 
-      return { status: true, data: usersDeleted }
+  /**
+   * @function
+   * @description Change the User password.
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - The User identifier
+   */
+  const changePassword = async (req, res) => {
+    try {
+      const _id = req.params.id
+      const { password } = req.body
+
+      validatePassword(password, 8, {
+        name: 'password',
+        description: 'Senha inválida, é necessário pelo menos 8 caracteres'
+      })
+
+      const newPass = encryptAuth(password)
+
+      await User.updateOne({ _id }, { password: newPass })
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Change the User password, called by User himself.
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - The User identifier
+   */
+  const changeMyPassword = async (req, res) => {
+    try {
+      const _id = req.params.id
+      const { firstField, secondField } = req.body
+
+      const { user } = req.user
+
+      if (user._id !== _id) {
+        throw {
+          name: 'forbidden',
+          description: 'Recurso não disponível para este usuário'
+        }
+      }
+
+      validatePassword(firstField, 8, {
+        name: 'firstField',
+        description: 'Senha inválida, é necessário pelo menos 8 caracteres'
+      })
+
+      validatePassword(secondField, 8, {
+        name: 'secondField',
+        description: 'Senha de confirmação inválida, é necessário pelo menos 8 caracteres'
+      })
+
+      if (firstField !== secondField) {
+        throw {
+          name: 'firstAndSecondField',
+          description: 'As senhas não coincidem'
+        }
+      }
+
+      const password = encryptAuth(firstField)
+
+      await User.updateOne({ _id }, { password })
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Save a new user image profile.
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - The User identifier
+   */
+  const saveProfileImage = async (req, res) => {
+    try {
+      const _id = req.params.id
+
+      const size = 512
+
+      const user = await User.findOne({ _id }, { password: 0 })
+
+      if (!user) {
+        throw {
+          name: '_id',
+          description: 'Usuário não encontrado'
+        }
+      }
+
+      const currentImgPath = user.profilePhoto || ''
+
+      if (!req.file) {
+        throw {
+          name: 'image',
+          description: 'Imagem não encontrada'
+        }
+      }
+
+      const newPath = await Image.compressImage({
+        file: req.file,
+        size,
+        currentImage: currentImgPath,
+        folder: 'users/' // Needs "/" character, for more details checks compressImage method.
+      })
+
+      if (!newPath) {
+        throw {
+          name: 'compressImageError',
+          description: 'Ocorreu um erro ao comprimir a image, se persistir reporte!'
+        }
+      }
+
+      await User.updateOne({ _id }, { profilePhoto: newPath })
+
+      return res.status(200).send(newPath)
+    } catch (error) {
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Remove an user image profile.
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - The User identifier
+   */
+  const removeProfileImage = async (req, res) => {
+    try {
+      const _id = req.params.id
+
+      const result = await User.updateOne({ _id }, { profilePhoto: '' })
+
+      if (!result.nModified) {
+        throw {
+          name: 'userProfileImage',
+          description: 'Imagem já removida'
+        }
+      }
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Validate an User by password.
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   */
+  const validateUserPassword = async (req, res) => {
+    try {
+      const { user } = req.user
+      const { password } = req.body
+
+      const encryptPass = encryptAuth(password)
+
+      const found = await User.findOne({ _id: user._id, deletedAt: null }, { password: 1 })
+
+      if (!found) {
+        throw {
+          name: '_id',
+          description: 'Usuário não encontrado'
+        }
+      }
+
+      if (found.password !== encryptPass) {
+        throw {
+          name: 'password',
+          description: 'Senha não confere, esqueceu sua senha?'
+        }
+      }
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Get all users who have not logged on for the first time in 7 days
+   * @returns {Object} Containing status of operation and removed users
+   */
+  const validateFirstLoginTime = async () => {
+    try {
+      const users = await User.find({ firstLoginAt: null })
+
+      if (!users || users.length === 0) {
+        throw {
+          name: 'users',
+          description: 'There are no users with these criteria'
+        }
+      }
+
+      const futureUsersRemoved = await Promise.all(
+        users.filter(user => {
+          const createdDate = user.createdAt.getTime()
+          const sevenDays = 1000 * 60 * 60 * 24 * 7
+
+          if (createdDate + sevenDays < Date.now()) {
+            // Delete the current user from MongoDB database
+            const userDeleted = deleteUser(user._id).then(op => {
+              if (op && op.deletedCount > 0) {
+                // Return general data from deleted user
+                return {
+                  _id: user._id,
+                  name: user.name,
+                  celphone: user.cellphone,
+                  password: user.password,
+                  deleted_at: new Date()
+                }
+              }
+            })
+
+            return userDeleted
+          }
+        })
+      )
+
+      if (futureUsersRemoved.length === 0) {
+        throw {
+          name: 'users',
+          description: 'There are no users with these criteria'
+        }
+      }
+
+      return { status: true, data: futureUsersRemoved }
     } catch (error) {
       return { status: false, data: [], msg: error }
     }
   }
 
+  /**
+   * @function
+   * @description Write delete user action log in MySQL database
+   * @private
+   *
+   * @param {Object} payload Containing status and data property
+   * @param {Boolean} manually Flag to indicate whether the removal is manual or not
+   */
   const writeRemovedUsers = async (payload, manually = false) => {
-    // Escreve a relação de usuários removidos para a base de dados SQL
     try {
       const status = payload.status
       const users = payload.data
@@ -878,50 +927,73 @@ module.exports = app => {
         .into('users_removed_permanently')
         .then(() => {
           const msg = manually
-            ? `${
-                users.length
-              } user(s) removed your account permanently [manually] at ${new Date()}.`
+            ? `${users.length} user(s) removed your account permanently [manually] at ${new Date()}.`
             : `${users.length} user(s) removed permanently because he(they) didn't authenticate for the first time.`
+          // eslint-disable-next-line no-console
           console.log(msg)
         })
     } catch (error) {
-      console.log(
-        'Error: Removed users (Not authenticated the first time in 7 days) not inserted in database.'
-      )
+      // eslint-disable-next-line no-console
+      console.error(`Message: Error on write removed users | Error: ${error}`)
     }
   }
 
-  const confirmEmail = async (req, res) => {
+  /**
+   * @function
+   * @description Validate an user confirm email, used when user changed your email address, but not yet confirmed.
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   */
+  const validateConfirmEmailToken = async (req, res) => {
     try {
-      const token = req.body.token
-
+      const { token } = req.body
       const payload = JSON.parse(await decryptToken(token))
 
       const user = await User.findOne({ _id: payload._id })
 
-      if (!user) throw 'Token não reconhecido, se persistir reporte'
+      if (!user) {
+        throw {
+          name: 'token',
+          description: 'Token não reconhecido, se persistir reporte'
+        }
+      }
 
-      if (user.confirmEmailToken !== token) throw 'Token não reconhecido, se persistir reporte'
+      if (user.confirmEmailToken !== token) {
+        throw {
+          name: 'token',
+          description: 'Token não reconhecido, se persistir reporte'
+        }
+      }
 
-      if (payload.issuer !== issuer) throw 'Token não reconhecido, se persistir reporte'
+      if (payload.issuer !== issuer) {
+        throw {
+          name: 'issuer',
+          description: 'Token não reconhecido, se persistir reporte'
+        }
+      }
 
+      // If true, then token is expired
       if (Date.now() > payload.expireAt) {
         await User.updateOne({ _id: payload._id }, { confirmEmail: null, confirmEmailToken: null })
-        throw 'Token expirado, solicite uma nova troca de e-mail'
+        throw {
+          name: 'token',
+          description: 'Token expirado, solicite uma nova troca de e-mail'
+        }
       }
 
-      const change = {
-        confirmEmail: null,
-        confirmEmailToken: null,
-        email: payload.newEmail
-      }
+      await User.updateOne(
+        { _id: payload._id },
+        {
+          confirmEmail: null,
+          confirmEmailToken: null,
+          email: payload.newEmail
+        }
+      )
 
-      await User.updateOne({ _id: payload._id }, change).then(response => {
-        return res.status(200).send('E-mail alterado com sucesso!')
-      })
+      return res.status(204).send()
     } catch (error) {
-      error = await userError(error)
-      return res.status(error.code).send(error.msg)
+      const stack = userError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
@@ -931,18 +1003,16 @@ module.exports = app => {
     save,
     remove,
     changePassword,
-    updateExtraInfo,
-    configProfilePhoto,
-    removeProfilePhoto,
+    saveByMySelf,
+    saveProfileImage,
+    removeProfileImage,
     changeMyPassword,
-    validateAdminPassword,
-    restore,
     validateUserPassword,
+    restore,
     validateFirstLoginTime,
     writeRemovedUsers,
-    resendMail,
-    confirmEmail,
-    cancelChangeEmail,
-    removePermanently
+    resendEmail,
+    validateConfirmEmailToken,
+    cancelChangeEmail
   }
 }
