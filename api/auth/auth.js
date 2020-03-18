@@ -143,7 +143,6 @@ module.exports = app => {
       const { secret } = SECRET_AUTH_PACKAGE
 
       const payload = token ? await jwt.decode(token, secret) : {}
-      const user = payload.user
 
       if (payload.iss !== issuer) {
         throw {
@@ -152,19 +151,26 @@ module.exports = app => {
         }
       }
 
-      const origin = isNaN(user._id)
+      if (!payload.user) {
+        throw {
+          name: 'user',
+          description: 'Acesso não autorizado'
+        }
+      }
+
+      const origin = isNaN(payload.user._id)
 
       // prettier-ignore
-      const exist = origin
-        ? await User.findOne({ _id: user._id, deletedAt: null })
+      let user = origin
+        ? await User.findOne({ _id: payload.user._id, deletedAt: null })
         : await app.knex
           .select()
           .from('users')
-          .where('id', user._id)
+          .where('id', payload.user._id)
           .first()
 
-      if (exist && (exist._id || exist.id)) {
-        if (user.email !== exist.email) {
+      if (user && (user._id || user.id)) {
+        if (payload.user.email !== user.email) {
           throw {
             name: 'changedEmail',
             description: 'Acesso não autorizado, seu e-mail de acesso foi alterado.'
@@ -176,16 +182,21 @@ module.exports = app => {
           token = jwt.encode(payload, secret)
         }
 
-        if (exist.id) {
-          exist._id = exist.id
-          delete exist.id
+        if (!origin) {
+          user._id = user.id
+          delete user.id
         }
 
-        exist.password = null
+        user = user.toObject({
+          transform: (doc, ret) => {
+            delete ret.password
+            return ret
+          }
+        })
 
         return res.json({
           token,
-          user: exist
+          user
         })
       } else {
         throw {
