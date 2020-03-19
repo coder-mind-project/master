@@ -517,15 +517,15 @@ module.exports = app => {
       const _id = req.params.id
       const { user } = req.user
 
-      if (!user.tagAdmin && user._id !== _id) {
-        throw {
-          name: 'forbidden',
-          description: 'Acesso negado, somente administradores podem remover outros usuários'
-        }
-      }
-
       // If method is equal to 'PUT', the user has requested to remove own account
       if (req.method === 'PUT') {
+        if (!user.tagAdmin && user._id !== _id) {
+          throw {
+            name: 'forbidden',
+            description: 'Acesso negado, somente administradores podem remover outros usuários'
+          }
+        }
+
         exists(req.body.password, {
           name: 'password',
           description: 'Senha não informada'
