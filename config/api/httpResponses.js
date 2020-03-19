@@ -327,6 +327,7 @@ module.exports = app => {
 
         switch (description) {
           case 'Nome inválido':
+          case 'É necessário informar um nome':
           case 'E-mail inválido':
           case 'Genero inválido':
           case 'Tipo de usuário inválido':
