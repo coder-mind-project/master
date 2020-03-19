@@ -326,6 +326,7 @@ module.exports = app => {
         const { name, description } = { ...stack }
 
         switch (description) {
+          case 'Identificador inválido':
           case 'Nome inválido':
           case 'É necessário informar um nome':
           case 'E-mail inválido':
