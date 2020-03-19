@@ -24,7 +24,6 @@ module.exports = app => {
       address: String,
       number: Number,
       password: String,
-      deleted: Boolean,
       token: String,
       tagAdmin: String,
       occupation: String,
