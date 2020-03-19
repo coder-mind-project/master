@@ -517,6 +517,15 @@ module.exports = app => {
       const _id = req.params.id
       const { user } = req.user
 
+      const idIsValid = app.mongo.Types.ObjectId.isValid(_id)
+
+      if (!idIsValid) {
+        throw {
+          name: 'id',
+          description: 'Identificador inválido'
+        }
+      }
+
       // If method is equal to 'PUT', the user has requested to remove own account
       if (req.method === 'PUT') {
         if (!user.tagAdmin && user._id !== _id) {
