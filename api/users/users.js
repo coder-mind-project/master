@@ -106,16 +106,25 @@ module.exports = app => {
   const getOne = async (req, res) => {
     try {
       const _id = req.params.id
-      const user = await User.findOne({ _id, deletedAt: null }, { password: 0 })
+      const found = await User.findOne({ _id, deletedAt: null }, { password: 0 })
+      const { user } = req.user
 
-      if (!user) {
+      // Only admin gets any user, not admin gets only himself data
+      if (user._id !== _id && !user.tagAdmin) {
+        throw {
+          name: 'forbidden',
+          description: 'Não permitido para acessar este recurso'
+        }
+      }
+
+      if (!found) {
         throw {
           name: 'id',
           description: 'Usuário não encontrado'
         }
       }
 
-      return res.json(user)
+      return res.json(found)
     } catch (error) {
       const stack = userError(error)
       return res.status(stack.code).send(stack)
