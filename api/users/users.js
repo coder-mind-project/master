@@ -561,7 +561,7 @@ module.exports = app => {
       }
 
       const today = new Date()
-      const result = await User.updateOne({ _id }, { deletedAt: today })
+      const result = await User.updateOne({ _id, deletedAt: null }, { deletedAt: today })
 
       if (!result.nModified) {
         throw {
