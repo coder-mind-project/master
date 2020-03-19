@@ -485,9 +485,10 @@ module.exports = app => {
   /**
    * @function
    * @description Change current tag if level access is changed
+   * @private
+   *
    * @param {Object} userToUpdate - User data to be updated
    * @param {Object} userInDatabase - Current User data
-   *
    * @returns {Object} A User Object representation
    */
   const formatUserToUpdate = async (userToUpdate, userInDatabase) => {
