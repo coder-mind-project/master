@@ -90,10 +90,10 @@ module.exports = app => {
     .route('/users/:id')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.users.users.getOne)
-    .delete(app.api.users.users.remove)
+    .delete(isAdmin(app.api.users.users.remove))
     .post(app.api.users.users.changeMyPassword)
     .patch(app.api.users.users.saveByMySelf)
-    .put(app.api.users.users.save)
+    .put(isAdmin(app.api.users.users.save))
 
   app
     .route('/users/configs/:id')
