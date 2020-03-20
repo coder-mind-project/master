@@ -156,6 +156,23 @@ module.exports = app => {
               }
             ]
           }
+        },
+        {
+          $lookup: {
+            from: 'themes',
+            localField: 'themeId',
+            foreignField: '_id',
+            as: 'themes'
+          }
+        },
+        {
+          $project: {
+            name: 1,
+            alias: 1,
+            description: 1,
+            state: 1,
+            theme: { $arrayElemAt: ['$themes', 0] }
+          }
         }
       ])
         .skip(page * limit - limit)
