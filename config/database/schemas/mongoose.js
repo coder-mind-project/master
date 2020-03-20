@@ -112,7 +112,7 @@ module.exports = app => {
   const category = new app.mongo.Schema({
     _id: { type: app.mongo.Schema.ObjectId, auto: true },
     name: { type: String, unique: true },
-    theme: { type: Object, required: true },
+    themeId: { type: app.mongo.Schema.ObjectId, required: true },
     alias: String,
     description: String,
     state: { type: String, required: true, default: 'active' }
