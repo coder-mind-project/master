@@ -138,7 +138,8 @@ module.exports = app => {
           case 'Tema não informado':
           case 'Categoria muito grande, máximo permitido são 30 caracteres':
           case 'Apelido muito grande, máximo permitido são 30 caracteres':
-          case 'Descrição muito grande, máximo permitido são de 100 caracteres': {
+          case 'Descrição muito grande, máximo permitido são de 100 caracteres':
+          case 'Identificador do tema inválido': {
             reformulatedError.code = 400
             break
           }
@@ -148,7 +149,8 @@ module.exports = app => {
             break
           }
           case 'Esta categoria já foi excluída':
-          case 'Esta categoria foi excluída': {
+          case 'Esta categoria foi excluída':
+          case 'Este tema não consta em nossa base de dados ou encontra-se inativo': {
             reformulatedError.code = 410
             break
           }
