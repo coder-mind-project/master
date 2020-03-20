@@ -308,15 +308,32 @@ module.exports = app => {
 
       Category.aggregate([
         {
+          $lookup: {
+            from: 'themes',
+            localField: 'themeId',
+            foreignField: '_id',
+            as: 'themes'
+          }
+        },
+        {
           $match: {
             $and: [
               {
-                'theme._id': themeId
+                themeId: app.mongo.Types.ObjectId(themeId)
               },
               {
                 state: 'active'
               }
             ]
+          }
+        },
+        {
+          $project: {
+            name: 1,
+            alias: 1,
+            description: 1,
+            state: 1,
+            theme: { $arrayElemAt: ['$themes', 0] }
           }
         }
       ]).then(categories => res.json(categories))
