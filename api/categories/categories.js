@@ -236,14 +236,40 @@ module.exports = app => {
   const getOne = async (req, res) => {
     try {
       const _id = req.params.id
-      const category = await Category.findOne({ _id })
+      const categories = await Category.aggregate([
+        {
+          $match: { _id: app.mongo.Types.ObjectId(_id) }
+        },
+        {
+          $lookup: {
+            from: 'themes',
+            localField: 'themeId',
+            foreignField: '_id',
+            as: 'themes'
+          }
+        },
+        {
+          $project: {
+            name: 1,
+            alias: 1,
+            description: 1,
+            state: 1,
+            theme: { $arrayElemAt: ['$themes', 0] }
+          }
+        },
+        {
+          $limit: 1
+        }
+      ])
 
-      if (!category) {
+      if (!categories.length) {
         throw {
-          name: 'categories',
+          name: 'id',
           description: 'Categoria não encontrada'
         }
       }
+
+      const category = categories[0]
 
       if (category.state === 'removed') {
         throw {
@@ -251,6 +277,8 @@ module.exports = app => {
           description: 'Esta categoria foi excluída'
         }
       }
+
+      return res.json(category)
     } catch (error) {
       const stack = await categoryError(error)
       return res.status(stack.code).send(stack)
