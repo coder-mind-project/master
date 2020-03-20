@@ -8,7 +8,7 @@
 module.exports = app => {
   const { exists, validateLength } = app.config.validation
 
-  const { Category } = app.config.database.schemas.mongoose
+  const { Category, Theme } = app.config.database.schemas.mongoose
 
   const { categoryError } = app.config.api.httpResponses
 
@@ -33,15 +33,26 @@ module.exports = app => {
         description: 'Nome da categoria não informado'
       })
 
-      exists(category.theme, {
-        name: 'theme',
+      exists(category.themeId, {
+        name: 'themeId',
         description: 'Tema não informado'
       })
 
-      exists(category.theme._id, {
-        name: 'theme',
-        description: 'Tema não informado'
-      })
+      if (!app.mongo.Types.ObjectId.isValid(category.themeId)) {
+        throw {
+          name: 'themeId',
+          description: 'Identificador do tema inválido'
+        }
+      }
+
+      const themeExists = await Theme.countDocuments({ _id: category.themeId, state: 'active' })
+
+      if (!themeExists) {
+        throw {
+          name: 'themeId',
+          description: 'Este tema não consta em nossa base de dados ou encontra-se inativo'
+        }
+      }
 
       validateLength(category.name, 30, 'bigger', {
         name: 'name',
