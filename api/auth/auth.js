@@ -1,6 +1,6 @@
 const jwt = require('jwt-simple')
 const { SECRET_AUTH_PACKAGE, issuer } = require('../../.env')
-const rp = require('request-promise')
+const captcha = require('../../config/recaptcha/captcha.js')
 
 /**
  *  @function
@@ -18,8 +18,6 @@ module.exports = app => {
 
   const { authError } = app.config.api.httpResponses
 
-  const { secretKey, url } = app.config.captcha
-
   /**
    * @function
    * @description Realize authentications.
@@ -36,16 +34,14 @@ module.exports = app => {
 
       const { secret } = SECRET_AUTH_PACKAGE
 
-      const uri = `${url}?secret=${secretKey}&response=${request.response}`
+      const response = await captcha.verify(request.response)
 
-      await rp({ method: 'POST', uri, json: true }).then(response => {
-        if (!response.success) {
-          throw {
-            name: 'captcha',
-            description: 'Captcha inválido'
-          }
+      if (!response.success) {
+        throw {
+          name: 'recaptcha',
+          description: 'Captcha inválido'
         }
-      })
+      }
 
       exists(request.email, {
         name: 'emailOrUsername',
