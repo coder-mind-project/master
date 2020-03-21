@@ -902,7 +902,7 @@ module.exports = app => {
                 return {
                   _id: user._id,
                   name: user.name,
-                  celphone: user.cellphone,
+                  cellphone: user.cellphone,
                   password: user.password,
                   deleted_at: new Date()
                 }
