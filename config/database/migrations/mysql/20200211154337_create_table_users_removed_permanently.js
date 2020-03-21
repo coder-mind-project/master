@@ -1,12 +1,9 @@
 exports.up = function(knex) {
   return knex.schema.createTable('users_removed_permanently', table => {
     table.increments('id')
-    table
-      .string('_id')
-      .unique()
-      .notNullable()
+    // prettier-ignore
+    table.string('_id').unique().notNullable()
     table.string('name').notNullable()
-    table.string('cpf').notNullable()
     table.string('celphone').notNullable()
     table.string('password').notNullable()
     table.datetime('deleted_at').notNullable()
