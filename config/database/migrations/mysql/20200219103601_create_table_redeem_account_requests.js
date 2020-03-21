@@ -2,8 +2,7 @@ exports.up = function(knex) {
   return knex.schema.createTable('redeem_account_requests', table => {
     table.increments('id')
     table.string('contact_email').notNullable()
-    table.string('cpf')
-    table.string('celphone')
+    table.string('cellphone')
     table.string('public_profile').notNullable()
     table.string('date_begin')
     table.text('msg', 'longtext')
