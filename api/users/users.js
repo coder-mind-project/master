@@ -629,7 +629,7 @@ module.exports = app => {
             {
               _id: user.id,
               name: user.name,
-              celphone: user.cellphone,
+              cellphone: user.cellphone,
               password: user.password,
               deleted_at: new Date()
             }
