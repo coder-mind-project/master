@@ -29,8 +29,6 @@
     "nodemailer": "^6.3.0",
     "passport": "^0.4.0",
     "passport-jwt": "^4.0.0",
-    "request": "^2.88.0",
-    "request-promise": "^4.2.4",
     "sharp": "^0.25.1"
   },
   "devDependencies": {
