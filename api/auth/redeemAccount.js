@@ -17,6 +17,8 @@ module.exports = app => {
 
   const { redeemAccountError } = app.config.api.httpResponses
 
+  const { deleteUser, writeRemovedUsers } = app.api.users.users
+
   /**
    * @function
    * @description Rescue account (password) by email
@@ -237,5 +239,70 @@ module.exports = app => {
     }
   }
 
-  return { redeemPerEmail, redeemPerMoreInformations, validateToken, changePassword }
+  /**
+   * @function
+   * @description Permanently remove a user who chose to delete their account without signing in once
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `id` in `params` - The User identifier
+   */
+  const removeAccount = async (req, res) => {
+    try {
+      const { id } = req.query
+
+      if (!app.mongo.Types.ObjectId.isValid(id)) {
+        throw {
+          name: 'id',
+          description: 'Identificador inválido'
+        }
+      }
+
+      const user = await User.findOne({ _id: id })
+
+      if (!user || user.deletedAt) {
+        throw {
+          name: 'user',
+          description: 'Usuário não encontrado'
+        }
+      }
+
+      if (user.firstLoginAt) {
+        throw {
+          name: 'firstLoginAt',
+          description: 'Este usuário já realizou autenticação, para remover a conta se autentique e exclua manualmente'
+        }
+      }
+
+      await deleteUser(user._id || null)
+
+      const payload = {
+        status: true,
+        data: [
+          {
+            _id: user.id,
+            name: user.name,
+            cellphone: user.cellphone || null,
+            password: user.password,
+            deleted_at: new Date()
+          }
+        ]
+      }
+
+      writeRemovedUsers(payload, true)
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = redeemAccountError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  return {
+    redeemPerEmail,
+    redeemPerMoreInformations,
+    validateToken,
+    changePassword,
+    removeAccount
+  }
 }
