@@ -579,7 +579,6 @@ module.exports = app => {
 
   /**
    * @function
-   * @private
    * @description Remove a user permanently
    * @param {String} _id The user identifier
    *
@@ -1032,6 +1031,7 @@ module.exports = app => {
     writeRemovedUsers,
     resendEmail,
     validateConfirmEmailToken,
-    cancelChangeEmail
+    cancelChangeEmail,
+    deleteUser
   }
 }
