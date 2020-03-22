@@ -4,7 +4,7 @@ exports.up = function(knex) {
     // prettier-ignore
     table.string('_id').unique().notNullable()
     table.string('name').notNullable()
-    table.string('cellphone').notNullable()
+    table.string('cellphone')
     table.string('password').notNullable()
     table.datetime('deleted_at').notNullable()
     table.timestamp('emitted_at').defaultTo(knex.fn.now())
