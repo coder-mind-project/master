@@ -1,246 +1,241 @@
-const { panel } = require('../../.env')
-const rp = require('request-promise')
-const nodemailer = require('nodemailer')
+const captcha = require('../../config/recaptcha/captcha')
+const authMailer = require('./emails')
 
-const redeemAccountTextMsg = require('../../mailer-templates/mail-text-msg/redeemAccount1.js')
-const fs = require('fs')
-
+/**
+ * @module RedeemAccount
+ * @function
+ * @description Manage features about redeem account, provide some middleware functions.
+ * @param {Object} app - A app Object provided by consign.
+ * @returns {Object} Containing some middleware functions for provide users management.
+ */
 module.exports = app => {
+  const { validateEmail, validatePassword } = app.config.validation
 
-     // Validações de dados
-    const { validateEmail, exists, validateCpf, isEqual, validatePassword } = app.config.validation
-    
-     // Mongoose Model para usuarios
-    const { User } = app.config.database.schemas.mongoose
+  const { User } = app.config.database.schemas.mongoose
 
-     // Configurações extras
-    const { encryptAuth, encryptToken, decryptToken } = app.config.secrets
+  const { encryptAuth, encryptToken, decryptToken } = app.config.secrets
 
-    const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
+  const { redeemAccountError } = app.config.api.httpResponses
 
+  /**
+   * @function
+   * @description Rescue account (password) by email
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `response` - A recaptcha token
+   * @middlewareParams {String} `email` - The user email
+   */
+  const redeemPerEmail = async (req, res) => {
+    try {
+      const request = { ...req.body }
 
-    const { validateTokenManagement, errorRedeemPassword } = app.config.api.httpResponses
+      const response = await captcha.verify(request.response)
 
-    const { secret_key, uri } = app.config.captcha
-
-
-    const redeemPerEmail = async (req, res) => {
-        try {
-
-            const request = {...req.body}
-
-            const url = `${uri}?secret=${secret_key}&response=${request.response}`
-            
-            await rp({method: 'POST', uri: url, json: true}).then( response => {
-                if(!response.success) throw 'Captcha inválido'
-            })
-            
-            validateEmail(request.email, 'E-mail inválido')
-
-            const user = await User.findOne({email: request.email, deleted: false})
-
-            if(!user) return res.status(200).send('Solicitação enviada com sucesso, caso este endereço de e-mail esteja cadastrado, você receberá uma mensagem contendo mais instruções.')
-
-            const payload = {
-                generatedAt: Date.now(),
-                expireAt: Date.now() + (1000 * 60 * 60 * 12),
-                user: user._id
-            }
-
-            const token = await encryptToken(JSON.stringify(payload))
-
-            await User.updateOne({ _id: user._id },{ token })
-
-            const htmlMsg = fs.readFileSync('mailer-templates/redeemAccount1.html', 'utf8').replace('\n', '').replace('__user', user.name).replace('__token', token).replace('__token', token).replace('__url', panel.default).replace('__url', panel.default)
-
-            const transport = {
-                host: SMTP_SERVER,
-                port: PORT,
-                secure: SECURE,
-                auth: {
-                    user: USER,
-                    pass: PASSWORD
-                }
-            }
-
-            const transporter = nodemailer.createTransport(transport)
-
-            const mail = {
-                from: `"Coder Mind" <${USER}>`,
-                to: request.email,
-                subject: 'Recuperação de senha',
-                text: redeemAccountTextMsg(user.name, panel.default, token),
-                html: htmlMsg,
-            }
-            
-            const info = await transporter.sendMail(mail)
-
-            if(info.messageId) return res.status(200).send('Solicitação enviada com sucesso, caso este endereço de e-mail esteja cadastrado, você receberá uma mensagem contendo mais instruções.')
-            else throw 'Ocorreu um erro ao enviar o e-mail'
-
-        } catch (error) {
-            error = await errorRedeemPassword(error)
-            return res.status(error.code).send(error.msg)
+      if (!response.success) {
+        throw {
+          name: 'recaptcha',
+          description: 'Captcha inválido'
         }
-    }
+      }
 
-    const redeemPerMoreInformations = async (req, res) => {
-        try {
-            const request = {...req.body}
+      validateEmail(request.email, {
+        name: 'email',
+        description: 'E-mail inválido'
+      })
 
-            const url = `${uri}?secret=${secret_key}&response=${request.response}`
-            
-            await rp({method: 'POST', uri: url, json: true}).then( response => {
-                if(!response.success) throw 'Captcha inválido'
-            })
+      const user = await User.findOne({ email: request.email, deletedAt: null })
 
-            validateEmail(request.email, 'É necessário fornecer um endereço de e-mail válido para contato')
-
-            const result = await countAcceptPoints(request)
-
-            if(!result.status) throw result.error
-            
-            const user = result.user
-            
-            if(result.value < 8){
-                storeRedeemRequest(request).then(() => res.status(200).send('Informações enviadas com sucesso, agora é com a gente! Iremos analisar as informações, aguarde por um feedback no e-mail fornecido.'))
-            }else{
-                const payload = {
-                    generatedAt: Date.now(),
-                    expireAt: Date.now() + (1000 * 60 * 60 * 12),
-                    user: user._id
-                }
-
-                const token = await encryptToken(JSON.stringify(payload))
-
-                await User.updateOne({ _id: user._id },{ token })
-
-                const htmlMsg = fs.readFileSync('mailer-templates/redeemAccount1.html', 'utf8').replace('\n', '').replace('__user', user.name).replace('__token', token).replace('__token', token).replace('__url', panel.default).replace('__url', panel.default)
-
-                const transport = {
-                    host: SMTP_SERVER,
-                    port: PORT,
-                    secure: SECURE,
-                    auth: {
-                        user: USER,
-                        pass: PASSWORD
-                    }
-                }
-
-                const transporter = nodemailer.createTransport(transport)
-
-                const mail = {
-                    from: `"Coder Mind" <${USER}>`,
-                    to: user.email,
-                    subject: 'Recuperação de conta',
-                    text: redeemAccountTextMsg(user.name, panel.default, token),
-                    html: htmlMsg,
-                }
-                
-                const info = await transporter.sendMail(mail)
-
-                if(info.messageId) return res.status(200).send(`Verificamos suas informações, entre no seu endereço de email: ${user.email} , as próximas instruções estarão por lá =D`)
-                else throw 'Ocorreu um erro ao enviar o e-mail'
-            }
-        } catch (error) {
-            error = await errorRedeemPassword(error)
-            return res.status(error.code).send(error.msg)
-        }
-    }
-
-    const countAcceptPoints = async (data) => {
-        try {
-            const {cpf, celphone, publicProfile, dateBegin} = {...data}
-            const user = await User.findOne({cpf})
-
-            if(!user) return {status: true, value: 0, user: null}
-
-            let value = 5
-            
-            if(user.celphone === celphone) value+=2
-            if(user.publicProfile === Boolean(publicProfile === 'yes')) value+=1
-            
-            if(!dateBegin) return {status: true, value, user}
-
-            const tolerance = (1000 * 60 * 60 * 24 * 30) // 30 days of tolerance
-            const correct = Date(dateBegin)
-            const correctAnswer = Date(user.created_at)
-            
-            const diff = correct - correctAnswer
-            
-            if(diff >= tolerance - tolerance * 2 && diff <= tolerance) value+=1
-
-            return {status: true, value, user}
-        } catch (error) {
-            return {status: false, error}
-        }
-    }
-
-    const storeRedeemRequest = (request) => {
-        request = {
-            contact_email: request.email,
-            cpf: request.cpf,
-            celphone: request.celphone,
-            public_profile: request.publicProfile,
-            date_begin: request.dateBegin,
-            msg: request.msg
+      if (user) {
+        const payload = {
+          generatedAt: Date.now(),
+          expireAt: Date.now() + 1000 * 60 * 60 * 12,
+          user: user._id
         }
 
-        return app.knex.insert(request).into('redeem_account_requests')
+        const token = await encryptToken(JSON.stringify(payload))
+        await User.updateOne({ _id: user._id }, { token })
+
+        await authMailer().sendEmail('redeem-per-email', { user, token })
+      }
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = await redeemAccountError(error)
+      return res.status(stack.code).send(stack)
     }
+  }
 
-    const validateToken = async (req, res) => {
-        try {
-            const token = req.body.token
+  /**
+   * @function
+   * @description Store redeem account request in MySQL database
+   * @private
+   * @param {Object} request - A Request account request
+   *
+   * @returns {Promise} A 'knex insert' promise
+   */
+  const storeRedeemRequest = request => {
+    try {
+      const redeemRequest = {
+        contact_email: request.email,
+        cellphone: request.cellphone,
+        public_profile: request.publicProfile,
+        date_begin: request.dateBegin,
+        msg: request.msg
+      }
 
-            if(!token) throw 'Token não informado'
+      return app.knex.insert(redeemRequest).into('redeem_account_requests')
+    } catch (error) {
+      return { status: false }
+    }
+  }
 
-            const payload = JSON.parse(await decryptToken(token))
+  /**
+   * @function
+   * @description Rescue account by more informations
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `response` - A recaptcha token
+   * @middlewareParams {String} `email` - The user email
+   */
+  const redeemPerMoreInformations = async (req, res) => {
+    try {
+      const request = { ...req.body }
 
-            if(payload.generatedAt > Date.now()) throw 'Token inválido, solicite uma nova recuperação de senha'
+      const response = await captcha.verify(request.response)
 
-            if(payload.expireAt < Date.now()) throw 'Token expirado, solicite uma nova recuperação de senha'
-
-            const _id = payload.user
-
-            const user = await User.findOne({_id, deleted: false},{ _id: 1, name: 1, token: 1})
-
-            if(!user) throw 'Usuário não encontrado'
-
-            if(user.token !== token) throw 'Token inválido, solicite uma nova recuperação de senha'
-
-            res.status(200).send(user)
-        } catch (error) {
-            error = await validateTokenManagement(error)
-            res.status(error.code).send(error.msg) 
+      if (!response.success) {
+        throw {
+          name: 'recaptcha',
+          description: 'Captcha inválido'
         }
+      }
+
+      validateEmail(request.email, {
+        name: 'email',
+        description: 'É necessário fornecer um endereço de e-mail válido para contato'
+      })
+
+      await storeRedeemRequest(request)
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = redeemAccountError(error)
+      return res.status(stack.code).send(stack)
     }
+  }
 
-    const changePassword = async (req, res) => {
-        try {
-            const payload = {...req.body}
-            
-            validatePassword(payload.firstField, 8, 'Insira uma senha válida, de no mínimo 8 caracteres')
-            validatePassword(payload.secondField, 8, 'Confirmação de senha inválida, informe no mínimo 8 caracteres')
-            
-            isEqual(payload.firstField, payload.secondField, 'As senhas não conferem')
+  /**
+   * @function
+   * @description Validate a redeem account token
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `response` - A recaptcha token
+   * @middlewareParams {String} `token` in `body` - The request account token
+   */
+  const validateToken = async (req, res) => {
+    try {
+      const { token } = req.query
 
-            const password = await encryptAuth(payload.firstField)
-            const _id = payload.user
-
-            const response = await User.updateOne({_id, deleted: false}, {password, token: null})
-            
-            if(response.nModified){
-                return res.status(200).send('Senha alterada com sucesso, você já pode realizar um novo login')
-            }else{
-                throw 'Ocorreu um erro ao alterar sua senha, se persistir reporte'
-            }
-
-        } catch (error) {
-            error = await errorRedeemPassword(error)
-            return res.status(error.code).send(error.msg)
+      if (!token) {
+        throw {
+          name: 'token',
+          description: 'Token não informado'
         }
-    }
+      }
 
-    return { redeemPerEmail, redeemPerMoreInformations, validateToken, changePassword }
+      const payload = JSON.parse(decryptToken(token))
+
+      if (payload.generatedAt > Date.now() || payload.expireAt < Date.now()) {
+        throw {
+          name: 'token',
+          description: 'Token inválido, solicite uma nova recuperação de senha'
+        }
+      }
+
+      const _id = payload.user
+      const user = await User.findOne({ _id, deletedAt: null }, { password: 0 })
+
+      if (!user) {
+        throw {
+          name: 'user',
+          description: 'Usuário não encontrado'
+        }
+      }
+
+      if (user.token !== token) {
+        throw {
+          name: 'token',
+          description: 'Token inválido, solicite uma nova recuperação de senha'
+        }
+      }
+
+      return res.json(user)
+    } catch (error) {
+      const stack = await redeemAccountError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Change a user password with the redeem account token
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `id` in `params` - The User identifier
+   * @middlewareParams {String} `token` in `params` - The request account token
+   */
+  const changePassword = async (req, res) => {
+    try {
+      const { id, token } = req.query
+      const { firstField, secondField } = req.body
+
+      if (!app.mongo.Types.ObjectId.isValid(id)) {
+        throw {
+          name: 'id',
+          description: 'Identificador inválido'
+        }
+      }
+
+      const user = await User.findOne({ _id: id }, { token: 1 })
+
+      if (user.token !== token) {
+        throw {
+          name: 'token',
+          description: 'Token inválido, solicite uma nova recuperação de senha'
+        }
+      }
+
+      validatePassword(firstField, 8, {
+        name: 'firstField',
+        description: 'Senha inválida, é necessário pelo menos 8 caracteres'
+      })
+
+      validatePassword(secondField, 8, {
+        name: 'secondField',
+        description: 'Senha de confirmação inválida, é necessário pelo menos 8 caracteres'
+      })
+
+      if (firstField !== secondField) {
+        throw {
+          name: 'firstAndSecondField',
+          description: 'As senhas não coincidem'
+        }
+      }
+
+      const password = encryptAuth(firstField)
+
+      await User.updateOne({ _id: id }, { password, token: null })
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = redeemAccountError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  return { redeemPerEmail, redeemPerMoreInformations, validateToken, changePassword }
 }
