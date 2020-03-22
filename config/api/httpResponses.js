@@ -233,6 +233,10 @@ module.exports = app => {
         reformulatedError.code = 400
         break
       }
+      case 'Este usuário já realizou autenticação, para remover a conta se autentique e exclua manualmente': {
+        reformulatedError.code = 403
+        break
+      }
       case 'Usuário não encontrado': {
         reformulatedError.code = 404
         break
