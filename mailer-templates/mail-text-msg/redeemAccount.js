@@ -1,16 +1,16 @@
-module.exports = (user, url, token) => {
-    return `
+module.exports = payload => {
+  return `
         Recuperação de senha
         \n\n
-        Olá ${user}, tudo bem? Vimos que você solicitou a recuperação de sua senha.
+        Olá ${payload.user}, tudo bem? Vimos que você solicitou a recuperação de sua senha.
         \n\n
         Para recuperar sua senha basta clicar no link abaixo ou copiar o código e acessar a recuperação de senha por código na tela de login.
         \n\n
-        Link: ${url}/redeem-account?token=${token}
+        Link: ${payload.url}/redeem-account?token=${payload.token}
         \n
         ou
         \n
-        Código: ${token}
+        Código: ${payload.token}
         \n\n
         Procedimento
         \n\n
