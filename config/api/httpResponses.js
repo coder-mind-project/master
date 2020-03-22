@@ -379,6 +379,8 @@ module.exports = app => {
           case 'É necessário informar um nome':
           case 'E-mail inválido':
           case 'Genero inválido':
+          case 'É necessário informar um genero':
+          case "Tipo de usuário inválido, escolha entre 'author' e 'admin'":
           case 'Tipo de usuário inválido':
           case 'Número de celular inválido':
           case 'Número de telefone inválido':
@@ -391,6 +393,7 @@ module.exports = app => {
           case 'Este e-mail já está cadastrado':
           case 'Emissor inválido!':
           case 'A senha precisa ter no mínimo 8 caracteres':
+          case 'Informe uma senha de pelo menos 8 caracteres':
           case 'Senha inválida, é necessário pelo menos 8 caracteres':
           case 'Senha de confirmação inválida, é necessário pelo menos 8 caracteres':
           case 'As senhas não coincidem':
