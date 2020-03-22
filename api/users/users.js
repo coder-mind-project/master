@@ -154,7 +154,7 @@ module.exports = app => {
 
       validateEmail(user.email, {
         name: 'email',
-        description: 'Email inválido'
+        description: 'E-mail inválido'
       })
 
       exists(user.gender, {
