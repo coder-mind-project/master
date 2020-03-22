@@ -204,6 +204,52 @@ module.exports = app => {
     return reformulatedError
   }
 
+  /**
+   * @function
+   * @description Manage authentication responses for RedeemAccount module
+   * @param {Object} stack - A raw Error stack
+   * @returns {Object} - A refined Error stack
+   *
+   * @forModule RedeemAccount
+   */
+  const redeemAccountError = stack => {
+    let pending = ''
+    const reformulatedError = {
+      code: 500,
+      msg: 'Ocorreu um erro desconhecido, se persistir reporte'
+    }
+
+    const { name, description } = { ...stack }
+
+    switch (description) {
+      case 'Captcha inválido':
+      case 'E-mail inválido':
+      case 'É necessário fornecer um endereço de e-mail válido para contato':
+      case 'Token não informado':
+      case 'Identificador inválido':
+      case 'Senha inválida, é necessário pelo menos 8 caracteres':
+      case 'Senha de confirmação inválida, é necessário pelo menos 8 caracteres':
+      case 'As senhas não coincidem': {
+        reformulatedError.code = 400
+        break
+      }
+      case 'Usuário não encontrado': {
+        reformulatedError.code = 404
+        break
+      }
+      case 'Token inválido, solicite uma nova recuperação de senha': {
+        reformulatedError.code = 410
+        break
+      }
+    }
+
+    pending = name
+    reformulatedError.msg = description
+
+    reformulatedError[pending] = 'pending'
+    return reformulatedError
+  }
+
   const errorArticle = error => {
     const reformulatedError = {
       code: 500,
@@ -449,46 +495,6 @@ module.exports = app => {
     return reformulatedError
   }
 
-  const errorRedeemPassword = error => {
-    const reformulatedError = {
-      code: 500,
-      msg: 'Ocorreu um erro desconhecido, se persistir reporte'
-    }
-
-    if (typeof error !== 'string') return reformulatedError
-    if (error.trim() === '') return reformulatedError
-
-    switch (error) {
-      case 'Insira uma senha válida, de no mínimo 8 caracteres':
-      case 'Confirmação de senha inválida, informe no mínimo 8 caracteres':
-      case 'As senhas não conferem':
-      case 'E-mail inválido':
-      case 'Captcha inválido':
-      case 'CPF inválido':
-      case 'Número de telefone inválido':
-      case 'É necessário fornecer um endereço de e-mail válido para contato': {
-        reformulatedError.code = 400
-        break
-      }
-      case 'Não encontramos uma conta com este e-mail, tem certeza que seu e-mail está certo?': {
-        reformulatedError.code = 404
-        break
-      }
-      case 'Ocorreu um erro ao enviar o e-mail': {
-        reformulatedError.code = 500
-        break
-      }
-      case 'Ocorreu um erro ao alterar sua senha, se persistir reporte': {
-        reformulatedError.code = 506
-        break
-      }
-    }
-
-    reformulatedError.msg = error
-
-    return reformulatedError
-  }
-
   /**
    * @function
    * @description Manage error responses for Ticket module
@@ -552,12 +558,12 @@ module.exports = app => {
     themeError,
     categoryError,
     authError,
+    redeemAccountError,
     errorArticle,
     errorManagementArticles,
     userError,
     errorView,
     notAcceptableResource,
-    errorRedeemPassword,
     ticketError
   }
 }
