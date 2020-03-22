@@ -34,6 +34,7 @@ module.exports = app => {
     .route('/auth/rescue')
     .post(app.api.auth.redeemAccount.validateToken)
     .patch(app.api.auth.redeemAccount.changePassword)
+    .delete(app.api.auth.redeemAccount.removeAccount)
 
   /**
    * @name Articles
