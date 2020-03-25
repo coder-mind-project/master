@@ -18,7 +18,7 @@ module.exports = app => {
 
   const { sendEmail } = app.api.users.emails
 
-  const { userError } = app.config.api.httpResponses
+  const { userError } = app.api.responses
 
   /**
    * @function

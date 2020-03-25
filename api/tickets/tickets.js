@@ -13,7 +13,7 @@ module.exports = app => {
 
   const { validateEmail, exists } = app.config.validation
 
-  const { ticketError } = app.config.api.httpResponses
+  const { ticketError } = app.api.responses
 
   const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
 

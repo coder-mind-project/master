@@ -10,7 +10,7 @@ module.exports = app => {
 
   const { Category, Theme } = app.config.database.schemas.mongoose
 
-  const { categoryError } = app.config.api.httpResponses
+  const { categoryError } = app.api.responses
 
   /**
    * @function

@@ -16,7 +16,7 @@ module.exports = app => {
 
   const { encryptAuth } = app.config.secrets
 
-  const { authError } = app.config.api.httpResponses
+  const { authError } = app.api.responses
 
   /**
    * @function

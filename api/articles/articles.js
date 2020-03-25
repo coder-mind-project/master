@@ -10,7 +10,7 @@ module.exports = app => {
   const { exists, validateLength } = app.config.validation
 
   // Responsável por gerar Mensagens de erro Personalizadas
-  const { errorArticle, errorManagementArticles } = app.config.api.httpResponses
+  const { errorArticle, errorManagementArticles } = app.api.responses
 
   const get = async (req, res) => {
     /*  Realiza a busca de artigos filtrando por palavras chave.

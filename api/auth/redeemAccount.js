@@ -15,7 +15,7 @@ module.exports = app => {
 
   const { encryptAuth, encryptToken, decryptToken } = app.config.secrets
 
-  const { redeemAccountError } = app.config.api.httpResponses
+  const { redeemAccountError } = app.api.responses
 
   const { deleteUser, writeRemovedUsers } = app.api.users.users
 
