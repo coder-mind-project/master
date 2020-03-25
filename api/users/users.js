@@ -356,15 +356,6 @@ module.exports = app => {
 
       const payload = JSON.parse(decryptToken(token))
 
-      // Validate canceling origin, user token owner are allowed
-      const userRequest = req.user.user
-      if (payload._id !== _id || _id !== userRequest._id) {
-        throw {
-          name: 'forbidden',
-          description: 'Não permitido para acessar este recurso'
-        }
-      }
-
       // Validate the token issuer
       if (payload.issuer !== issuer || payload.oldEmail !== user.email || payload.newEmail !== user.confirmEmail) {
         throw {
