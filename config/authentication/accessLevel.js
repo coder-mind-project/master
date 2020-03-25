@@ -1,4 +1,4 @@
-const { notAcceptableResource } = require('../api/httpResponses.js')()
+const { notAcceptableResource } = require('../../api/responses.js')()
 
 /**
  *  @module AccessLevel
