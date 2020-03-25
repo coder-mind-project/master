@@ -169,6 +169,8 @@ module.exports = app => {
 
     const variables = [
       { key: '__username', value: user.name },
+      { key: '___id', value: user._id },
+      { key: '___id', value: user._id },
       { key: '__token', value: user.confirmEmailToken },
       { key: '__token', value: user.confirmEmailToken },
       { key: '__url', value: panel.default },
@@ -177,6 +179,7 @@ module.exports = app => {
 
     const textParams = {
       username: user.name,
+      _id: user._id,
       token: user.confirmEmailToken,
       url: panel.default
     }
