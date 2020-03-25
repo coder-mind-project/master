@@ -105,8 +105,9 @@ module.exports = app => {
 
   app
     .route('/users/emails/:id')
+    .put(app.api.users.users.validateConfirmEmailToken)
+    .delete(app.api.users.users.cancelChangeEmail)
     .all(app.config.authentication.passport.authenticate())
-    .patch(app.api.users.users.cancelChangeEmail)
     .post(app.api.users.users.resendEmail)
 
   app
@@ -114,11 +115,6 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .patch(multer.single('profilePhoto'), app.api.users.users.saveProfileImage)
     .delete(app.api.users.users.removeProfileImage)
-
-  app
-    .route('/users/settings')
-    .patch(app.api.users.users.validateConfirmEmailToken)
-    .post(app.api.users.users.cancelChangeEmail)
 
   /**
    * @name Themes
