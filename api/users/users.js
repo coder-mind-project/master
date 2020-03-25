@@ -955,28 +955,23 @@ module.exports = app => {
    */
   const validateConfirmEmailToken = async (req, res) => {
     try {
-      const { token } = req.body
+      const { token } = req.query
+      const { id } = req.params
+
       const payload = JSON.parse(await decryptToken(token))
 
-      const user = await User.findOne({ _id: payload._id })
-
-      if (!user) {
+      if (payload._id !== id) {
         throw {
           name: 'token',
           description: 'Token não reconhecido, se persistir reporte'
         }
       }
 
-      if (user.confirmEmailToken !== token) {
+      const user = await User.findOne({ _id: id })
+
+      if (!user || user.confirmEmailToken !== token || payload.issuer !== issuer) {
         throw {
           name: 'token',
-          description: 'Token não reconhecido, se persistir reporte'
-        }
-      }
-
-      if (payload.issuer !== issuer) {
-        throw {
-          name: 'issuer',
           description: 'Token não reconhecido, se persistir reporte'
         }
       }
