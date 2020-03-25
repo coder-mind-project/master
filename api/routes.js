@@ -1,5 +1,5 @@
-const multer = require('../serialization/multer')
-const { isAdmin } = require('../authentication/accessLevel')
+const multer = require('../config/serialization/multer')
+const { isAdmin } = require('../config/authentication/accessLevel')
 
 /**
  *  @function
