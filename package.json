@@ -12,7 +12,6 @@
     "Coder Mind"
   ],
   "author": "Allan Wanderley Alves",
-  "license": "BSD-3-Clause",
   "private": true,
   "dependencies": {
     "body-parser": "^1.19.0",
