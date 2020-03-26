@@ -16,7 +16,7 @@ module.exports = app => {
   const { User } = app.config.database.schemas.mongoose
   const { decryptAuth } = app.config.secrets
 
-  const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
+  const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.smtp.smtpprovider
 
   /**
    * @function
