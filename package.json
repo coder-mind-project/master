@@ -1,7 +1,7 @@
 {
-  "name": "coder-mind-panel-api",
+  "name": "coder-mind-master-api",
   "version": "1.1.0",
-  "description": "Global API for Coder Mind APP",
+  "description": "Master API for Coder Mind ecosystem",
   "main": "index.js",
   "scripts": {
     "start": "nodemon"
