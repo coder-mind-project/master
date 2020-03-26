@@ -15,7 +15,7 @@ module.exports = app => {
 
   const { ticketError } = app.api.responses
 
-  const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
+  const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.smtp.smtpprovider
 
   /**
    * @function
