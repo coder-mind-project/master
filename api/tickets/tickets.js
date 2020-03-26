@@ -1,5 +1,5 @@
 const ticketReceivedTxtMsg = require('../../mailer-templates/mail-text-msg/ticketReceived')
-const ticketAnsweredTxtMsg = require('../../mailer-templates/mail-text-msg/ticketAnswered')
+const ticketAnsweredTxtMsg = require('../../assets/emails/puretext/ticketAnswered')
 
 /**
  *  @function
