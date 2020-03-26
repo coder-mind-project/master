@@ -165,7 +165,7 @@ module.exports = app => {
    * @returns {Object} - A Object containing params for send the proposed email.
    */
   const getParamsChangeMyEmail = user => {
-    const htmlPath = 'mailer-templates/emailChangedMyAccount.html'
+    const htmlPath = 'assets/emails/emailChangedMyAccount.html'
 
     const variables = [
       { key: '__username', value: user.name },
