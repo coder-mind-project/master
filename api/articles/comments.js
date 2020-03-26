@@ -6,7 +6,7 @@ module.exports = app => {
 
   const { validateLength } = app.config.validation
 
-  const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
+  const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.smtp.smtpprovider
 
   const clientUrl = webApp.production
 
