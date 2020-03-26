@@ -1,7 +1,7 @@
 const fs = require('fs')
 const nodemailer = require('nodemailer')
 
-const redeemAccountTextMsg = require('../../mailer-templates/mail-text-msg/redeemAccount.js')
+const redeemAccountTextMsg = require('../../assets/emails/puretext/redeemAccount.js')
 
 const { panel } = require('../../.env')
 
