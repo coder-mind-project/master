@@ -27,7 +27,7 @@ module.exports = app => {
    */
   const getParamsChangeAccount = async (_id, admin) => {
     const user = await User.findOne({ _id })
-    const htmlPath = 'mailer-templates/userChanged.html'
+    const htmlPath = 'assets/emails/userChanged.html'
 
     const variables = [
       { key: '__username', value: user.name },
