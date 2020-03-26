@@ -725,7 +725,7 @@ module.exports = app => {
    */
   const configEmailTicket = (ticket, answer = null) => {
     try {
-      const htmlPath = answer ? 'mailer-templates/ticketAnswered.html' : 'mailer-templates/ticketReceived.html'
+      const htmlPath = answer ? 'assets/emails/ticketAnswered.html' : 'assets/emails/ticketReceived.html'
 
       const variables = getEmailVariables(ticket, answer)
 
