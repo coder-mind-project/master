@@ -70,7 +70,7 @@ module.exports = app => {
   app
     .route('/articles/stats/:id')
     .all(app.config.authentication.passport.authenticate())
-    .get(app.api.stats.stats.get)
+    .get(app.api.articles.articles.getStatistics)
 
   app
     .route('/articles/comments/:id')
@@ -196,18 +196,18 @@ module.exports = app => {
   app
     .route('/stats')
     .all(app.config.authentication.passport.authenticate())
-    .get(app.api.stats.countStats.get)
+    .get(app.api.articles.countStats.get)
 
   app
     .route('/stats/sincronization')
     .all(app.config.authentication.passport.authenticate())
-    .get(app.api.stats.countStats.lastSincronization)
-    .post(isAdmin(app.api.stats.countStats.sincronizeManually))
+    .get(app.api.articles.countStats.lastSincronization)
+    .post(isAdmin(app.api.articles.countStats.sincronizeManually))
 
   app
     .route('/stats/articles')
     .all(app.config.authentication.passport.authenticate())
-    .get(app.api.stats.countStats.getArticleStatsForChart)
+    .get(app.api.articles.countStats.getArticleStatsForChart)
 
   app
     .route('/stats/authors')
