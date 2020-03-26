@@ -5,7 +5,7 @@ const redeemAccountTextMsg = require('../../mailer-templates/mail-text-msg/redee
 
 const { panel } = require('../../.env')
 
-const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = require('../../config/mailer')()
+const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = require('../../config/smtp/smtpprovider')()
 
 /**
  *  @function
