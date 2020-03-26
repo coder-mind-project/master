@@ -1,8 +1,8 @@
-const { SMTP_SETTINGS } = require('../.env')
+const { SMTP_SETTINGS } = require('../../.env')
 
 /**
  * @function
- * @module mailer
+ * @module SmtpProvider
  * @description Provide SMTP settings for send emails through app object by consign.
  * @param {Object} app - A app Object provided by consign.
  * @returns {Object} SMTP Settings.
