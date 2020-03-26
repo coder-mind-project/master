@@ -1,6 +1,6 @@
 const userChangedTxtMsg = require('../../mailer-templates/mail-text-msg/userChanged')
 const userChangedToOldMailTxtMsg = require('../../mailer-templates/mail-text-msg/userChangedToOldMail')
-const newAccountTxtMsg = require('../../mailer-templates/mail-text-msg/newAccount')
+const newAccountTxtMsg = require('../../assets/emails/puretext/newAccount')
 const emailChangedMyAccountTxtMsg = require('../../mailer-templates/mail-text-msg/emailChangedMyAccount')
 
 const { panel } = require('../../.env')
