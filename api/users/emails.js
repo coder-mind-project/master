@@ -76,7 +76,7 @@ module.exports = app => {
    */
   const getParamsChangeEmailAccount = async (_id, admin, oldEmail) => {
     const user = await User.findOne({ _id })
-    const htmlPath = 'mailer-templates/userChangedToOldMail.html'
+    const htmlPath = 'assets/emails/userChangedToOldMail.html'
 
     const variables = [
       { key: '___url', value: panel.default },
