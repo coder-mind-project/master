@@ -23,7 +23,7 @@ module.exports = app => {
    * @returns {Object} - A Object containing params for send the proposed email.
    */
   const getParamsRedeemPerEmail = async (user, token) => {
-    const htmlPath = 'mailer-templates/redeemAccount.html'
+    const htmlPath = 'assets/emails/redeemAccount.html'
 
     const variables = [
       { key: '__user', value: user.name },
