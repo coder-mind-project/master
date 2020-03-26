@@ -127,7 +127,7 @@ module.exports = app => {
     const accessLevelPlural = `${accessLevel}es` // Example: Adminitrador + es | Autor + es
     const deleteAccountLink = `${panel.default}/remove-account?uid=${user._id}`
 
-    const htmlPath = 'mailer-templates/newAccount.html'
+    const htmlPath = 'assets/emails/newAccount.html'
 
     const variables = [
       { key: '__AccessLevel', value: accessLevelPlural },
