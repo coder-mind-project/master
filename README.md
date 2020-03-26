@@ -1,10 +1,10 @@
-# Coder Mind - Panel API
+# Coder Mind - Master API
 
 #### Contact information:
 
 Owner: Coder Mind
 
-E-mail: allan.codermind@gmail.com
+E-mail: awallan259@gmail.com
 ___
 #### Docs:
 
