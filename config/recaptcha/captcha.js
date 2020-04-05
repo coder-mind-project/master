@@ -16,7 +16,7 @@ class Captcha {
    * @function
    * @description Validate the recaptcha token
    * @param {String} token - A recaptcha token
-   * @param {Boolean} environment - Sets `true` for simulate a production environment.
+   * @param {Boolean} environment - Sets `true` for disable captcha validation.
    */
   verify(token, environment) {
     return new Promise((resolve, reject) => {
