@@ -1,4 +1,5 @@
 const validator = require('mongoose-unique-validator')
+const mongoose = require('mongoose')
 
 /**
  * @function
@@ -8,6 +9,13 @@ const validator = require('mongoose-unique-validator')
  * @returns {Object} A Object containing Models of MongoDB collections.
  */
 module.exports = app => {
+  if (!app) {
+    // eslint-disable-next-line no-param-reassign
+    app = {
+      mongo: mongoose
+    }
+  }
+
   const user = new app.mongo.Schema(
     {
       _id: { type: app.mongo.Schema.ObjectId, auto: true },
