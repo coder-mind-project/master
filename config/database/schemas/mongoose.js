@@ -155,21 +155,25 @@ module.exports = app => {
   like.plugin(validator)
   const Like = app.mongo.model('likes', like)
 
-  // Schema para os comentários dos artigos
+  /**
+   * @description A Comment Schema
+   * @type {app.mongo.Schema}
+   */
   const comment = new app.mongo.Schema(
     {
       _id: { type: app.mongo.Schema.ObjectId, auto: true },
       userName: String,
       userEmail: String,
-      comment: String,
-      article: Object,
-      confirmed: Boolean,
-      readed: Boolean,
-      answerOf: { type: Object, default: null }
+      message: String,
+      articleId: { type: app.mongo.Schema.ObjectId, required: true },
+      confirmedAt: { type: Date, default: null },
+      readedAt: { type: Date, default: null },
+      answerOf: { type: app.mongo.Schema.ObjectId, default: null }
     },
     {
       timestamps: {
-        createdAt: 'created_at'
+        createdAt: 'createdAt',
+        updatedAt: 'updatedAt'
       }
     }
   )
