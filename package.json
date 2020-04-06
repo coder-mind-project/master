@@ -4,7 +4,8 @@
   "description": "Master API for Coder Mind ecosystem",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon"
+    "start": "nodemon",
+    "mongo-seed": "run-func ./config/database/seeds/mongodb/index.js"
   },
   "keywords": [
     "App Coder Mind",
@@ -21,6 +22,7 @@
     "jwt-simple": "^0.5.6",
     "knex": "^0.19.1",
     "mongoose": "^5.5.14",
+    "mongoose-seed": "^0.6.0",
     "mongoose-unique-validator": "^2.0.3",
     "multer": "^1.4.1",
     "mysql": "^2.17.1",
@@ -28,6 +30,7 @@
     "nodemailer": "^6.3.0",
     "passport": "^0.4.0",
     "passport-jwt": "^4.0.0",
+    "run-func": "^1.0.5",
     "sharp": "^0.25.1"
   },
   "devDependencies": {
