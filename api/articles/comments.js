@@ -1,5 +1,3 @@
-const nodemailer = require('nodemailer')
-const { webApp } = require('../../.env')
 const MyDate = require('../../config/Date')
 
 /**
