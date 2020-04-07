@@ -1,66 +1,135 @@
 const nodemailer = require('nodemailer')
 const { webApp } = require('../../.env')
+const MyDate = require('../../config/Date')
 
+/**
+ * @function
+ * @module Comments
+ * @description Provide some middlewares functions.
+ * @param {Object} app - A app Object provided by consign.
+ * @returns {Object} Containing some middleware functions.
+ */
 module.exports = app => {
   const { Comment, Article, User } = app.config.database.schemas.mongoose
-
   const { validateLength } = app.config.validation
+  const { commentError } = app.api.responses
+  const { sendEmail } = app.api.articles.emails
 
-  const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.smtp.smtpprovider
-
-  const clientUrl = webApp.production
-
+  /**
+   * @function
+   * @description Get comments
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {Number} limit - Limit comments per page
+   * @middlewareParams {String} type - Comment type, allowed: `all`, `not-readed` and `only-readed`
+   * @middlewareParams {Number} page - Current page
+   *
+   * @returns {Object} A object containing count, limit and Comments Objects representation
+   */
   const get = async (req, res) => {
     try {
-      /* Options allowed for type attr:
-                option  -   description
+      const { type } = req.query
 
-                'not-readed'    -   for not readed comments
-                'only-readed'   -   for only readed comments
-                'all'   -   for all comments
-            */
-      const type = req.query.type || 'not-readed'
       const page = parseInt(req.query.page) || 1
-      const limit = parseInt(req.query.limit) || 100
+      const limit = parseInt(req.query.limit) || 10
 
       const user = req.user.user
 
-      var result = null
+      let result = null
 
       switch (type) {
         case 'all': {
+          // Get all comments (except comment answers)
           result = await getAllComments(user, page, limit)
           break
         }
         case 'not-readed': {
+          // Get not readed comments (except comment answers)
           result = await getNotReadedComments(user, page, limit)
           break
         }
         case 'only-readed': {
+          // Get only readed comments (except comment answers)
           result = await getOnlyReadedComments(user, page, limit)
           break
         }
       }
 
-      if (!result) throw 'Ocorreu um erro desconhecido, se persistir reporte'
+      if (!result) {
+        throw {
+          name: 'type',
+          description: 'Tipo de comentário inválido'
+        }
+      }
 
-      if (!result.status) throw result.error
+      if (!result.status) {
+        throw {
+          name: 'internal-error',
+          description: 'Ocorreu um erro interno, se persistir reporte'
+        }
+      }
 
-      const comments = result.comments
-      const count = result.count
+      const { comments, count } = result
 
       return res.json({ comments, count, limit })
     } catch (error) {
-      return res.status(500).send(error)
+      const stack = await commentError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
+  /**
+   * @function
+   * @description Get not readed comments (except answers)
+   * @param {Object} user - User object representation (provided from jwt passport)
+   * @param {Number} page - Current page
+   * @param {Number} limit - Limit comments per page
+   *
+   * @returns {Object} A object containing status operation, count, limit and Comments Object representation
+   */
   const getNotReadedComments = async (user, page, limit) => {
     try {
       let count = await Comment.aggregate([
         {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            article: { $arrayElemAt: ['$article', 0] },
+            answerOf: 1,
+            readedAt: 1
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'article.author',
+            foreignField: '_id',
+            as: 'article.author'
+          }
+        },
+        {
+          $project: {
+            article: {
+              author: { $arrayElemAt: ['$article.author', 0] }
+            },
+            answerOf: 1,
+            readedAt: 1
+          }
+        },
+        {
           $match: {
-            $and: [{ readed: false }, { 'article.author._id': user._id }, { answerOf: null }]
+            $and: [
+              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              { answerOf: null },
+              { readedAt: null }
+            ]
           }
         }
       ]).count('id')
@@ -69,11 +138,98 @@ module.exports = app => {
 
       const comments = await Comment.aggregate([
         {
-          $match: {
-            $and: [{ readed: false }, { 'article.author._id': user._id }, { answerOf: null }]
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
           }
         },
-        { $sort: { _id: -1 } }
+        {
+          $lookup: {
+            from: 'comments',
+            localField: 'answerOf',
+            foreignField: '_id',
+            as: 'answerOf'
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: { $arrayElemAt: ['$answerOf', 0] },
+            article: { $arrayElemAt: ['$article', 0] }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'article.author',
+            foreignField: '_id',
+            as: 'article.author'
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: 1,
+            article: {
+              _id: 1,
+              title: 1,
+              customURL: 1,
+              author: { $arrayElemAt: ['$article.author', 0] }
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: 1,
+            article: {
+              _id: 1,
+              title: 1,
+              customURL: 1,
+              author: {
+                _id: 1,
+                name: 1,
+                tagAdmin: 1,
+                tagAuthor: 1,
+                customUrl: 1,
+                profilePhoto: 1
+              }
+            }
+          }
+        },
+        {
+          $match: {
+            $and: [
+              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              { answerOf: null },
+              { readedAt: null }
+            ]
+          }
+        },
+        { $sort: { createdAt: -1 } }
       ])
         .skip(page * limit - limit)
         .limit(limit)
@@ -84,12 +240,57 @@ module.exports = app => {
     }
   }
 
+  /**
+   * @function
+   * @description Get only readed comments (except answers)
+   * @param {Object} user - User object representation (provided from jwt passport)
+   * @param {Number} page - Current page
+   * @param {Number} limit - Limit comments per page
+   *
+   * @returns {Object} A object containing status operation, count, limit and Comments Object representation
+   */
   const getOnlyReadedComments = async (user, page, limit) => {
     try {
       let count = await Comment.aggregate([
         {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            article: { $arrayElemAt: ['$article', 0] },
+            answerOf: 1,
+            readedAt: 1
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'article.author',
+            foreignField: '_id',
+            as: 'article.author'
+          }
+        },
+        {
+          $project: {
+            article: {
+              author: { $arrayElemAt: ['$article.author', 0] }
+            },
+            answerOf: 1,
+            readedAt: 1
+          }
+        },
+        {
           $match: {
-            $and: [{ readed: true }, { 'article.author._id': user._id }, { answerOf: null }]
+            $and: [
+              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              { answerOf: null },
+              { readedAt: { $ne: null } }
+            ]
           }
         }
       ]).count('id')
@@ -98,11 +299,98 @@ module.exports = app => {
 
       const comments = await Comment.aggregate([
         {
-          $match: {
-            $and: [{ readed: true }, { 'article.author._id': user._id }, { answerOf: null }]
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
           }
         },
-        { $sort: { _id: -1 } }
+        {
+          $lookup: {
+            from: 'comments',
+            localField: 'answerOf',
+            foreignField: '_id',
+            as: 'answerOf'
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: { $arrayElemAt: ['$answerOf', 0] },
+            article: { $arrayElemAt: ['$article', 0] }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'article.author',
+            foreignField: '_id',
+            as: 'article.author'
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: 1,
+            article: {
+              _id: 1,
+              title: 1,
+              customURL: 1,
+              author: { $arrayElemAt: ['$article.author', 0] }
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: 1,
+            article: {
+              _id: 1,
+              title: 1,
+              customURL: 1,
+              author: {
+                _id: 1,
+                name: 1,
+                tagAdmin: 1,
+                tagAuthor: 1,
+                customUrl: 1,
+                profilePhoto: 1
+              }
+            }
+          }
+        },
+        {
+          $match: {
+            $and: [
+              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              { answerOf: null },
+              { readedAt: { $ne: null } }
+            ]
+          }
+        },
+        { $sort: { createdAt: -1 } }
       ])
         .skip(page * limit - limit)
         .limit(limit)
@@ -113,12 +401,51 @@ module.exports = app => {
     }
   }
 
+  /**
+   * @function
+   * @description Get all comments (except answers)
+   * @param {Object} user - User object representation (provided from jwt passport)
+   * @param {Number} page - Current page
+   * @param {Number} limit - Limit comments per page
+   *
+   * @returns {Object} A object containing status operation, count, limit and Comments Object representation
+   */
   const getAllComments = async (user, page, limit) => {
     try {
       let count = await Comment.aggregate([
         {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            article: { $arrayElemAt: ['$article', 0] },
+            answerOf: 1
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'article.author',
+            foreignField: '_id',
+            as: 'article.author'
+          }
+        },
+        {
+          $project: {
+            article: {
+              author: { $arrayElemAt: ['$article.author', 0] }
+            },
+            answerOf: 1
+          }
+        },
+        {
           $match: {
-            $and: [{ 'article.author._id': user._id }, { answerOf: null }]
+            $and: [{ 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null }, { answerOf: null }]
           }
         }
       ]).count('id')
@@ -127,11 +454,94 @@ module.exports = app => {
 
       const comments = await Comment.aggregate([
         {
-          $match: {
-            $and: [{ 'article.author._id': user._id }, { answerOf: null }]
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
           }
         },
-        { $sort: { _id: -1 } }
+        {
+          $lookup: {
+            from: 'comments',
+            localField: 'answerOf',
+            foreignField: '_id',
+            as: 'answerOf'
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: { $arrayElemAt: ['$answerOf', 0] },
+            article: { $arrayElemAt: ['$article', 0] }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'article.author',
+            foreignField: '_id',
+            as: 'article.author'
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: 1,
+            article: {
+              _id: 1,
+              title: 1,
+              customURL: 1,
+              author: { $arrayElemAt: ['$article.author', 0] }
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: 1,
+            article: {
+              _id: 1,
+              title: 1,
+              customURL: 1,
+              author: {
+                _id: 1,
+                name: 1,
+                tagAdmin: 1,
+                tagAuthor: 1,
+                customUrl: 1,
+                profilePhoto: 1
+              }
+            }
+          }
+        },
+        {
+          $match: {
+            $and: [{ 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null }, { answerOf: null }]
+          }
+        },
+        { $sort: { createdAt: -1 } }
       ])
         .skip(page * limit - limit)
         .limit(limit)
@@ -142,9 +552,163 @@ module.exports = app => {
     }
   }
 
+  /**
+   * @function
+   * @description Get a comment by identifier
+   * @param {String} _id
+   *
+   * @returns {Object} A object containing status operation and Comment Object representation
+   */
   const getOne = async _id => {
     try {
-      const comment = await Comment.findOne({ _id })
+      if (!app.mongo.Types.ObjectId.isValid(_id)) {
+        throw {
+          name: '_id',
+          description: 'Identificador inválido'
+        }
+      }
+
+      const comments = await Comment.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $lookup: {
+            from: 'comments',
+            localField: 'answerOf',
+            foreignField: '_id',
+            as: 'answerOf'
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: { $arrayElemAt: ['$answerOf', 0] },
+            article: { $arrayElemAt: ['$article', 0] }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'article.author',
+            foreignField: '_id',
+            as: 'article.author'
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: 1,
+            article: {
+              _id: 1,
+              title: 1,
+              customURL: 1,
+              author: { $arrayElemAt: ['$article.author', 0] }
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: 1,
+            article: {
+              _id: 1,
+              title: 1,
+              customURL: 1,
+              author: {
+                _id: 1,
+                name: 1,
+                tagAdmin: 1,
+                tagAuthor: 1,
+                customUrl: 1,
+                profilePhoto: 1
+              }
+            }
+          }
+        },
+        {
+          $match: {
+            $and: [
+              { _id: app.mongo.Types.ObjectId.isValid(_id) ? app.mongo.Types.ObjectId(_id) : null },
+              { answerOf: null }
+            ]
+          }
+        },
+        {
+          $lookup: {
+            from: 'comments',
+            localField: '_id',
+            foreignField: 'answerOf',
+            as: 'answers'
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: 1,
+            article: {
+              _id: 1,
+              title: 1,
+              customURL: 1,
+              author: {
+                _id: 1,
+                name: 1,
+                tagAdmin: 1,
+                tagAuthor: 1,
+                customUrl: 1,
+                profilePhoto: 1
+              }
+            },
+            answers: {
+              _id: 1,
+              confirmedAt: 1,
+              readedAt: 1,
+              answerOf: 1,
+              userName: 1,
+              userEmail: 1,
+              articleId: 1,
+              message: 1,
+              createdAt: 1,
+              updatedAt: 1
+            }
+          }
+        }
+      ])
+
+      const comment = Array.isArray(comments) ? comments[0] : {}
 
       return { comment, status: true }
     } catch (error) {
@@ -152,182 +716,221 @@ module.exports = app => {
     }
   }
 
+  /**
+   * @function
+   * @description Middleware for get a comment by identifier / ID
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @returns {Object} A object containing the Comment Object representation
+   */
+  const getById = async (req, res) => {
+    try {
+      const { id } = req.params
+
+      const { comment, status, error } = await getOne(id)
+
+      if (!status) {
+        throw error
+      }
+
+      return res.json(comment)
+    } catch (error) {
+      const stack = await commentError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Middleware for get the answers history comment
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - Comment identifier / ID
+   *
+   *  @returns {Object} A object containing count, limit and the Comment answers
+   */
   const getHistory = async (req, res) => {
     try {
-      const _id = req.params.id
+      const { id } = req.params
       const limit = parseInt(req.query.limit) || 10
       const page = parseInt(req.query.page) || 1
 
-      if (!_id) throw 'Comentário não encontrado'
+      if (!app.mongo.Types.ObjectId.isValid(id)) {
+        throw 'Identificador inválido'
+      }
 
-      const result = await getOne(_id)
-
-      if (!result.status) throw 'Comentário não encontrado'
+      const count = await Comment.countDocuments({ answerOf: id })
 
       const answers = await Comment.aggregate([
         {
           $match: {
-            $and: [
-              { answerOf: { $ne: null } },
-              { 'answerOf._id': { $regex: `${result.comment._id}`, $options: 'i' } }
-            ]
+            answerOf: app.mongo.Types.ObjectId(id)
           }
         }
-      ])
-        .skip(page * limit - limit)
+      ]).skip(page * limit - limit)
         .limit(limit)
 
-      const comment = result.comment
-      const count = answers.length
-
-      return res.json({ answers, comment, count, limit })
+      return res.json({ answers, count, limit })
     } catch (error) {
-      return res.status(500).send(error)
+      const stack = await commentError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
-  const readComment = (req, res) => {
+  /**
+   * @function
+   * @description Sets 'Read' state for the Comment
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - Comment identifier / ID
+   *
+   * @returns {Object} A object containing count, limit and the Comment answers
+   */
+  const readComment = async (req, res) => {
     try {
-      const comment = { ...req.body }
+      const { id } = req.params
 
-      if (!comment._id) throw 'Comentário não encontrado'
+      if (!app.mongo.Types.ObjectId.isValid(id)) {
+        throw 'Identificador inválido'
+      }
 
-      Comment.updateOne({ _id: comment._id }, comment).then(response => {
-        if (response.nModified > 0) {
-          return res.status(204).send()
-        } else {
-          return res.status(410).send('Comentário já esta marcado como lido')
+      const readedState = { readedAt: MyDate.setTimeZone('-3') }
+
+      const { nModified } = await Comment.updateOne({ _id: id, readedAt: null }, readedState)
+
+      if (!nModified) {
+        throw {
+          name: '_id',
+          description: 'Este comentário já esta marcado como lido'
         }
-      })
+      }
+
+      return res.status(204).send()
     } catch (error) {
-      return res.status(500).send(error)
+      const stack = await commentError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
-  const answerComment = (req, res) => {
+  /**
+   * @function
+   * @description Allow the user answer the reader comment
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `answer` - Comment answer
+   * @middlewareParams {String} `id` - Comment identifier / ID
+   * @middlewareParams {String} `notify` - Flag to send email to reader. The values possible are `yes` and `no` (default)
+   *
+   * @returns {Object} A object containing count, limit and the Comment answers
+   */
+  const answerComment = async (req, res) => {
     try {
-      const comment = { ...req.body }
-      const user = req.user.user
+      const { answer } = req.body
+
+      const answerOf = req.params.id
+
+      // Send email flag
+      const sendNotification = req.query.notify || 'no'
+
+      const { user } = req.user
 
       validateLength(
-        comment.answer,
-        3000,
+        answer,
+        10000,
         'bigger',
-        'Para o comentário é somente permitido 1000 caracteres'
+        { name: 'answer', description: 'Para o comentário é somente permitido 10000 caracteres' }
       )
 
-      const newComment = new Comment({
+      // Get the articleId in answered comment(root comment)
+      const root = await getOne(answerOf)
+      const articleId = root.status ? root.comment.article._id : null
+
+      if (!articleId) {
+        throw {
+          name: 'answerOf',
+          description: 'Comentário não encontrado'
+        }
+      }
+
+      const comment = new Comment({
         userName: user.name,
         userEmail: user.email,
-        comment: comment.answer,
-        article: comment.article,
-        confirmed: true,
-        readed: false,
-        answerOf: comment
+        message: answer,
+        articleId,
+        answerOf
       })
 
-      newComment
-        .save()
-        .then(async () => {
-          if (comment.confirmed) {
-            await sendMailNotification(
-              comment.userEmail,
-              comment.userName,
-              comment.article.title,
-              comment.article.customURL,
-              comment.article.author.name,
-              comment.answer,
-              comment.comment
-            )
+      const createdAnswer = await comment.save().then((newAnswer) => {
+        if (sendNotification === 'yes') {
+          const payload = {
+            comment: root.comment,
+            answer: newAnswer
           }
 
-          return res.status(201).send('Resposta salva com sucesso')
-        })
-        .catch(error => {
-          throw error
-        })
+          sendEmail('answer-sent', payload)
+        }
+      })
+
+      return res.status(201).send(createdAnswer)
     } catch (error) {
-      if (typeof error === 'string') return res.status(400).send(error)
-      return res.status(500).send('Ocorreu um erro desconhecido, por favor tente mais tarde')
+      const stack = await commentError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
-  const sendMailNotification = async (to, reader, article, urlArticle, author, answer, comment) => {
-    const transport = {
-      host: SMTP_SERVER,
-      port: PORT,
-      secure: SECURE,
-      auth: {
-        user: USER,
-        pass: PASSWORD
-      }
-    }
-
-    const transporter = nodemailer.createTransport(transport)
-
-    const mail = {
-      from: `Mensageiro Coder Mind <${USER}>`,
-      to,
-      subject: 'Seu comentário foi respondido! - Coder Mind',
-      text: `Olá ${reader}, seu comentário no artigo ${article} foi respondido pelo autor ${author}.\n
-                    Sua pergunta: \n
-                    ${comment}\n
-                    Resposta do autor ${author}: \n
-                    ${answer}\n
-                    Você também pode acessar o artigo abaixo: \n
-                    ${clientUrl}/artigos/${urlArticle}`,
-      html: `
-                <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: #444; height: 100vh;">
-                    <div style="border: 1px solid #888; border-radius: 15px; padding: 15px; background-color: #fff;">
-                        <h1>Coder Mind</h1>
-                        <p>Olá <strong>${reader}</strong>, seu comentário no artigo <a href="${clientUrl}/artigos/${urlArticle}" style="color: #f50057; text-decoration: underline; font-weight: 600;">${article}</a> foi respondido pelo autor ${author}.</p>
-                        <br>
-                        <p>Sua pergunta: </p>
-                        <blockquote>
-                            ${comment}
-                        </blockquote>
-                        <p>Resposta do autor ${author}:</p>
-                        <blockquote>
-                            ${answer}
-                        </blockquote>
-                        <br>
-                        <strong>Você também pode acessar o artigo pelo link:</strong>
-                        <br>
-                        <a href="${clientUrl}/artigos/${urlArticle}" style="color: #f50057; text-decoration: underline; font-weight: 600;">${clientUrl}/artigos/${urlArticle}</a>
-                        <br>
-                        <small>Sou um mensageiro digital, por favor não responda este e-mail. =D</small>
-                        <br>
-                        <small>Caso sinta dúvidas ou deseje reportar algum bug basta entrar em contato no link <a href="${clientUrl}/sobre#contact" style="color: #f50057; text-decoration: underline; font-weight: 600;">${clientUrl}/sobre#contact</a> 
-                    </div>
-                </div>
-            `
-    }
-
-    const info = await transporter.sendMail(mail)
-
-    return Boolean(info.messageId)
-  }
-
+  /**
+   * @function
+   * @description Job for count article comments in current month (general and per user stats)
+   */
   const commentsJob = async () => {
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
     const firstDay = new Date(currentYear, currentMonth, 1)
     const lastDay = new Date(currentYear, currentMonth, 31)
 
-    // Estatísticas para cada usuário da plataforma
+    // Users (authors and admins) list
+    const users = await User.find({ deletedAt: null }, { _id: 1 })
 
-    // Obter o arrays de _ids dos usuários
-    const users = await User.find({ deleted: false }, { _id: 1 })
-
-    // Percorre o array obtendo as views e inserindo as views no banco SQL
+    // Insert comments quantity per User in MySQL database
     users.map(async user => {
-      const userComments = await Comment.countDocuments({
-        created_at: {
-          $gte: firstDay,
-          $lt: lastDay
+      let userComments = await Comment.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
         },
-        'article.author._id': user.id
-      })
+        {
+          $project: {
+            _id: 1,
+            answerOf: 1,
+            createdAt: 1,
+            article: { $arrayElemAt: ['$article', 0] }
+          }
+        },
+        {
+          $match: {
+            $and: [
+              { 'article.author': app.mongo.Types.ObjectId(user.id) },
+              { answerOf: null },
+              {
+                createdAt: {
+                  $gte: firstDay,
+                  $lt: lastDay
+                }
+              }
+            ]
+          }
+        }
+      ]).count('id')
+
+      userComments = userComments.length > 0 ? userComments.reduce(item => item).id : 0
 
       await app.knex('comments').insert({
         month: currentMonth + 1,
@@ -339,7 +942,7 @@ module.exports = app => {
 
     /* Estatísticas gerais de plataforma */
     const comments = await Comment.countDocuments({
-      created_at: {
+      createdAt: {
         $gte: firstDay,
         $lt: lastDay
       },
@@ -355,6 +958,14 @@ module.exports = app => {
       })
   }
 
+  // ===================================================================== //
+  // Comment statistics below
+  // Refactor later
+
+  /**
+   * @function
+   * @needsUpdate
+   */
   const getStats = async _id => {
     try {
       const comments = await getCommentsStats(_id)
@@ -364,6 +975,10 @@ module.exports = app => {
     }
   }
 
+  /**
+   * @function
+   * @needsUpdate
+   */
   const getCommentsStats = async _id => {
     let results = []
 
@@ -386,6 +1001,10 @@ module.exports = app => {
     return results
   }
 
+  /**
+   * @function
+   * @needsUpdate
+   */
   const getCommentsPerArticle = async (article, page, limit) => {
     try {
       if (!page) page = 1
@@ -413,6 +1032,10 @@ module.exports = app => {
     }
   }
 
+  /**
+   * @function
+   * @needsUpdate
+   */
   const getComments = async (req, res) => {
     try {
       const page = parseInt(req.query.page) || 1
@@ -439,10 +1062,14 @@ module.exports = app => {
     }
   }
 
+  // End comment statistics
+  // ========================================================= //
+
   return {
     get,
     readComment,
     answerComment,
+    getById,
     getHistory,
     commentsJob,
     getStats,

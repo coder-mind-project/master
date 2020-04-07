@@ -561,11 +561,68 @@ module.exports = app => {
     return reformulatedError
   }
 
+  /**
+   * @function
+   * @description Manage error responses for Comments module
+   * @param {Object} stack - A raw Error stack
+   * @returns {Object} - A refined Error stack
+   *
+   * @forModule Comments
+   */
+  const commentError = stack => {
+    let pending = ''
+    const reformulatedError = {
+      code: 500,
+      msg: 'Ocorreu um erro desconhecido, se persistir reporte'
+    }
+
+    switch (stack.name) {
+      case 'CastError': {
+        if (stack.kind === 'ObjectId') {
+          pending = 'id'
+          reformulatedError.msg = 'Identificador inválido'
+        }
+
+        reformulatedError.code = 400
+        break
+      }
+      default: {
+        const { name, description } = { ...stack }
+
+        switch (description) {
+          case 'Tipo de comentário inválido':
+          case 'Identificador inválido': {
+            reformulatedError.code = 400
+            break
+          }
+          case 'Comentário não encontrado': {
+            reformulatedError.code = 404
+            break
+          }
+          case 'Este comentário já esta marcado como lido': {
+            reformulatedError.code = 410
+            break
+          }
+          default: {
+            reformulatedError.code = 500
+          }
+        }
+
+        pending = name
+        reformulatedError.msg = description
+      }
+    }
+
+    reformulatedError[pending] = 'pending'
+    return reformulatedError
+  }
+
   return {
     themeError,
     categoryError,
     authError,
     redeemAccountError,
+    commentError,
     errorArticle,
     errorManagementArticles,
     userError,
