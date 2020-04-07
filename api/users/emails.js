@@ -177,7 +177,7 @@ module.exports = app => {
       { key: '__url', value: panel.default }
     ]
 
-    const textParams = {
+    const txtParams = {
       username: user.name,
       _id: user._id,
       token: user.confirmEmailToken,
@@ -190,7 +190,7 @@ module.exports = app => {
 
     const subject = 'Confirmação de e-mail'
 
-    const payload = { htmlPath, variables, textParams, textMsg, email, subject }
+    const payload = { htmlPath, variables, txtParams, textMsg, email, subject }
 
     return payload
   }
