@@ -66,7 +66,7 @@ module.exports = app => {
   const article = new app.mongo.Schema(
     {
       _id: { type: app.mongo.Schema.ObjectId, auto: true },
-      author: Object,
+      author: { type: app.mongo.Schema.ObjectId, required: true },
       title: String,
       theme: Object,
       category: Object,
