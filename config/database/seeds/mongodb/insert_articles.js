@@ -13,11 +13,13 @@ const data = [
     documents: [
       {
         title: 'Article 1',
-        customURL: Date.now() + Math.round(Math.random() * 1000)
+        customURL: Date.now() + Math.round(Math.random() * 1000),
+        author: '5e6a8e15b21a69205a464eda'
       },
       {
         title: 'Article 2',
-        customURL: Date.now() + Math.round(Math.random() * 1000)
+        customURL: Date.now() + Math.round(Math.random() * 1000),
+        author: '5e6a8e15b21a69205a464eda'
       }
     ]
   }

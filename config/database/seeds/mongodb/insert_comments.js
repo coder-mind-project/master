@@ -12,16 +12,31 @@ const data = [
     model: collection,
     documents: [
       {
+        _id: '5e8b4e951394cc28c05d86ca',
         userName: 'Mike',
-        userEmail: 'mike@greatguy.com',
+        userEmail: 'allan.codermind@gmail.com',
         message: 'I love it!',
-        articleId: '5e8a96c972ebb57348d12e9d'
+        articleId: '5e8b551eecac6a31d6020047'
       },
       {
         userName: 'Jake',
-        userEmail: 'jake@greatguy.com',
+        userEmail: 'jake@codermind.com.br',
         message: 'I hate it!',
-        articleId: '5e8a96c972ebb57348d12e9d'
+        articleId: '5e8b551eecac6a31d6020047'
+      },
+      {
+        userName: 'Petter',
+        userEmail: 'petter@codermind.com.br',
+        message: 'I love it',
+        articleId: '5e8b551eecac6a31d6020047',
+        answerOf: '5e8b4e951394cc28c05d86ca'
+      },
+      {
+        userName: 'Jack',
+        userEmail: 'jack@codermind.com.br',
+        message: 'I love it',
+        articleId: '5e8b551eecac6a31d6020047',
+        answerOf: '5e8b4e951394cc28c05d86ca'
       }
     ]
   }
