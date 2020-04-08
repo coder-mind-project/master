@@ -9,7 +9,7 @@ const MyDate = require('../../config/Date')
  */
 module.exports = app => {
   const { Comment, Article, User } = app.config.database.schemas.mongoose
-  const { validateLength } = app.config.validation
+  const { validateLength, exists } = app.config.validation
   const { commentError } = app.api.responses
   const { sendEmail } = app.api.articles.emails
 
@@ -836,6 +836,7 @@ module.exports = app => {
 
       const { user } = req.user
 
+      exists(answer, { name: 'answer', description: 'É necessário informar alguma resposta' })
       validateLength(
         answer,
         10000,

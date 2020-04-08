@@ -591,7 +591,8 @@ module.exports = app => {
 
         switch (description) {
           case 'Tipo de comentário inválido':
-          case 'Identificador inválido': {
+          case 'Identificador inválido':
+          case 'É necessário informar alguma resposta': {
             reformulatedError.code = 400
             break
           }
