@@ -850,7 +850,7 @@ module.exports = app => {
 
       if (!articleId) {
         throw {
-          name: 'answerOf',
+          name: 'id',
           description: 'Comentário não encontrado'
         }
       }
