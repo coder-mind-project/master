@@ -170,9 +170,9 @@ module.exports = app => {
   const comment = new app.mongo.Schema(
     {
       _id: { type: app.mongo.Schema.ObjectId, auto: true },
-      userName: String,
-      userEmail: String,
-      message: String,
+      userName: { type: String, required: true },
+      userEmail: { type: String, required: true },
+      message: { type: String, required: true },
       articleId: { type: app.mongo.Schema.ObjectId, required: true },
       confirmedAt: { type: Date, default: null },
       readedAt: { type: Date, default: null },
