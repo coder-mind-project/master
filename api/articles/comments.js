@@ -795,7 +795,19 @@ module.exports = app => {
       const { id } = req.params
 
       if (!app.mongo.Types.ObjectId.isValid(id)) {
-        throw 'Identificador inválido'
+        throw {
+          name: 'id',
+          description: 'Identificador inválido'
+        }
+      }
+
+      const found = await Comment.findOne({ _id: id })
+
+      if (!found) {
+        throw {
+          name: 'id',
+          description: 'Comentário não encontrado'
+        }
       }
 
       const readedState = { readedAt: MyDate.setTimeZone('-3') }
@@ -804,7 +816,7 @@ module.exports = app => {
 
       if (!nModified) {
         throw {
-          name: '_id',
+          name: 'id',
           description: 'Este comentário já esta marcado como lido'
         }
       }
