@@ -872,11 +872,12 @@ module.exports = app => {
 
           sendEmail('answer-sent', payload)
         }
+
+        return newAnswer
       })
 
       return res.status(201).send(createdAnswer)
     } catch (error) {
-      console.log(error)
       const stack = await commentError(error)
       return res.status(stack.code).send(stack)
     }
