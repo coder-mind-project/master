@@ -756,7 +756,10 @@ module.exports = app => {
       const page = parseInt(req.query.page) || 1
 
       if (!app.mongo.Types.ObjectId.isValid(id)) {
-        throw 'Identificador inválido'
+        throw {
+          name: 'id',
+          description: 'Identificador inválido'
+        }
       }
 
       const count = await Comment.countDocuments({ answerOf: id })
