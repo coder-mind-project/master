@@ -846,7 +846,7 @@ module.exports = app => {
 
       // Get the articleId in answered comment(root comment)
       const root = await getOne(answerOf)
-      const articleId = root.status ? root.comment.article._id : null
+      const articleId = root.status && root.comment ? root.comment.article._id : null
 
       if (!articleId) {
         throw {
@@ -876,6 +876,7 @@ module.exports = app => {
 
       return res.status(201).send(createdAnswer)
     } catch (error) {
+      console.log(error)
       const stack = await commentError(error)
       return res.status(stack.code).send(stack)
     }
