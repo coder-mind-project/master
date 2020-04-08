@@ -1,4 +1,4 @@
-![# Coder Mind](https://i.imgur.com/PrF0Rgb.png)
+![# Coder Mind](https://i.imgur.com/IKPFcHr.png)
 
 ## Contact information:
 
