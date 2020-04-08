@@ -7,7 +7,7 @@ Install knex cli in your machine with command:
 
     npm install knex -g
 
-After knex cli installed, just run someone commands bellow:
+After knex cli installed, just run someone commands below:
 
 #### Create migration file:
 
