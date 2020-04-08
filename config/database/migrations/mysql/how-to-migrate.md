@@ -1,7 +1,7 @@
 ## KNEX MIGRATIONS GUIDE
 
 
-### The migrations and seeds working with knex dependency.
+### The migrations and seeds works with knex dependency.
 
 Install knex cli in your machine with command: 
 
