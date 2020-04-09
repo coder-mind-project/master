@@ -830,6 +830,39 @@ module.exports = app => {
 
   /**
    * @function
+   * @description Sets 'Read' state for all not readed comment by author
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   */
+  const readAllComments = async (req, res) => {
+    try {
+      const { user } = req.user
+
+      const { comments } = await getNotReadedComments(user, 1, Number.MAX_SAFE_INTEGER)
+
+      if (!comments || !comments.length) {
+        throw {
+          name: 'gone',
+          description: 'Não existem comentários não lidos'
+        }
+      }
+
+      const ops = comments.map(async comment => {
+        return Comment.updateOne({ _id: comment._id }, { readedAt: MyDate.setTimeZone('-3') })
+      })
+
+      await Promise.all(ops).then(() => res.status(204).send())
+
+      throw { name: 'error', description: 'Ocorreu um erro ao marcar os comentários como lido' }
+    } catch (error) {
+      const stack = await commentError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
    * @description Allow the user answer the reader comment
    * @param {Object} req - Request object provided by Express.js
    * @param {Object} res - Response object provided by Express.js
@@ -1084,6 +1117,7 @@ module.exports = app => {
   return {
     get,
     readComment,
+    readAllComments,
     answerComment,
     getById,
     getHistory,

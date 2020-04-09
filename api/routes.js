@@ -163,6 +163,7 @@ module.exports = app => {
     .route('/comments')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.comments.get)
+    .patch(app.api.articles.comments.readAllComments)
 
   app.route('/comments/:id')
     .all(app.config.authentication.passport.authenticate())
