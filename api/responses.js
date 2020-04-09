@@ -600,7 +600,8 @@ module.exports = app => {
             reformulatedError.code = 404
             break
           }
-          case 'Este comentário já esta marcado como lido': {
+          case 'Este comentário já esta marcado como lido':
+          case 'Não existem comentários não lidos': {
             reformulatedError.code = 410
             break
           }
