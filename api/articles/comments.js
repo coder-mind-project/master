@@ -188,6 +188,9 @@ module.exports = app => {
               _id: 1,
               title: 1,
               customURL: 1,
+              smallImg: 1,
+              mediumImg: 1,
+              largeImg: 1,
               author: { $arrayElemAt: ['$article.author', 0] }
             }
           }
@@ -207,6 +210,9 @@ module.exports = app => {
               _id: 1,
               title: 1,
               customURL: 1,
+              smallImg: 1,
+              mediumImg: 1,
+              largeImg: 1,
               author: {
                 _id: 1,
                 name: 1,
@@ -349,6 +355,9 @@ module.exports = app => {
               _id: 1,
               title: 1,
               customURL: 1,
+              smallImg: 1,
+              mediumImg: 1,
+              largeImg: 1,
               author: { $arrayElemAt: ['$article.author', 0] }
             }
           }
@@ -368,6 +377,9 @@ module.exports = app => {
               _id: 1,
               title: 1,
               customURL: 1,
+              smallImg: 1,
+              mediumImg: 1,
+              largeImg: 1,
               author: {
                 _id: 1,
                 name: 1,
@@ -504,6 +516,9 @@ module.exports = app => {
               _id: 1,
               title: 1,
               customURL: 1,
+              smallImg: 1,
+              mediumImg: 1,
+              largeImg: 1,
               author: { $arrayElemAt: ['$article.author', 0] }
             }
           }
@@ -523,6 +538,9 @@ module.exports = app => {
               _id: 1,
               title: 1,
               customURL: 1,
+              smallImg: 1,
+              mediumImg: 1,
+              largeImg: 1,
               author: {
                 _id: 1,
                 name: 1,
