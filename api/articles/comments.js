@@ -19,15 +19,17 @@ module.exports = app => {
    * @param {Object} req - Request object provided by Express.js
    * @param {Object} res - Response object provided by Express.js
    *
-   * @middlewareParams {Number} limit - Limit comments per page
-   * @middlewareParams {String} type - Comment type, allowed: `all`, `not-readed` and `only-readed`
-   * @middlewareParams {Number} page - Current page
+   * @middlewareParams {Number} `limit` - Limit comments per page
+   * @middlewareParams {String} `type` - Comment type, allowed: `all`, `not-readed` and `only-readed`
+   * @middlewareParams {Number} `page` - Current page
+   * @middlewareParams {String} `order` - Order result list, ordered by `createdAt` attribute
+   * @middlewareParams {String} `query` - Keyword to search comment by `userName`, `userEmail`, `article name` or `message`
    *
    * @returns {Object} A object containing count, limit and Comments Objects representation
    */
   const get = async (req, res) => {
     try {
-      const { type } = req.query
+      const { type, order, query } = req.query
 
       const page = parseInt(req.query.page) || 1
       const limit = parseInt(req.query.limit) || 10
@@ -39,17 +41,17 @@ module.exports = app => {
       switch (type) {
         case 'all': {
           // Get all comments (except comment answers)
-          result = await getAllComments(user, page, limit)
+          result = await getAllComments(user, page, limit, order, query)
           break
         }
         case 'not-readed': {
           // Get not readed comments (except comment answers)
-          result = await getNotReadedComments(user, page, limit)
+          result = await getNotReadedComments(user, page, limit, order, query)
           break
         }
         case 'only-readed': {
           // Get only readed comments (except comment answers)
-          result = await getOnlyReadedComments(user, page, limit)
+          result = await getOnlyReadedComments(user, page, limit, order, query)
           break
         }
       }
@@ -83,10 +85,12 @@ module.exports = app => {
    * @param {Object} user - User object representation (provided from jwt passport)
    * @param {Number} page - Current page
    * @param {Number} limit - Limit comments per page
+   * @param {String} order - Result list order
+   * @param {String} query - Keyword to filter results
    *
    * @returns {Object} A object containing status operation, count, limit and Comments Object representation
    */
-  const getNotReadedComments = async (user, page, limit) => {
+  const getNotReadedComments = async (user, page, limit, order = 'desc', query = '') => {
     try {
       let count = await Comment.aggregate([
         {
@@ -99,9 +103,12 @@ module.exports = app => {
         },
         {
           $project: {
-            article: { $arrayElemAt: ['$article', 0] },
+            userName: 1,
+            userEmail: 1,
+            message: 1,
             answerOf: 1,
-            readedAt: 1
+            readedAt: 1,
+            article: { $arrayElemAt: ['$article', 0] }
           }
         },
         {
@@ -114,11 +121,15 @@ module.exports = app => {
         },
         {
           $project: {
-            article: {
-              author: { $arrayElemAt: ['$article.author', 0] }
-            },
+            userName: 1,
+            userEmail: 1,
+            message: 1,
             answerOf: 1,
-            readedAt: 1
+            readedAt: 1,
+            article: {
+              title: 1,
+              author: { $arrayElemAt: ['$article.author', 0] }
+            }
           }
         },
         {
@@ -126,7 +137,15 @@ module.exports = app => {
             $and: [
               { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
               { answerOf: null },
-              { readedAt: null }
+              { readedAt: null },
+              {
+                $or: [
+                  { userName: { $regex: `${query}`, $options: 'i' } },
+                  { userEmail: { $regex: `${query}`, $options: 'i' } },
+                  { message: { $regex: `${query}`, $options: 'i' } },
+                  { 'article.title': { $regex: `${query}`, $options: 'i' } }
+                ]
+              }
             ]
           }
         }
@@ -229,11 +248,19 @@ module.exports = app => {
             $and: [
               { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
               { answerOf: null },
-              { readedAt: null }
+              { readedAt: null },
+              {
+                $or: [
+                  { userName: { $regex: `${query}`, $options: 'i' } },
+                  { userEmail: { $regex: `${query}`, $options: 'i' } },
+                  { message: { $regex: `${query}`, $options: 'i' } },
+                  { 'article.title': { $regex: `${query}`, $options: 'i' } }
+                ]
+              }
             ]
           }
         },
-        { $sort: { createdAt: -1 } }
+        { $sort: { createdAt: order === 'asc' ? 1 : -1 } }
       ])
         .skip(page * limit - limit)
         .limit(limit)
@@ -250,10 +277,12 @@ module.exports = app => {
    * @param {Object} user - User object representation (provided from jwt passport)
    * @param {Number} page - Current page
    * @param {Number} limit - Limit comments per page
+   * @param {String} order - Result list order
+   * @param {String} query - Keyword to filter results
    *
    * @returns {Object} A object containing status operation, count, limit and Comments Object representation
    */
-  const getOnlyReadedComments = async (user, page, limit) => {
+  const getOnlyReadedComments = async (user, page, limit, order = 'desc', query = '') => {
     try {
       let count = await Comment.aggregate([
         {
@@ -266,9 +295,12 @@ module.exports = app => {
         },
         {
           $project: {
-            article: { $arrayElemAt: ['$article', 0] },
+            userName: 1,
+            userEmail: 1,
+            message: 1,
             answerOf: 1,
-            readedAt: 1
+            readedAt: 1,
+            article: { $arrayElemAt: ['$article', 0] }
           }
         },
         {
@@ -281,11 +313,15 @@ module.exports = app => {
         },
         {
           $project: {
-            article: {
-              author: { $arrayElemAt: ['$article.author', 0] }
-            },
+            userName: 1,
+            userEmail: 1,
+            message: 1,
             answerOf: 1,
-            readedAt: 1
+            readedAt: 1,
+            article: {
+              title: 1,
+              author: { $arrayElemAt: ['$article.author', 0] }
+            }
           }
         },
         {
@@ -293,7 +329,15 @@ module.exports = app => {
             $and: [
               { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
               { answerOf: null },
-              { readedAt: { $ne: null } }
+              { readedAt: { $ne: null } },
+              {
+                $or: [
+                  { userName: { $regex: `${query}`, $options: 'i' } },
+                  { userEmail: { $regex: `${query}`, $options: 'i' } },
+                  { message: { $regex: `${query}`, $options: 'i' } },
+                  { 'article.title': { $regex: `${query}`, $options: 'i' } }
+                ]
+              }
             ]
           }
         }
@@ -396,11 +440,19 @@ module.exports = app => {
             $and: [
               { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
               { answerOf: null },
-              { readedAt: { $ne: null } }
+              { readedAt: { $ne: null } },
+              {
+                $or: [
+                  { userName: { $regex: `${query}`, $options: 'i' } },
+                  { userEmail: { $regex: `${query}`, $options: 'i' } },
+                  { message: { $regex: `${query}`, $options: 'i' } },
+                  { 'article.title': { $regex: `${query}`, $options: 'i' } }
+                ]
+              }
             ]
           }
         },
-        { $sort: { createdAt: -1 } }
+        { $sort: { createdAt: order === 'asc' ? 1 : -1 } }
       ])
         .skip(page * limit - limit)
         .limit(limit)
@@ -417,10 +469,12 @@ module.exports = app => {
    * @param {Object} user - User object representation (provided from jwt passport)
    * @param {Number} page - Current page
    * @param {Number} limit - Limit comments per page
+   * @param {String} order - Result list order
+   * @param {String} query - Keyword to filter results
    *
    * @returns {Object} A object containing status operation, count, limit and Comments Object representation
    */
-  const getAllComments = async (user, page, limit) => {
+  const getAllComments = async (user, page, limit, order = 'desc', query = '') => {
     try {
       let count = await Comment.aggregate([
         {
@@ -433,8 +487,11 @@ module.exports = app => {
         },
         {
           $project: {
-            article: { $arrayElemAt: ['$article', 0] },
-            answerOf: 1
+            userName: 1,
+            userEmail: 1,
+            message: 1,
+            answerOf: 1,
+            article: { $arrayElemAt: ['$article', 0] }
           }
         },
         {
@@ -447,15 +504,30 @@ module.exports = app => {
         },
         {
           $project: {
+            userName: 1,
+            userEmail: 1,
+            message: 1,
+            answerOf: 1,
             article: {
+              title: 1,
               author: { $arrayElemAt: ['$article.author', 0] }
-            },
-            answerOf: 1
+            }
           }
         },
         {
           $match: {
-            $and: [{ 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null }, { answerOf: null }]
+            $and: [
+              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              { answerOf: null },
+              {
+                $or: [
+                  { userName: { $regex: `${query}`, $options: 'i' } },
+                  { userEmail: { $regex: `${query}`, $options: 'i' } },
+                  { message: { $regex: `${query}`, $options: 'i' } },
+                  { 'article.title': { $regex: `${query}`, $options: 'i' } }
+                ]
+              }
+            ]
           }
         }
       ]).count('id')
@@ -554,10 +626,21 @@ module.exports = app => {
         },
         {
           $match: {
-            $and: [{ 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null }, { answerOf: null }]
+            $and: [
+              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              { answerOf: null },
+              {
+                $or: [
+                  { userName: { $regex: `${query}`, $options: 'i' } },
+                  { userEmail: { $regex: `${query}`, $options: 'i' } },
+                  { message: { $regex: `${query}`, $options: 'i' } },
+                  { 'article.title': { $regex: `${query}`, $options: 'i' } }
+                ]
+              }
+            ]
           }
         },
-        { $sort: { createdAt: -1 } }
+        { $sort: { createdAt: order === 'asc' ? 1 : -1 } }
       ])
         .skip(page * limit - limit)
         .limit(limit)
