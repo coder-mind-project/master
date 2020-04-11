@@ -19,8 +19,26 @@ const data = [
         articleId: '5e8b551eecac6a31d6020047'
       },
       {
+        userName: 'Jackson',
+        userEmail: 'jackson@codermind.com.br',
+        message: 'I love it!',
+        articleId: '5e8b551eecac6a31d6020048'
+      },
+      {
         userName: 'Jake',
         userEmail: 'jake@codermind.com.br',
+        message: 'I hate it!',
+        articleId: '5e8b551eecac6a31d6020047'
+      },
+      {
+        userName: 'Petter',
+        userEmail: 'petter@codermind.com.br',
+        message: 'I love it!',
+        articleId: '5e8b551eecac6a31d6020048'
+      },
+      {
+        userName: 'Chris',
+        userEmail: 'chris@codermind.com.br',
         message: 'I hate it!',
         articleId: '5e8b551eecac6a31d6020047'
       },
