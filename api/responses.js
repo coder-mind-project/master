@@ -596,7 +596,12 @@ module.exports = app => {
             reformulatedError.code = 400
             break
           }
-          case 'Comentário não encontrado': {
+          case 'Acesso não autorizado': {
+            reformulatedError.code = 403
+            break
+          }
+          case 'Comentário não encontrado':
+          case 'Usuário não encontrado': {
             reformulatedError.code = 404
             break
           }
