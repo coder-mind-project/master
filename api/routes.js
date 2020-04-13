@@ -75,7 +75,7 @@ module.exports = app => {
   app
     .route('/articles/comments/:id')
     .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.comments.getComments)
+    .get(app.api.articles.comments.comments.getComments)
 
   /**
    * @name Users
@@ -162,19 +162,24 @@ module.exports = app => {
   app
     .route('/comments')
     .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.comments.get)
-    .patch(app.api.articles.comments.readAllComments)
+    .get(app.api.articles.comments.comments.get)
+    .patch(app.api.articles.comments.comments.readAllComments)
+
+  app.route('/comments/settings')
+    .all(app.config.authentication.passport.authenticate())
+    .get(app.api.articles.comments.settings.get)
+    .post(app.api.articles.comments.settings.save)
 
   app.route('/comments/:id')
     .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.comments.getById)
-    .patch(app.api.articles.comments.readComment)
-    .post(app.api.articles.comments.answerComment)
+    .get(app.api.articles.comments.comments.getById)
+    .patch(app.api.articles.comments.comments.readComment)
+    .post(app.api.articles.comments.comments.answerComment)
 
   app
     .route('/comments/history/:id')
     .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.comments.getHistory)
+    .get(app.api.articles.comments.comments.getHistory)
 
   /**
    * @name Views
