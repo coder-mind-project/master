@@ -1,4 +1,4 @@
-const MyDate = require('../../config/Date')
+const MyDate = require('../../../config/Date')
 
 /**
  * @function
