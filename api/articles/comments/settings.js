@@ -60,6 +60,8 @@ module.exports = app => {
 
       const settings = await app.knex.select('userId', 'type', 'order', 'limit', 'notify').from('comment_settings').where('userId', user._id).first()
 
+      settings.notify = Boolean(settings.notify)
+
       return res.json(settings)
     } catch (error) {
       const stack = await commentError(error)
