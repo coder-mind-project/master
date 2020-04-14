@@ -107,6 +107,9 @@ module.exports = app => {
 
       settings.notify = Boolean(settings.notify)
 
+      // Define time to leave of new requests
+      settings.ttl = Date.now() + (1000 * 60 * 60 * 24 * 30)
+
       return res.json(settings)
     } catch (error) {
       const stack = await commentError(error)
