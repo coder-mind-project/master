@@ -54,7 +54,7 @@ module.exports = app => {
        */
       const { ttl } = req.headers
 
-      if (ttl && ttl <= Date.now()) return res.status(304).send()
+      if (ttl && ttl >= Date.now()) return res.status(304).send()
 
       await verifyUser(user)
 
