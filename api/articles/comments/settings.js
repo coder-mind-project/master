@@ -52,7 +52,7 @@ module.exports = app => {
       /**
        * @constant {Number} ttl Time to leave
        */
-      const { ttl } = req.headers
+      const ttl = req.headers['cm-ttl-comments']
 
       if (ttl && ttl >= Date.now()) return res.status(304).send()
 
