@@ -94,7 +94,7 @@ module.exports = app => {
       } else {
         const updatedSettings = {
           limit: limit || currentSettings.limit,
-          notify: notify || currentSettings.notify,
+          notify: notify !== undefined && notify !== null ? notify : currentSettings.limit,
           order: order || currentSettings.order,
           type: type || currentSettings.type,
           updated_at: app.knex.fn.now()
