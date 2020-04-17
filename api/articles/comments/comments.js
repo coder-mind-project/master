@@ -137,7 +137,11 @@ module.exports = app => {
         {
           $match: {
             $and: [
-              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
               { answerOf: null },
               { readedAt: null },
               {
@@ -251,7 +255,11 @@ module.exports = app => {
         {
           $match: {
             $and: [
-              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
               { answerOf: null },
               { readedAt: null },
               {
@@ -334,7 +342,11 @@ module.exports = app => {
         {
           $match: {
             $and: [
-              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
               { answerOf: null },
               { readedAt: { $ne: null } },
               {
@@ -448,7 +460,11 @@ module.exports = app => {
         {
           $match: {
             $and: [
-              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
               { answerOf: null },
               { readedAt: { $ne: null } },
               {
@@ -529,7 +545,11 @@ module.exports = app => {
         {
           $match: {
             $and: [
-              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
               { answerOf: null },
               {
                 $or: [
@@ -642,7 +662,11 @@ module.exports = app => {
         {
           $match: {
             $and: [
-              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
               { answerOf: null },
               {
                 $or: [
@@ -894,7 +918,8 @@ module.exports = app => {
         {
           $sort: { createdAt: order === 'desc' ? -1 : 1 }
         }
-      ]).skip(page * limit - limit)
+      ])
+        .skip(page * limit - limit)
         .limit(limit)
 
       return res.json({ answers, count, limit })
@@ -1009,12 +1034,10 @@ module.exports = app => {
       const { user } = req.user
 
       exists(answer, { name: 'answer', description: 'É necessário informar alguma resposta' })
-      validateLength(
-        answer,
-        10000,
-        'bigger',
-        { name: 'answer', description: 'Para o comentário é somente permitido 10000 caracteres' }
-      )
+      validateLength(answer, 10000, 'bigger', {
+        name: 'answer',
+        description: 'Para o comentário é somente permitido 10000 caracteres'
+      })
 
       // Get the articleId in answered comment(root comment)
       const root = await getOne(answerOf)
@@ -1035,7 +1058,7 @@ module.exports = app => {
         answerOf
       })
 
-      const createdAnswer = await comment.save().then((newAnswer) => {
+      const createdAnswer = await comment.save().then(newAnswer => {
         if (sendNotification === 'yes') {
           const payload = {
             comment: root.comment,
@@ -1156,19 +1179,9 @@ module.exports = app => {
     let results = []
 
     if (_id) {
-      results = await app.knex
-        .select()
-        .from('comments')
-        .where('reference', _id)
-        .orderBy('id', 'desc')
-        .first()
+      results = await app.knex.select().from('comments').where('reference', _id).orderBy('id', 'desc').first()
     } else {
-      results = await app.knex
-        .select()
-        .from('comments')
-        .whereNull('reference')
-        .orderBy('id', 'desc')
-        .first()
+      results = await app.knex.select().from('comments').whereNull('reference').orderBy('id', 'desc').first()
     }
 
     return results

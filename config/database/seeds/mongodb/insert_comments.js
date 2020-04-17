@@ -1,4 +1,3 @@
-
 /**
  * @description The collection
  */
@@ -59,7 +58,8 @@ const data = [
         userEmail: 'everton@codermind.com.br',
         message: 'Im the biggest in Liverpool',
         articleId: '5e8b551eecac6a31d6020047'
-      }, {
+      },
+      {
         userName: 'Catiuscia',
         userEmail: 'catiuscia@codermind.com.br',
         message: '5x5 matrix in 5 seconds...',
@@ -155,9 +155,7 @@ const data = [
 
 module.exports = (seeder, url) => {
   seeder.connect(url, () => {
-    seeder.loadModels([
-      './config/database/schemas/mongoose'
-    ])
+    seeder.loadModels(['./config/database/schemas/mongoose'])
 
     seeder.clearModels([collection], () => {
       seeder.populateModels(data, () => {
