@@ -606,7 +606,9 @@ module.exports = app => {
             break
           }
           case 'Este comentário já esta marcado como lido':
-          case 'Não existem comentários não lidos': {
+          case 'Não existem comentários não lidos':
+          case 'Este comentário já esta desabilitado':
+          case 'Este comentário já esta habilitado': {
             reformulatedError.code = 410
             break
           }

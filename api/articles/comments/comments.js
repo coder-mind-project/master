@@ -106,6 +106,7 @@ module.exports = app => {
             userName: 1,
             userEmail: 1,
             message: 1,
+            state: 1,
             answerOf: 1,
             readedAt: 1,
             article: { $arrayElemAt: ['$article', 0] }
@@ -124,6 +125,7 @@ module.exports = app => {
             userName: 1,
             userEmail: 1,
             message: 1,
+            state: 1,
             answerOf: 1,
             readedAt: 1,
             article: {
@@ -135,7 +137,11 @@ module.exports = app => {
         {
           $match: {
             $and: [
-              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
               { answerOf: null },
               { readedAt: null },
               {
@@ -176,6 +182,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -198,6 +205,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -220,6 +228,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -246,7 +255,11 @@ module.exports = app => {
         {
           $match: {
             $and: [
-              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
               { answerOf: null },
               { readedAt: null },
               {
@@ -298,6 +311,7 @@ module.exports = app => {
             userName: 1,
             userEmail: 1,
             message: 1,
+            state: 1,
             answerOf: 1,
             readedAt: 1,
             article: { $arrayElemAt: ['$article', 0] }
@@ -316,6 +330,7 @@ module.exports = app => {
             userName: 1,
             userEmail: 1,
             message: 1,
+            state: 1,
             answerOf: 1,
             readedAt: 1,
             article: {
@@ -327,7 +342,11 @@ module.exports = app => {
         {
           $match: {
             $and: [
-              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
               { answerOf: null },
               { readedAt: { $ne: null } },
               {
@@ -368,6 +387,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -390,6 +410,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -412,6 +433,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -438,7 +460,11 @@ module.exports = app => {
         {
           $match: {
             $and: [
-              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
               { answerOf: null },
               { readedAt: { $ne: null } },
               {
@@ -490,6 +516,7 @@ module.exports = app => {
             userName: 1,
             userEmail: 1,
             message: 1,
+            state: 1,
             answerOf: 1,
             article: { $arrayElemAt: ['$article', 0] }
           }
@@ -507,6 +534,7 @@ module.exports = app => {
             userName: 1,
             userEmail: 1,
             message: 1,
+            state: 1,
             answerOf: 1,
             article: {
               title: 1,
@@ -517,7 +545,11 @@ module.exports = app => {
         {
           $match: {
             $and: [
-              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
               { answerOf: null },
               {
                 $or: [
@@ -557,6 +589,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -579,6 +612,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -601,6 +635,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -627,7 +662,11 @@ module.exports = app => {
         {
           $match: {
             $and: [
-              { 'article.author._id': app.mongo.Types.ObjectId.isValid(user._id) ? app.mongo.Types.ObjectId(user._id) : null },
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
               { answerOf: null },
               {
                 $or: [
@@ -690,6 +729,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -712,6 +752,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -731,6 +772,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -773,6 +815,7 @@ module.exports = app => {
             userEmail: 1,
             userName: 1,
             message: 1,
+            state: 1,
             confirmedAt: 1,
             readedAt: 1,
             createdAt: 1,
@@ -875,7 +918,8 @@ module.exports = app => {
         {
           $sort: { createdAt: order === 'desc' ? -1 : 1 }
         }
-      ]).skip(page * limit - limit)
+      ])
+        .skip(page * limit - limit)
         .limit(limit)
 
       return res.json({ answers, count, limit })
@@ -990,12 +1034,10 @@ module.exports = app => {
       const { user } = req.user
 
       exists(answer, { name: 'answer', description: 'É necessário informar alguma resposta' })
-      validateLength(
-        answer,
-        10000,
-        'bigger',
-        { name: 'answer', description: 'Para o comentário é somente permitido 10000 caracteres' }
-      )
+      validateLength(answer, 10000, 'bigger', {
+        name: 'answer',
+        description: 'Para o comentário é somente permitido 10000 caracteres'
+      })
 
       // Get the articleId in answered comment(root comment)
       const root = await getOne(answerOf)
@@ -1016,7 +1058,7 @@ module.exports = app => {
         answerOf
       })
 
-      const createdAnswer = await comment.save().then((newAnswer) => {
+      const createdAnswer = await comment.save().then(newAnswer => {
         if (sendNotification === 'yes') {
           const payload = {
             comment: root.comment,
@@ -1030,6 +1072,94 @@ module.exports = app => {
       })
 
       return res.status(201).send(createdAnswer)
+    } catch (error) {
+      const stack = await commentError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Disable a comment
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `id` - Comment identifier / ID
+   */
+  const disableComment = async (req, res) => {
+    try {
+      const { id } = req.params
+
+      if (!app.mongo.Types.ObjectId.isValid(id)) {
+        throw {
+          name: 'id',
+          description: 'Identificador inválido'
+        }
+      }
+
+      const comment = await Comment.findOne({ _id: id })
+
+      if (!comment) {
+        throw {
+          name: 'id',
+          description: 'Comentário não encontrado'
+        }
+      }
+
+      if (comment.state === 'disabled') {
+        throw {
+          name: 'id',
+          description: 'Este comentário já esta desabilitado'
+        }
+      }
+
+      await Comment.updateOne({ _id: id }, { state: 'disabled' })
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = await commentError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Enable a comment
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `id` - Comment identifier / ID
+   */
+  const enableComment = async (req, res) => {
+    try {
+      const { id } = req.params
+
+      if (!app.mongo.Types.ObjectId.isValid(id)) {
+        throw {
+          name: 'id',
+          description: 'Identificador inválido'
+        }
+      }
+
+      const comment = await Comment.findOne({ _id: id })
+
+      if (!comment) {
+        throw {
+          name: 'id',
+          description: 'Comentário não encontrado'
+        }
+      }
+
+      if (comment.state === 'enabled') {
+        throw {
+          name: 'id',
+          description: 'Este comentário já esta habilitado'
+        }
+      }
+
+      await Comment.updateOne({ _id: id }, { state: 'enabled' })
+
+      return res.status(204).send()
     } catch (error) {
       const stack = await commentError(error)
       return res.status(stack.code).send(stack)
@@ -1137,19 +1267,9 @@ module.exports = app => {
     let results = []
 
     if (_id) {
-      results = await app.knex
-        .select()
-        .from('comments')
-        .where('reference', _id)
-        .orderBy('id', 'desc')
-        .first()
+      results = await app.knex.select().from('comments').where('reference', _id).orderBy('id', 'desc').first()
     } else {
-      results = await app.knex
-        .select()
-        .from('comments')
-        .whereNull('reference')
-        .orderBy('id', 'desc')
-        .first()
+      results = await app.knex.select().from('comments').whereNull('reference').orderBy('id', 'desc').first()
     }
 
     return results
@@ -1229,6 +1349,8 @@ module.exports = app => {
     commentsJob,
     getStats,
     getCommentsPerArticle,
-    getComments
+    getComments,
+    disableComment,
+    enableComment
   }
 }
