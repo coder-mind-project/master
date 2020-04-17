@@ -174,6 +174,7 @@ module.exports = app => {
       userEmail: { type: String, required: true },
       message: { type: String, required: true },
       articleId: { type: app.mongo.Schema.ObjectId, required: true },
+      state: { type: String, enum: ['enabled', 'disabled'], required: true, default: 'enabled' },
       confirmedAt: { type: Date, default: null },
       readedAt: { type: Date, default: null },
       answerOf: { type: app.mongo.Schema.ObjectId, default: null }
