@@ -855,6 +855,7 @@ module.exports = app => {
       const { id } = req.params
       const limit = parseInt(req.query.limit) || 10
       const page = parseInt(req.query.page) || 1
+      const order = req.query.order || 'asc'
 
       if (!app.mongo.Types.ObjectId.isValid(id)) {
         throw {
@@ -870,6 +871,9 @@ module.exports = app => {
           $match: {
             answerOf: app.mongo.Types.ObjectId(id)
           }
+        },
+        {
+          $sort: { createdAt: order === 'desc' ? -1 : 1 }
         }
       ]).skip(page * limit - limit)
         .limit(limit)
