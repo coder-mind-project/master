@@ -54,6 +54,10 @@ module.exports = app => {
           result = await getOnlyReadedComments(user, page, limit, order, query)
           break
         }
+        case 'disabled':
+        case 'enabled': {
+          result = await getCommentsByState(user, page, limit, order, query, type)
+        }
       }
 
       if (!result) {
@@ -690,6 +694,209 @@ module.exports = app => {
     }
   }
 
+  /**
+   * @function
+   * @description Get comments by `state` (except answers)
+   * @param {Object} user - User object representation (provided from jwt passport)
+   * @param {Number} page - Current page
+   * @param {Number} limit - Limit comments per page
+   * @param {String} order - Result list order
+   * @param {String} query - Keyword to filter results
+   * @param {String} type - The Comment `state` option
+   *
+   * @returns {Object} A object containing status operation, count, limit and Comments Object representation
+   */
+  const getCommentsByState = async (user, page, limit, order = 'desc', query = '', type) => {
+    try {
+      let count = await Comment.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            userName: 1,
+            userEmail: 1,
+            message: 1,
+            state: 1,
+            answerOf: 1,
+            article: { $arrayElemAt: ['$article', 0] }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'article.author',
+            foreignField: '_id',
+            as: 'article.author'
+          }
+        },
+        {
+          $project: {
+            userName: 1,
+            userEmail: 1,
+            message: 1,
+            state: 1,
+            answerOf: 1,
+            article: {
+              title: 1,
+              author: { $arrayElemAt: ['$article.author', 0] }
+            }
+          }
+        },
+        {
+          $match: {
+            $and: [
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
+              { answerOf: null },
+              { state: type },
+              {
+                $or: [
+                  { userName: { $regex: `${query}`, $options: 'i' } },
+                  { userEmail: { $regex: `${query}`, $options: 'i' } },
+                  { message: { $regex: `${query}`, $options: 'i' } },
+                  { 'article.title': { $regex: `${query}`, $options: 'i' } }
+                ]
+              }
+            ]
+          }
+        }
+      ]).count('id')
+
+      count = count.length > 0 ? count.reduce(item => item).id : 0
+
+      const comments = await Comment.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $lookup: {
+            from: 'comments',
+            localField: 'answerOf',
+            foreignField: '_id',
+            as: 'answerOf'
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            state: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: { $arrayElemAt: ['$answerOf', 0] },
+            article: { $arrayElemAt: ['$article', 0] }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'article.author',
+            foreignField: '_id',
+            as: 'article.author'
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            state: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: 1,
+            article: {
+              _id: 1,
+              title: 1,
+              customURL: 1,
+              smallImg: 1,
+              mediumImg: 1,
+              largeImg: 1,
+              author: { $arrayElemAt: ['$article.author', 0] }
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            userEmail: 1,
+            userName: 1,
+            message: 1,
+            state: 1,
+            confirmedAt: 1,
+            readedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            answerOf: 1,
+            article: {
+              _id: 1,
+              title: 1,
+              customURL: 1,
+              smallImg: 1,
+              mediumImg: 1,
+              largeImg: 1,
+              author: {
+                _id: 1,
+                name: 1,
+                tagAdmin: 1,
+                tagAuthor: 1,
+                customUrl: 1,
+                profilePhoto: 1
+              }
+            }
+          }
+        },
+        {
+          $match: {
+            $and: [
+              {
+                'article.author._id': app.mongo.Types.ObjectId.isValid(user._id)
+                  ? app.mongo.Types.ObjectId(user._id)
+                  : null
+              },
+              { answerOf: null },
+              { state: type },
+              {
+                $or: [
+                  { userName: { $regex: `${query}`, $options: 'i' } },
+                  { userEmail: { $regex: `${query}`, $options: 'i' } },
+                  { message: { $regex: `${query}`, $options: 'i' } },
+                  { 'article.title': { $regex: `${query}`, $options: 'i' } }
+                ]
+              }
+            ]
+          }
+        },
+        { $sort: { createdAt: order === 'asc' ? 1 : -1 } }
+      ])
+        .skip(page * limit - limit)
+        .limit(limit)
+
+      return { comments, status: true, count, limit }
+    } catch (error) {
+      return { status: false, error, count: 0, limit }
+    }
+  }
   /**
    * @function
    * @description Get a comment by identifier
