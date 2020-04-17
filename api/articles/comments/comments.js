@@ -1080,6 +1080,94 @@ module.exports = app => {
 
   /**
    * @function
+   * @description Disable a comment
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `id` - Comment identifier / ID
+   */
+  const disableComment = async (req, res) => {
+    try {
+      const { id } = req.params
+
+      if (!app.mongo.Types.ObjectId.isValid(id)) {
+        throw {
+          name: 'id',
+          description: 'Identificador inválido'
+        }
+      }
+
+      const comment = await Comment.findOne({ _id: id })
+
+      if (!comment) {
+        throw {
+          name: 'id',
+          description: 'Comentário não encontrado'
+        }
+      }
+
+      if (comment.state === 'disabled') {
+        throw {
+          name: 'id',
+          description: 'Este comentário já esta desabilitado'
+        }
+      }
+
+      await Comment.updateOne({ _id: id }, { state: 'disabled' })
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = await commentError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Enable a comment
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `id` - Comment identifier / ID
+   */
+  const enableComment = async (req, res) => {
+    try {
+      const { id } = req.params
+
+      if (!app.mongo.Types.ObjectId.isValid(id)) {
+        throw {
+          name: 'id',
+          description: 'Identificador inválido'
+        }
+      }
+
+      const comment = await Comment.findOne({ _id: id })
+
+      if (!comment) {
+        throw {
+          name: 'id',
+          description: 'Comentário não encontrado'
+        }
+      }
+
+      if (comment.state === 'enabled') {
+        throw {
+          name: 'id',
+          description: 'Este comentário já esta habilitado'
+        }
+      }
+
+      await Comment.updateOne({ _id: id }, { state: 'enabled' })
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = await commentError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
    * @description Job for count article comments in current month (general and per user stats)
    */
   const commentsJob = async () => {
@@ -1261,6 +1349,8 @@ module.exports = app => {
     commentsJob,
     getStats,
     getCommentsPerArticle,
-    getComments
+    getComments,
+    disableComment,
+    enableComment
   }
 }
