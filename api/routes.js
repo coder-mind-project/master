@@ -177,6 +177,8 @@ module.exports = app => {
     .get(app.api.articles.comments.comments.getById)
     .patch(app.api.articles.comments.comments.readComment)
     .post(app.api.articles.comments.comments.answerComment)
+    .put(app.api.articles.comments.comments.enableComment)
+    .delete(app.api.articles.comments.comments.disableComment)
 
   app
     .route('/comments/history/:id')
