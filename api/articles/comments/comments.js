@@ -1118,6 +1118,29 @@ module.exports = app => {
 
       const answers = await Comment.aggregate([
         {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $addFields: {
+            article: { $arrayElemAt: ['$article', 0] }
+          }
+        },
+        {
+          $addFields: {
+            isAuthor: { $eq: ['$userId', '$article.author'] }
+          }
+        },
+        {
+          $project: {
+            article: 0
+          }
+        },
+        {
           $match: {
             answerOf: app.mongo.Types.ObjectId(id)
           }
