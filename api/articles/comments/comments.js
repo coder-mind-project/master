@@ -185,6 +185,7 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -208,6 +209,7 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -231,6 +233,8 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
+            isAuthor: { $eq: ['$userId', '$article.author._id'] },
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -390,6 +394,7 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -413,6 +418,7 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -436,6 +442,8 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
+            isAuthor: { $eq: ['$userId', '$article.author._id'] },
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -592,6 +600,7 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -615,6 +624,7 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -638,6 +648,8 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
+            isAuthor: { $eq: ['$userId', '$article.author._id'] },
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -795,6 +807,7 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -818,6 +831,7 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -841,6 +855,8 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
+            isAuthor: { $eq: ['$userId', '$article.author._id'] },
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -935,6 +951,7 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -958,6 +975,7 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -978,6 +996,7 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -1021,6 +1040,8 @@ module.exports = app => {
             _id: 1,
             userEmail: 1,
             userName: 1,
+            userId: 1,
+            isAuthor: { $eq: ['$userId', '$article.author._id'] },
             message: 1,
             state: 1,
             confirmedAt: 1,
@@ -1048,6 +1069,7 @@ module.exports = app => {
               answerOf: 1,
               userName: 1,
               userEmail: 1,
+              userId: 1,
               articleId: 1,
               message: 1,
               createdAt: 1,
@@ -1117,6 +1139,29 @@ module.exports = app => {
       const count = await Comment.countDocuments({ answerOf: id })
 
       const answers = await Comment.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $addFields: {
+            article: { $arrayElemAt: ['$article', 0] }
+          }
+        },
+        {
+          $addFields: {
+            isAuthor: { $eq: ['$userId', '$article.author'] }
+          }
+        },
+        {
+          $project: {
+            article: 0
+          }
+        },
         {
           $match: {
             answerOf: app.mongo.Types.ObjectId(id)
@@ -1260,6 +1305,7 @@ module.exports = app => {
       const comment = new Comment({
         userName: user.name,
         userEmail: user.email,
+        userId: user._id,
         message: answer,
         articleId,
         answerOf

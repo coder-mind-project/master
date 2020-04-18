@@ -55,7 +55,7 @@ module.exports = app => {
   )
 
   user.plugin(validator)
-  user.pre('updateOne', function(next) {
+  user.pre('updateOne', function (next) {
     this.options.runValidators = true
     this.options.context = 'query'
     next()
@@ -109,7 +109,7 @@ module.exports = app => {
   })
 
   theme.plugin(validator)
-  theme.pre('updateOne', function(next) {
+  theme.pre('updateOne', function (next) {
     this.options.runValidators = true
     this.options.context = 'query'
     next()
@@ -127,7 +127,7 @@ module.exports = app => {
   })
 
   category.plugin(validator)
-  category.pre('updateOne', function(next) {
+  category.pre('updateOne', function (next) {
     this.options.runValidators = true
     this.options.context = 'query'
     next()
@@ -172,6 +172,7 @@ module.exports = app => {
       _id: { type: app.mongo.Schema.ObjectId, auto: true },
       userName: { type: String, required: true },
       userEmail: { type: String, required: true },
+      userId: { type: app.mongo.Schema.ObjectId, default: null },
       message: { type: String, required: true },
       articleId: { type: app.mongo.Schema.ObjectId, required: true },
       state: { type: String, enum: ['enabled', 'disabled'], required: true, default: 'enabled' },
