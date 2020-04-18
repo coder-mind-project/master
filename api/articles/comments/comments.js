@@ -1260,6 +1260,7 @@ module.exports = app => {
       const comment = new Comment({
         userName: user.name,
         userEmail: user.email,
+        userId: user._id,
         message: answer,
         articleId,
         answerOf
