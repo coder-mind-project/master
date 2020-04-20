@@ -1125,7 +1125,8 @@ module.exports = app => {
   const getHistory = async (req, res) => {
     try {
       const { id } = req.params
-      const limit = parseInt(req.query.limit) || 10
+
+      const limit = !parseInt(req.query.limit) || parseInt(req.query.limit) > 100 ? 10 : parseInt(req.query.limit)
       const page = parseInt(req.query.page) || 1
       const order = req.query.order || 'asc'
 
