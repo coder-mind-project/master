@@ -1129,6 +1129,7 @@ module.exports = app => {
       const limit = !parseInt(req.query.limit) || parseInt(req.query.limit) > 100 ? 10 : parseInt(req.query.limit)
       const page = parseInt(req.query.page) || 1
       const order = req.query.order || 'asc'
+      const state = req.query.state || 'enabled'
 
       if (!app.mongo.Types.ObjectId.isValid(id)) {
         throw {
@@ -1165,7 +1166,8 @@ module.exports = app => {
         },
         {
           $match: {
-            answerOf: app.mongo.Types.ObjectId(id)
+            answerOf: app.mongo.Types.ObjectId(id),
+            state: state === 'disabled' ? 'disabled' : 'enabled'
           }
         },
         {
