@@ -32,7 +32,7 @@ module.exports = app => {
       const { type, order, query } = req.query
 
       const page = parseInt(req.query.page) || 1
-      const limit = parseInt(req.query.limit) || 10
+      const limit = !parseInt(req.query.limit) || parseInt(req.query.limit) > 100 ? 10 : parseInt(req.query.limit)
 
       const user = req.user.user
 
