@@ -1381,6 +1381,15 @@ module.exports = app => {
         }
       }
 
+      // Only answers can be edited
+      if (!comment.answerOf) {
+        throw {
+          name: 'answerOf',
+          description: 'Somente respostas podem ser editadas'
+        }
+      }
+
+      // Not allowed edit answers not enabled
       if (comment.state !== 'enabled') {
         throw {
           name: 'state',
@@ -1388,6 +1397,7 @@ module.exports = app => {
         }
       }
 
+      // Only comment author allowed to edit answers
       if (comment.userId.toString() !== user._id) {
         throw {
           name: 'forbidden',

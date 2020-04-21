@@ -602,7 +602,8 @@ module.exports = app => {
           }
           case 'Comentário não encontrado':
           case 'Usuário não encontrado':
-          case 'Resposta não encontrada': {
+          case 'Resposta não encontrada':
+          case 'Somente respostas podem ser editadas': {
             reformulatedError.code = 404
             break
           }
