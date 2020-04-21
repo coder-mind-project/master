@@ -601,14 +601,16 @@ module.exports = app => {
             break
           }
           case 'Comentário não encontrado':
-          case 'Usuário não encontrado': {
+          case 'Usuário não encontrado':
+          case 'Resposta não encontrada': {
             reformulatedError.code = 404
             break
           }
           case 'Este comentário já esta marcado como lido':
           case 'Não existem comentários não lidos':
           case 'Este comentário já esta desabilitado':
-          case 'Este comentário já esta habilitado': {
+          case 'Este comentário já esta habilitado':
+          case 'Somente respostas habilitadas podem ser editadas': {
             reformulatedError.code = 410
             break
           }
