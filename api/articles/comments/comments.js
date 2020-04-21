@@ -916,11 +916,12 @@ module.exports = app => {
   /**
    * @function
    * @description Get a comment by identifier
-   * @param {String} _id
+   * @param {String} _id The comment identifier (ID)
+   * @param {Boolean} isAnswer Indicates preference for comment answers, default = `false`
    *
    * @returns {Object} A object containing status operation and Comment Object representation
    */
-  const getOne = async _id => {
+  const getOne = async (_id, isAnswer = false) => {
     try {
       if (!app.mongo.Types.ObjectId.isValid(_id)) {
         throw {
@@ -1023,7 +1024,7 @@ module.exports = app => {
           $match: {
             $and: [
               { _id: app.mongo.Types.ObjectId.isValid(_id) ? app.mongo.Types.ObjectId(_id) : null },
-              { answerOf: null }
+              { answerOf: isAnswer ? { $ne: null } : null }
             ]
           }
         },
@@ -1105,6 +1106,13 @@ module.exports = app => {
         throw error
       }
 
+      if (!comment) {
+        throw {
+          name: 'id',
+          description: 'Comentário não encontrado'
+        }
+      }
+
       return res.json(comment)
     } catch (error) {
       const stack = await commentError(error)
@@ -1129,7 +1137,7 @@ module.exports = app => {
       const limit = !parseInt(req.query.limit) || parseInt(req.query.limit) > 100 ? 10 : parseInt(req.query.limit)
       const page = parseInt(req.query.page) || 1
       const order = req.query.order || 'asc'
-      const state = req.query.state || 'enabled'
+      const state = req.query.state || null
 
       if (!app.mongo.Types.ObjectId.isValid(id)) {
         throw {
@@ -1138,7 +1146,10 @@ module.exports = app => {
         }
       }
 
-      const count = await Comment.countDocuments({ answerOf: id })
+      const count = await Comment.countDocuments({
+        answerOf: id,
+        state: state === 'disabled' || state === 'enabled' ? state : { $ne: null }
+      })
 
       const answers = await Comment.aggregate([
         {
@@ -1167,7 +1178,7 @@ module.exports = app => {
         {
           $match: {
             answerOf: app.mongo.Types.ObjectId(id),
-            state: state === 'disabled' ? 'disabled' : 'enabled'
+            state: state === 'disabled' || state === 'enabled' ? state : { $ne: null }
           }
         },
         {
@@ -1275,7 +1286,7 @@ module.exports = app => {
    * @middlewareParams {String} `id` - Comment identifier / ID
    * @middlewareParams {String} `notify` - Flag to send email to reader. The values possible are `yes` and `no` (default)
    *
-   * @returns {Object} A object containing count, limit and the Comment answers
+   * @returns {Object} A object containing the new created answer
    */
   const answerComment = async (req, res) => {
     try {
@@ -1328,6 +1339,68 @@ module.exports = app => {
       })
 
       return res.status(201).send(createdAnswer)
+    } catch (error) {
+      const stack = await commentError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Edit the specific answer
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `answer` - The new Comment answer
+   * @middlewareParams {String} `id` - Comment identifier / ID
+   *
+   * @returns {Object} A object containing the edited comment answer
+   */
+  const editAnswer = async (req, res) => {
+    try {
+      const { id } = req.params
+      const { answer } = req.body
+      const { user } = req.user
+
+      exists(answer, { name: 'answer', description: 'É necessário informar alguma resposta' })
+      validateLength(answer, 10000, 'bigger', {
+        name: 'answer',
+        description: 'Para o comentário é somente permitido 10000 caracteres'
+      })
+
+      const { comment, status, error } = await getOne(id, true)
+
+      if (!status) {
+        throw error
+      }
+
+      if (!comment) {
+        throw {
+          name: 'id',
+          description: 'Resposta não encontrada'
+        }
+      }
+
+      if (comment.state !== 'enabled') {
+        throw {
+          name: 'state',
+          description: 'Somente respostas habilitadas podem ser editadas'
+        }
+      }
+
+      if (comment.userId.toString() !== user._id) {
+        throw {
+          name: 'forbidden',
+          description: 'Acesso não autorizado'
+        }
+      }
+
+      await Comment.updateOne({ _id: id }, { message: answer })
+
+      // Update the `message` field to send in response
+      comment.message = answer
+
+      return res.json(comment)
     } catch (error) {
       const stack = await commentError(error)
       return res.status(stack.code).send(stack)
@@ -1600,6 +1673,7 @@ module.exports = app => {
     readComment,
     readAllComments,
     answerComment,
+    editAnswer,
     getById,
     getHistory,
     commentsJob,
