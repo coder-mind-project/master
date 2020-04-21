@@ -1105,6 +1105,13 @@ module.exports = app => {
         throw error
       }
 
+      if (!comment) {
+        throw {
+          name: 'id',
+          description: 'Comentário não encontrado'
+        }
+      }
+
       return res.json(comment)
     } catch (error) {
       const stack = await commentError(error)
