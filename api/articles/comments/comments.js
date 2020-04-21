@@ -916,11 +916,12 @@ module.exports = app => {
   /**
    * @function
    * @description Get a comment by identifier
-   * @param {String} _id
+   * @param {String} _id The comment identifier (ID)
+   * @param {Boolean} isAnswer Indicates preference for comment answers, default = `false`
    *
    * @returns {Object} A object containing status operation and Comment Object representation
    */
-  const getOne = async _id => {
+  const getOne = async (_id, isAnswer = false) => {
     try {
       if (!app.mongo.Types.ObjectId.isValid(_id)) {
         throw {
@@ -1023,7 +1024,7 @@ module.exports = app => {
           $match: {
             $and: [
               { _id: app.mongo.Types.ObjectId.isValid(_id) ? app.mongo.Types.ObjectId(_id) : null },
-              { answerOf: null }
+              { answerOf: isAnswer ? { $ne: null } : null }
             ]
           }
         },
