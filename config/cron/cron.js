@@ -8,7 +8,7 @@ const schedule = require('node-schedule')
  */
 module.exports = app => {
   const { viewsJob } = app.api.articles.views
-  const { commentsJob } = app.api.articles.comments
+  const { commentsJob } = app.api.articles.comments.comments
   const { likesJob } = app.api.articles.likes
 
   const { validateFirstLoginTime, writeRemovedUsers } = app.api.users.users
