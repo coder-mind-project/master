@@ -1275,7 +1275,7 @@ module.exports = app => {
    * @middlewareParams {String} `id` - Comment identifier / ID
    * @middlewareParams {String} `notify` - Flag to send email to reader. The values possible are `yes` and `no` (default)
    *
-   * @returns {Object} A object containing count, limit and the Comment answers
+   * @returns {Object} A object containing the new created answer
    */
   const answerComment = async (req, res) => {
     try {
