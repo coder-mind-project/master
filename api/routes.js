@@ -185,32 +185,28 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.comments.comments.getHistory)
 
+  app
+    .route('/comments/answers/:id')
+    .all(app.config.authentication.passport.authenticate())
+    .put(app.api.articles.comments.comments.editAnswer)
+
   /**
    * @name Views
    * @description Views resources
    */
-  app
-    .route('/views')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.views.getViews)
+  app.route('/views').all(app.config.authentication.passport.authenticate()).get(app.api.articles.views.getViews)
 
   /**
    * @name Likes
    * @description Likes resources
    */
-  app
-    .route('/likes')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.likes.getLastLikes)
+  app.route('/likes').all(app.config.authentication.passport.authenticate()).get(app.api.articles.likes.getLastLikes)
 
   /**
    * @name Statistics
    * @description Statistics resources
    */
-  app
-    .route('/stats')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.countStats.get)
+  app.route('/stats').all(app.config.authentication.passport.authenticate()).get(app.api.articles.countStats.get)
 
   app
     .route('/stats/sincronization')

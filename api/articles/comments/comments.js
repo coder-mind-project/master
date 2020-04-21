@@ -1347,6 +1347,68 @@ module.exports = app => {
 
   /**
    * @function
+   * @description Edit the specific answer
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `answer` - The new Comment answer
+   * @middlewareParams {String} `id` - Comment identifier / ID
+   *
+   * @returns {Object} A object containing the edited comment answer
+   */
+  const editAnswer = async (req, res) => {
+    try {
+      const { id } = req.params
+      const { answer } = req.body
+      const { user } = req.user
+
+      exists(answer, { name: 'answer', description: 'É necessário informar alguma resposta' })
+      validateLength(answer, 10000, 'bigger', {
+        name: 'answer',
+        description: 'Para o comentário é somente permitido 10000 caracteres'
+      })
+
+      const { comment, status, error } = await getOne(id, true)
+
+      if (!status) {
+        throw error
+      }
+
+      if (!comment) {
+        throw {
+          name: 'id',
+          description: 'Resposta não encontrada'
+        }
+      }
+
+      if (comment.state !== 'enabled') {
+        throw {
+          name: 'state',
+          description: 'Somente respostas habilitadas podem ser editadas'
+        }
+      }
+
+      if (comment.userId.toString() !== user._id) {
+        throw {
+          name: 'forbidden',
+          description: 'Acesso não autorizado'
+        }
+      }
+
+      await Comment.updateOne({ _id: id }, { message: answer })
+
+      // Update the `message` field to send in response
+      comment.message = answer
+
+      return res.json(comment)
+    } catch (error) {
+      const stack = await commentError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
    * @description Disable a comment
    * @param {Object} req - Request object provided by Express.js
    * @param {Object} res - Response object provided by Express.js
@@ -1611,6 +1673,7 @@ module.exports = app => {
     readComment,
     readAllComments,
     answerComment,
+    editAnswer,
     getById,
     getHistory,
     commentsJob,
