@@ -15,7 +15,7 @@ module.exports = app => {
    * @private
    * @param {Object} user User object representation
    */
-  const verifyUser = async (user) => {
+  const verifyUser = async user => {
     const userInDb = await User.findOne({ _id: user._id, deletedAt: null })
 
     if (!userInDb) {
@@ -108,7 +108,7 @@ module.exports = app => {
       settings.notify = Boolean(settings.notify)
 
       // Define time to leave of new requests
-      settings.ttl = Date.now() + (1000 * 60 * 60 * 24 * 30)
+      settings.ttl = Date.now() + 1000 * 60 * 60 * 24 * 30
 
       return res.json(settings)
     } catch (error) {
