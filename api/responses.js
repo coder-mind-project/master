@@ -591,6 +591,10 @@ module.exports = app => {
 
         switch (description) {
           case 'Tipo de comentário inválido':
+          case 'Tipo de comentários inválido':
+          case 'Tipo de respostas inválido':
+          case 'Ordem de respostas inválida':
+          case 'Ordem de comentários inválido':
           case 'Identificador inválido':
           case 'É necessário informar alguma resposta': {
             reformulatedError.code = 400
@@ -603,7 +607,8 @@ module.exports = app => {
           case 'Comentário não encontrado':
           case 'Usuário não encontrado':
           case 'Resposta não encontrada':
-          case 'Somente respostas podem ser editadas': {
+          case 'Somente respostas podem ser editadas':
+          case 'Este usuário não possui configurações de comentário definida': {
             reformulatedError.code = 404
             break
           }
