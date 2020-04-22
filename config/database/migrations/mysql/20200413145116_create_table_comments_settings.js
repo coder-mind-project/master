@@ -6,6 +6,8 @@ exports.up = function (knex) {
     table.enu('order', ['desc', 'asc']).defaultTo('desc').notNullable()
     table.integer('limit').defaultTo(6).notNullable()
     table.boolean('notify').defaultTo(false).notNullable()
+    table.enu('answers_order', ['desc', 'asc']).defaultTo('desc').notNullable()
+    table.enu('answers_type', ['all', 'enabled', 'disabled']).defaultTo('all').notNullable()
     table.timestamp('created_at').defaultTo(knex.fn.now())
     table.timestamp('updated_at').defaultTo(knex.fn.now())
     table.engine('InnoDB')
