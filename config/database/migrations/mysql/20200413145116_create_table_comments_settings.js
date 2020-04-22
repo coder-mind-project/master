@@ -1,5 +1,4 @@
-
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable('comment_settings', table => {
     table.increments('id')
     table.string('userId').notNullable().unique()
@@ -14,6 +13,6 @@ exports.up = function(knex) {
   })
 }
 
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTable('comment_settings')
 }
