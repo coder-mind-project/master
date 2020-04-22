@@ -2,7 +2,7 @@ exports.up = function (knex) {
   return knex.schema.createTable('comment_settings', table => {
     table.increments('id')
     table.string('userId').notNullable().unique()
-    table.enu('type', ['all', 'only-readed', 'not-readed']).defaultTo('all').notNullable()
+    table.enu('type', ['all', 'only-readed', 'not-readed', 'enabled', 'disabled']).defaultTo('all').notNullable()
     table.enu('order', ['desc', 'asc']).defaultTo('desc').notNullable()
     table.integer('limit').defaultTo(6).notNullable()
     table.boolean('notify').defaultTo(false).notNullable()
