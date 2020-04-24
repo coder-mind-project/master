@@ -4,8 +4,7 @@
   "description": "Master API for Coder Mind ecosystem",
   "main": "index.js",
   "scripts": {
-    "start": "pm2 start index.js",
-    "start:develop": "nodemon",
+    "start": "nodemon",
     "mongo-seed": "run-func ./config/database/seeds/mongodb/index.js"
   },
   "keywords": [
@@ -32,7 +31,6 @@
     "nodemailer": "^6.3.0",
     "passport": "^0.4.0",
     "passport-jwt": "^4.0.0",
-    "pm2": "^4.4.0",
     "sharp": "^0.25.1"
   },
   "devDependencies": {
