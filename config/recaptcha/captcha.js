@@ -1,4 +1,4 @@
-const { CAPTCHA_URL, CAPTCHA_SECRET_KEY } = require('../../config/environment')
+const { captchaSettings } = require('../../config/environment')
 const https = require('https')
 const url = require('url')
 
@@ -9,7 +9,7 @@ const url = require('url')
  */
 class Captcha {
   constructor() {
-    this.url = `${CAPTCHA_URL}?secret=${CAPTCHA_SECRET_KEY}&response=`
+    this.url = `${captchaSettings.url}?secret=${captchaSettings.secretKey}&response=`
   }
 
   /**
