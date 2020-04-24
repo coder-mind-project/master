@@ -5,6 +5,10 @@
 Owner: Coder Mind
 
 E-mail: awallan259@gmail.com
+
+Latest release (development): https://master-develop.herokuapp.com
+
+Stable release (master): coming...
 ___
 
 ## Docs:
