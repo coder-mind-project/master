@@ -4,7 +4,7 @@
   "description": "Master API for Coder Mind ecosystem",
   "main": "index.js",
   "scripts": {
-    "start": "pm2-runtime start ecosystem.config.js --env development",
+    "start": "pm2-runtime start ecosystem.config.js --env production",
     "start:develop": "nodemon",
     "mongo-seed": "run-func ./config/database/seeds/mongodb/index.js"
   },
