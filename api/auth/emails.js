@@ -3,7 +3,7 @@ const nodemailer = require('nodemailer')
 
 const redeemAccountTextMsg = require('../../assets/emails/puretext/redeemAccount.js')
 
-const { panel } = require('../../.env')
+const { panel } = require('../../config/environment')
 
 const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = require('../../config/smtp/smtpprovider')()
 

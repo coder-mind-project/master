@@ -1,5 +1,5 @@
 const crypto = require('crypto')
-const { SECRET_TAG_PACKAGE, SECRET_AUTH_PACKAGE, SECRET_DEFAULT_PACKAGE } = require('../.env')
+const { SECRET_TAG_PACKAGE, SECRET_AUTH_PACKAGE, SECRET_DEFAULT_PACKAGE } = require('../config/environment')
 
 /**
  * @function

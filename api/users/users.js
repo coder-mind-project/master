@@ -1,6 +1,6 @@
 const Image = require('../../config/serialization/images.js')
 
-const { issuer, panel } = require('../../.env')
+const { issuer, panel } = require('../../config/environment')
 
 /**
  *  @function

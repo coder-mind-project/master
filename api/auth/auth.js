@@ -1,5 +1,5 @@
 const jwt = require('jwt-simple')
-const { SECRET_AUTH_PACKAGE, issuer } = require('../../.env')
+const { SECRET_AUTH_PACKAGE, issuer } = require('../../config/environment')
 const captcha = require('../../config/recaptcha/captcha.js')
 
 /**

@@ -3,7 +3,7 @@ const userChangedToOldMailTxtMsg = require('../../assets/emails/puretext/userCha
 const newAccountTxtMsg = require('../../assets/emails/puretext/newAccount')
 const emailChangedMyAccountTxtMsg = require('../../assets/emails/puretext/emailChangedMyAccount')
 
-const { panel } = require('../../.env')
+const { panel } = require('../../config/environment')
 
 /**
  *  @function

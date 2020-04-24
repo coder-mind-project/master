@@ -1,4 +1,4 @@
-const { SECRET_AUTH_PACKAGE } = require('../../.env')
+const { SECRET_AUTH_PACKAGE } = require('../../config/environment')
 const passport = require('passport')
 const passportJwt = require('passport-jwt')
 const { Strategy, ExtractJwt } = passportJwt
@@ -30,11 +30,7 @@ module.exports = app => {
         })
         .catch(error => done(error, false))
     } else {
-      const user = await app.knex
-        .select()
-        .from('users')
-        .where('id', _id)
-        .first()
+      const user = await app.knex.select().from('users').where('id', _id).first()
       done(null, user ? { ...payload } : false)
     }
   })
