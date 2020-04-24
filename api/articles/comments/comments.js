@@ -1267,9 +1267,9 @@ module.exports = app => {
         return Comment.updateOne({ _id: comment._id }, { readedAt: MyDate.setTimeZone('-3') })
       })
 
-      await Promise.all(ops).then(() => res.status(204).send())
+      await Promise.all(ops)
 
-      throw { name: 'error', description: 'Ocorreu um erro ao marcar os comentários como lido' }
+      return res.status(204).send()
     } catch (error) {
       const stack = await commentError(error)
       return res.status(stack.code).send(stack)
