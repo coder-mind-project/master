@@ -3,11 +3,7 @@ module.exports = {
     {
       name: 'masterDevelop',
       script: 'index.js',
-      watch: true,
-      env: {
-        PORT: 3000,
-        NODE_ENV: 'development'
-      }
+      watch: '.'
     }
   ]
 }
