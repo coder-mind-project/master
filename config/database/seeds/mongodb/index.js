@@ -6,7 +6,7 @@
 /**
  * @description Environment database
  */
-const { dbLocal, dbProduction, dbDevelopment } = require('../../../../.env')
+const { dbLocal, dbProduction, dbDevelopment } = require('../../../../config/environment')
 const config = dbDevelopment
 const url = config.mongo.url
 

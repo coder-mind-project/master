@@ -1,4 +1,4 @@
-const { CAPTCHA_URL, CAPTCHA_SECRET_KEY } = require('../../.env')
+const { CAPTCHA_URL, CAPTCHA_SECRET_KEY } = require('../../config/environment')
 const https = require('https')
 const url = require('url')
 

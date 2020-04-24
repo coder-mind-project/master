@@ -1,6 +1,6 @@
 const bodyParser = require('body-parser')
 const cors = require('cors')
-const { webApp, panel } = require('../../.env')
+const { webApp, panel } = require('../../config/environment')
 
 /**
  * @function

@@ -1,4 +1,4 @@
-const { dbLocal, dbProduction, dbDevelopment } = require('./.env')
+const { dbLocal, dbProduction, dbDevelopment } = require('./config/environment')
 
 /**
  * @module knexfile

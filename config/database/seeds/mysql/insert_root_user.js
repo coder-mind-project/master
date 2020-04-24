@@ -1,8 +1,8 @@
-const { rootUser } = require('../../../../.env')
-exports.seed = function(knex) {
+const { rootUser } = require('../../../../config/environment')
+exports.seed = function (knex) {
   return knex('users')
     .del()
-    .then(function() {
+    .then(function () {
       const { name, email, username, tagAdmin, password } = rootUser
 
       return knex('users').insert([

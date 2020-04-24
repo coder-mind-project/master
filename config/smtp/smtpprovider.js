@@ -1,4 +1,4 @@
-const { SMTP_SETTINGS } = require('../../.env')
+const { SMTP_SETTINGS } = require('../../config/environment')
 
 /**
  * @function
