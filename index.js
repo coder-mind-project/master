@@ -43,7 +43,7 @@ consign()
   .then('./config/cron/cron.js')
   .into(app)
 
-const port = process.env.DEFAULTPORT || 3001
+const port = process.env.PORT || 3001
 
 app.listen(port, () => {
   // eslint-disable-next-line no-console
