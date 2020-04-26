@@ -12,7 +12,7 @@ module.exports = app => {
 
   const SMTP_SERVER = server
   const PORT = port
-  const SECURE = secure
+  const SECURE = Boolean(secure === 'true') // Boolean values is not parsing in .env file, so this cast are necessary
 
   const USER = user
   const PASSWORD = password
