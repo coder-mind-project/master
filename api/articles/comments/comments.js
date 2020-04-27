@@ -1338,6 +1338,9 @@ module.exports = app => {
         return newAnswer
       })
 
+      // Used for return `isAuthor`flag in response
+      createdAnswer._doc.isAuthor = true
+
       return res.status(201).send(createdAnswer)
     } catch (error) {
       const stack = await commentError(error)
