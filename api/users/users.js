@@ -811,14 +811,16 @@ module.exports = app => {
     try {
       const _id = req.params.id
 
-      const result = await User.updateOne({ _id }, { profilePhoto: '' })
+      const find = await User.findOne({ _id })
 
-      if (!result.nModified) {
+      if (!find.profilePhoto) {
         throw {
           name: 'userProfileImage',
           description: 'Imagem já removida'
         }
       }
+
+      await User.updateOne({ _id }, { profilePhoto: '' })
 
       return res.status(204).send()
     } catch (error) {
