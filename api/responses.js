@@ -345,12 +345,12 @@ module.exports = app => {
         const { errors } = { ...stack }
 
         if (errors) {
-          if (errors.customUrl && errors.customUrl.kind === 'unique') {
-            pending = 'customUrl'
-            reformulatedError.msg = 'Esta url personalizada já está cadastrada'
-          } else if (errors.email && errors.email.kind === 'unique') {
+          if (errors.email && errors.email.kind === 'unique') {
             pending = 'email'
             reformulatedError.msg = 'Este e-mail já esta associado a uma outra conta, tente outro endereço de e-mail'
+          } else if (errors.customUrl && errors.customUrl.kind === 'unique') {
+            pending = 'customUrl'
+            reformulatedError.msg = 'Esta url personalizada já está cadastrada'
           } else {
             if (errors.cellphone && errors.cellphone.kind === 'unique') {
               pending = 'cellphone'
@@ -383,6 +383,7 @@ module.exports = app => {
           case 'É necessário informar um nome':
           case 'E-mail inválido':
           case 'Genero inválido':
+          case 'Gênero inválido':
           case 'É necessário informar um genero':
           case "Tipo de usuário inválido, escolha entre 'author' e 'admin'":
           case 'Tipo de usuário inválido':

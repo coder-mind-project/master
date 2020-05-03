@@ -278,10 +278,10 @@ module.exports = app => {
         }
       }
 
-      const token = JSON.parse(decryptToken(user.confirmEmailToken))
+      const token = user && user.confirmEmailToken ? JSON.parse(decryptToken(user.confirmEmailToken)) : null
 
       // Validate the token issuer
-      if (token.issuer !== issuer) {
+      if (!token || token.issuer !== issuer) {
         throw {
           name: 'issuer',
           description: 'Emissor inválido!'
@@ -811,14 +811,16 @@ module.exports = app => {
     try {
       const _id = req.params.id
 
-      const result = await User.updateOne({ _id }, { profilePhoto: '' })
+      const find = await User.findOne({ _id })
 
-      if (!result.nModified) {
+      if (!find.profilePhoto) {
         throw {
           name: 'userProfileImage',
           description: 'Imagem já removida'
         }
       }
+
+      await User.updateOne({ _id }, { profilePhoto: '' })
 
       return res.status(204).send()
     } catch (error) {
