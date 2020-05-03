@@ -383,6 +383,7 @@ module.exports = app => {
           case 'É necessário informar um nome':
           case 'E-mail inválido':
           case 'Genero inválido':
+          case 'Gênero inválido':
           case 'É necessário informar um genero':
           case "Tipo de usuário inválido, escolha entre 'author' e 'admin'":
           case 'Tipo de usuário inválido':
