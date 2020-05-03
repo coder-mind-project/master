@@ -278,10 +278,10 @@ module.exports = app => {
         }
       }
 
-      const token = JSON.parse(decryptToken(user.confirmEmailToken))
+      const token = user && user.confirmEmailToken ? JSON.parse(decryptToken(user.confirmEmailToken)) : null
 
       // Validate the token issuer
-      if (token.issuer !== issuer) {
+      if (!token || token.issuer !== issuer) {
         throw {
           name: 'issuer',
           description: 'Emissor inválido!'
