@@ -1,7 +1,8 @@
 const { issuer, panel } = require('../../config/environment')
+const { s3, bucket } = require('../../config/aws/s3')
+const multer = require('../../config/serialization/multers3')
 
-const multerS3 = require('../../config/serialization/multers3')
-const uploadImg = multerS3.single('profilePhoto')
+const uploadImg = multer.single('profilePhoto')
 
 /**
  *  @function
@@ -791,6 +792,29 @@ module.exports = app => {
 
   /**
    * @function
+   * @description Get S3 bucket object key from their url.
+   * @param {String} url - S3 Bucket Object url
+   *
+   * @returns An object containing `status` of operation: `true` for successful,
+   *  `false` for fail; `key` containing the object key; `error` containing the stack error,
+   *  if happens.
+   */
+  const getBucketObjKeyFromUrl = url => {
+    try {
+      if (url && typeof url === 'string') {
+        const parts = url.split('/')
+
+        return { status: true, key: parts[3], error: null }
+      }
+
+      throw new Error(`typeof url is ${typeof url}, expected string`)
+    } catch (error) {
+      return { status: false, key: null, error }
+    }
+  }
+
+  /**
+   * @function
    * @description Remove an user image profile.
    * @param {Object} req - Request object provided by Express.js
    * @param {Object} res - Response object provided by Express.js
@@ -810,9 +834,24 @@ module.exports = app => {
         }
       }
 
-      await User.updateOne({ _id }, { profilePhoto: '' })
+      const { status, key, error } = getBucketObjKeyFromUrl(find.profilePhoto)
+      if (!status) throw error
 
-      return res.status(204).send()
+      s3.deleteObject({ Bucket: bucket, Key: key }, async (err, data) => {
+        if (err) {
+          const stack = {
+            code: 422,
+            name: 'removeObject',
+            description: 'Ocorreu um erro ao remover a imagem'
+          }
+
+          return res.status(stack.code).send(stack)
+        }
+
+        await User.updateOne({ _id }, { profilePhoto: '' })
+
+        return res.status(204).send()
+      })
     } catch (error) {
       const stack = userError(error)
       return res.status(stack.code).send(stack)

@@ -1,18 +1,11 @@
-const aws = require('aws-sdk')
+/**
+ * @module multerS3
+ * @description Data store configuration for amazon S3 service, @see https://aws.amazon.com/s3/ .
+ * @returns {Function} A multer middleware.
+ */
 const multer = require('multer')
 const multerS3 = require('multer-s3')
-
-const env = require('../environment')
-
-const { production, develop } = env.aws
-
-aws.config.update({
-  secretAccessKey: develop.secretAccessKey,
-  accessKeyId: develop.accessKeyId,
-  region: develop.region
-})
-
-const s3 = new aws.S3()
+const { s3, bucket } = require('../aws/s3')
 
 const fileFilter = (req, file, cb) => {
   const fileTypes = ['image/png', 'image/jpg', 'image/jpeg']
@@ -23,7 +16,7 @@ const fileFilter = (req, file, cb) => {
 module.exports = multer({
   storage: multerS3({
     s3,
-    bucket: develop.bucket,
+    bucket,
     acl: 'public-read',
     contentType: multerS3.AUTO_CONTENT_TYPE,
     metadata: (req, file, cb) => {
