@@ -113,7 +113,7 @@ module.exports = app => {
   app
     .route('/users/img/:id')
     .all(app.config.authentication.passport.authenticate())
-    .patch(multer.single('profilePhoto'), app.api.users.users.saveProfileImage)
+    .patch(app.api.users.users.saveProfileImage)
     .delete(app.api.users.users.removeProfileImage)
 
   /**

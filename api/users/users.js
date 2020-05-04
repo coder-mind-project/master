@@ -1,6 +1,7 @@
-const Image = require('../../config/serialization/images.js')
-
 const { issuer, panel } = require('../../config/environment')
+
+const multerS3 = require('../../config/serialization/multers3')
+const uploadImg = multerS3.single('profilePhoto')
 
 /**
  *  @function
@@ -756,8 +757,6 @@ module.exports = app => {
     try {
       const _id = req.params.id
 
-      const size = 512
-
       const user = await User.findOne({ _id }, { password: 0 })
 
       if (!user) {
@@ -767,32 +766,23 @@ module.exports = app => {
         }
       }
 
-      const currentImgPath = user.profilePhoto || ''
+      uploadImg(req, res, async err => {
+        if (err) {
+          const stack = {
+            code: 422,
+            name: 'uploadStream',
+            description: 'Ocorreu um erro ao salvar a imagem'
+          }
 
-      if (!req.file) {
-        throw {
-          name: 'image',
-          description: 'Imagem não encontrada'
+          return res.status(stack.code).send(stack)
         }
-      }
 
-      const newPath = await Image.compressImage({
-        file: req.file,
-        size,
-        currentImage: currentImgPath,
-        folder: 'users/' // Needs "/" character, for more details checks compressImage method.
+        const profilePhoto = req.file.location
+
+        await User.updateOne({ _id }, { profilePhoto })
+
+        return res.status(200).send({ profileImageUrl: profilePhoto })
       })
-
-      if (!newPath) {
-        throw {
-          name: 'compressImageError',
-          description: 'Ocorreu um erro ao comprimir a image, se persistir reporte!'
-        }
-      }
-
-      await User.updateOne({ _id }, { profilePhoto: newPath })
-
-      return res.status(200).send(newPath)
     } catch (error) {
       const stack = userError(error)
       return res.status(stack.code).send(stack)
