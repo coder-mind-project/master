@@ -1,6 +1,21 @@
 const dotenv = require('dotenv')
 dotenv.config()
 
+const aws = {
+  production: {
+    bucket: process.env.AWS_BUCKET_PROD,
+    region: process.env.AWS_BUCKET_REGION_PROD,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID_PROD,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY_PROD
+  },
+  develop: {
+    bucket: process.env.AWS_BUCKET_DEVELOP,
+    region: process.env.AWS_BUCKET_REGION_DEVELOP,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID_DEVELOP,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY_DEVELOP
+  }
+}
+
 const mongo = {
   production: process.env.MONGOPRODUCTION,
   develop: process.env.MONGODEVELOP,
@@ -80,6 +95,7 @@ const captcha = {
  * @description Exports environments variable for all application.
  */
 module.exports = {
+  aws,
   dbProduction: { url: mongo.production },
   dbLocal: { url: mongo.local },
   dbDevelopment: {
