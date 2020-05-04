@@ -14,9 +14,9 @@ const uploadImg = multer.single('profilePhoto')
 module.exports = app => {
   const { User } = app.config.database.schemas.mongoose
 
-  const { exists, validateEmail, validatePassword, validateLength } = app.config.validation
+  const { exists, validateEmail, validatePassword } = app.config.validation
 
-  const { encryptTag, encryptAuth, decryptAuth, encryptToken, decryptToken } = app.config.secrets
+  const { encryptTag, encryptAuth, encryptToken, decryptToken } = app.config.secrets
 
   const { sendEmail } = app.api.users.emails
 
