@@ -1,6 +1,8 @@
-const Image = require('../../config/serialization/images.js')
-
 const { issuer, panel } = require('../../config/environment')
+const { s3, bucket } = require('../../config/aws/s3')
+const multer = require('../../config/serialization/multers3')
+
+const uploadImg = multer.single('profilePhoto')
 
 /**
  *  @function
@@ -756,8 +758,6 @@ module.exports = app => {
     try {
       const _id = req.params.id
 
-      const size = 512
-
       const user = await User.findOne({ _id }, { password: 0 })
 
       if (!user) {
@@ -767,35 +767,49 @@ module.exports = app => {
         }
       }
 
-      const currentImgPath = user.profilePhoto || ''
+      uploadImg(req, res, async err => {
+        if (err) {
+          const stack = {
+            code: 422,
+            name: 'uploadStream',
+            description: 'Ocorreu um erro ao salvar a imagem'
+          }
 
-      if (!req.file) {
-        throw {
-          name: 'image',
-          description: 'Imagem não encontrada'
+          return res.status(stack.code).send(stack)
         }
-      }
 
-      const newPath = await Image.compressImage({
-        file: req.file,
-        size,
-        currentImage: currentImgPath,
-        folder: 'users/' // Needs "/" character, for more details checks compressImage method.
+        const profilePhoto = req.file.location
+
+        await User.updateOne({ _id }, { profilePhoto })
+
+        return res.status(200).send({ profileImageUrl: profilePhoto })
       })
-
-      if (!newPath) {
-        throw {
-          name: 'compressImageError',
-          description: 'Ocorreu um erro ao comprimir a image, se persistir reporte!'
-        }
-      }
-
-      await User.updateOne({ _id }, { profilePhoto: newPath })
-
-      return res.status(200).send(newPath)
     } catch (error) {
       const stack = userError(error)
       return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Get S3 bucket object key from their url.
+   * @param {String} url - S3 Bucket Object url
+   *
+   * @returns An object containing `status` of operation: `true` for successful,
+   *  `false` for fail; `key` containing the object key; `error` containing the stack error,
+   *  if happens.
+   */
+  const getBucketObjKeyFromUrl = url => {
+    try {
+      if (url && typeof url === 'string') {
+        const parts = url.split('/')
+
+        return { status: true, key: parts[3], error: null }
+      }
+
+      throw new Error(`typeof url is ${typeof url}, expected string`)
+    } catch (error) {
+      return { status: false, key: null, error }
     }
   }
 
@@ -820,9 +834,24 @@ module.exports = app => {
         }
       }
 
-      await User.updateOne({ _id }, { profilePhoto: '' })
+      const { status, key, error } = getBucketObjKeyFromUrl(find.profilePhoto)
+      if (!status) throw error
 
-      return res.status(204).send()
+      s3.deleteObject({ Bucket: bucket, Key: key }, async (err, data) => {
+        if (err) {
+          const stack = {
+            code: 422,
+            name: 'removeObject',
+            description: 'Ocorreu um erro ao remover a imagem'
+          }
+
+          return res.status(stack.code).send(stack)
+        }
+
+        await User.updateOne({ _id }, { profilePhoto: '' })
+
+        return res.status(204).send()
+      })
     } catch (error) {
       const stack = userError(error)
       return res.status(stack.code).send(stack)
