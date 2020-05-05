@@ -778,6 +778,20 @@ module.exports = app => {
           return res.status(stack.code).send(stack)
         }
 
+        const currentProfilePhoto = user.profilePhoto || null
+
+        if (currentProfilePhoto) {
+          const { status, key, error } = getBucketObjKeyFromUrl(currentProfilePhoto)
+          if (!status) return
+
+          s3.deleteObject({ Bucket: bucket, Key: key }, (err, data) => {
+            if (err) {
+              // eslint-disable-next-line no-console
+              console.log(`Error on remove S3 object, Object key: ${key}\nStack: ${err}`)
+            }
+          })
+        }
+
         const profilePhoto = req.file.location
 
         await User.updateOne({ _id }, { profilePhoto })
