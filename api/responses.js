@@ -254,6 +254,68 @@ module.exports = app => {
     return reformulatedError
   }
 
+  /**
+   * @function
+   * @description Manage error responses for Articles module
+   * @param {Object} stack - A raw Error stack
+   * @returns {Object} - A refined Error stack
+   *
+   * @forModule Article
+   */
+  const articleError = stack => {
+    let pending = ''
+    const reformulatedError = {
+      code: 500,
+      msg: 'Ocorreu um erro desconhecido, se persistir reporte'
+    }
+
+    switch (stack.name) {
+      case 'CastError': {
+        if (stack.kind === 'ObjectId') {
+          pending = stack.path
+          reformulatedError.msg = 'Identificador inválido'
+        }
+
+        reformulatedError.code = 400
+        break
+      }
+      case 'ValidationError': {
+        const errors = Object.keys(stack.errors)
+        if (!errors.length) {
+          pending = 'InternalError'
+        } else {
+          const { path, value } = stack.errors[errors[0]]
+          pending = path
+          reformulatedError.msg = `O valor '${value}' não é um valor enumerável válido`
+
+          reformulatedError.code = 400
+        }
+        break
+      }
+      default: {
+        const { name, description } = stack
+
+        switch (description) {
+          case 'É necessário incluir um titulo ao artigo':
+          case 'É necessário adicionar um tema antes de incluir uma categoria':
+          case 'É necessário incluir um endereço personalizado válido': {
+            reformulatedError.code = 400
+            break
+          }
+          default: {
+            reformulatedError.code = 500
+          }
+        }
+
+        pending = name
+        reformulatedError.msg = description
+      }
+    }
+
+    reformulatedError[pending] = 'pending'
+    return reformulatedError
+  }
+
   const errorArticle = error => {
     const reformulatedError = {
       code: 500,
@@ -641,6 +703,7 @@ module.exports = app => {
     authError,
     redeemAccountError,
     commentError,
+    articleError,
     errorArticle,
     errorManagementArticles,
     userError,
