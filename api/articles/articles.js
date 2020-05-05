@@ -1,22 +1,125 @@
-/* Responsável por realizar o gerenciamento de imagens dos artigos */
 const Image = require('../../config/serialization/images.js')
 const MyDate = require('../../config/Date')
 
+/**
+ * @function
+ * @module Articles
+ * @description Provide some middlewares functions.
+ * @param {Object} app - A app Object provided by consign.
+ * @returns {Object} Containing some middleware functions.
+ */
 module.exports = app => {
-  // Mongoose Model para artigos
   const { Article } = app.config.database.schemas.mongoose
-
-  // Validações de dados
   const { exists, validateLength } = app.config.validation
-
-  // Responsável por gerar Mensagens de erro Personalizadas
-  const { errorArticle, errorManagementArticles } = app.api.responses
+  const { errorArticle, errorManagementArticles, articleError } = app.api.responses
 
   const { getLikesPerArticle } = app.api.articles.likes.likes
-
   const { getViewsPerArticle } = app.api.articles.views.views
-
   const { getCommentsPerArticle } = app.api.articles.comments
+
+  /**
+   * @function
+   * @description Create an article
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @returns {Object} A object containing the article created
+   */
+  const create = async (req, res) => {
+    try {
+      const { title } = req.body
+      const { user } = req.user
+
+      exists(title, {
+        name: 'title',
+        description: 'É necessário incluir um titulo ao artigo'
+      })
+
+      const article = new Article({
+        title,
+        userId: user._id
+      })
+
+      const result = await article.save()
+
+      const createdArticle = {
+        ...result._doc,
+        author: user
+      }
+      delete createdArticle.userId
+
+      return res.status(201).send(createdArticle)
+    } catch (error) {
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Validate article fields for save him
+   * @param {Object} article - Article object candidate
+   * @param {String} id - The Article ObjectId
+   *
+   * @returns {Object} Formated/validated article object
+   */
+  const validateFields = async (article, id) => {
+    if (Object.prototype.hasOwnProperty.call(article, 'title') && !article.title) {
+      throw {
+        name: 'title',
+        description: 'É necessário incluir um titulo ao artigo'
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(article, 'customUri') && !article.customUri) {
+      throw {
+        name: 'customUri',
+        description: 'É necessário incluir um endereço personalizado válido'
+      }
+    }
+
+    const currentArticle = await Article.findOne({ _id: id })
+
+    if (article.categoryId && !currentArticle.themeId) {
+      throw {
+        name: 'categoryId',
+        description: 'É necessário adicionar um tema antes de incluir uma categoria'
+      }
+    }
+
+    if (article.customUri) article.customUri = article.customUri.replace(/ /g, '')
+    delete article.userId
+    delete article.state
+    delete article.logoImg
+    delete article.secondaryImg
+    delete article.headerImg
+
+    return article
+  }
+
+  /**
+   * @function
+   * @description Save an article
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @returns {Object} A object containing the article updated
+   */
+  const save = async (req, res) => {
+    try {
+      const { id } = req.params
+      let article = req.body
+
+      article = await validateFields(article, id)
+
+      await Article.updateOne({ _id: id }, article)
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
 
   const get = async (req, res) => {
     /*  Realiza a busca de artigos filtrando por palavras chave.
@@ -90,8 +193,6 @@ module.exports = app => {
   }
 
   const getOneById = async (req, res) => {
-    /* Middleware responsável por obter o artigo pelo ID  */
-
     const _id = req.params.id
     const article = await getById(_id)
 
@@ -136,101 +237,6 @@ module.exports = app => {
       return Article.findOne({ customURL })
     } catch (error) {
       return { error: true }
-    }
-  }
-
-  const save = async (req, res) => {
-    /* Middleware responśavel por persistir artigos */
-
-    const article = { ...req.body }
-    try {
-      exists(article.title, 'Informe um título para o artigo')
-      exists(article.theme, 'Tema não informado')
-      exists(article.theme._id, 'Tema não informado')
-      exists(article.shortDescription, 'Breve descrição inválida')
-      validateLength(article.shortDescription, 150, 'bigger', 'Máximo permitido 150 caracteres')
-      validateLength(article.longDescription, 300, 'bigger', '')
-      exists(article.textArticle, 'Corpo do artigo inválido')
-      exists(article.author, 'Autor não encontrado')
-      exists(article.author._id, 'Autor não encontrado')
-      exists(article.customURL, 'URL não definida')
-
-      const exist = await getByCustomURL(article.customURL)
-
-      if (exist && exist._id && exist._id === article._id) {
-        throw 'Já existe um artigo com este link personalizado, considere alterar-lo'
-      }
-      if (exist && exist.error) {
-        throw 'Ocorreu um erro desconhecido, se persistir reporte'
-      }
-
-      if (!article._id) {
-        const newArticle = new Article({
-          title: article.title,
-          theme: article.theme,
-          customURL: article.customURL,
-          author: article.author,
-          shortDescription: article.shortDescription,
-          youtube: article.youtube,
-          github: article.github,
-          textArticle: article.textArticle,
-          published: false,
-          boosted: false,
-          deleted: false,
-          inactivated: false
-        })
-
-        if (article.category && article.category._id) {
-          newArticle.category = article.category
-        } else {
-          newArticle.category = {
-            name: '',
-            alias: '',
-            description: ''
-          }
-        }
-        if (article.longDescription) {
-          newArticle.longDescription = article.longDescription
-        }
-
-        await newArticle
-          .save()
-          .then(async () => {
-            const response = await Article.findOne({
-              customURL: newArticle.customURL
-            })
-            return res.status(201).send(response)
-          })
-          .catch(error => {
-            if (error.code === 11000) {
-              throw 'Ja existe um artigo com este link personalizado'
-            } else throw 'Ocorreu um erro desconhecido, se persistir reporte'
-          })
-      } else {
-        const _id = article._id
-
-        if (!(article.category && article.category._id)) {
-          article.category = {
-            name: '',
-            alias: '',
-            description: ''
-          }
-        }
-
-        await Article.updateOne({ _id }, article)
-          .then(async () => {
-            const response = await Article.findOne({ _id })
-            return res.status(200).send(response)
-          })
-          .catch(error => {
-            if (error.code === 11000) {
-              throw 'Ja existe um artigo com este link personalizado'
-            } else throw 'Ocorreu um erro desconhecido, se persistir reporte'
-          })
-      }
-    } catch (error) {
-      const stack = await errorArticle(error)
-      return res.status(stack.code).send(stack.msg)
     }
   }
 
@@ -566,6 +572,7 @@ module.exports = app => {
   }
 
   return {
+    create,
     get,
     getOneById,
     getOne,
