@@ -827,6 +827,13 @@ module.exports = app => {
 
       const find = await User.findOne({ _id })
 
+      if (!find) {
+        throw {
+          name: 'id',
+          description: 'Usuário não encontrado'
+        }
+      }
+
       if (!find.profilePhoto) {
         throw {
           name: 'userProfileImage',
