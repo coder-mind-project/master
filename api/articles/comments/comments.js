@@ -11,7 +11,7 @@ module.exports = app => {
   const { Comment, Article, User } = app.config.database.schemas.mongoose
   const { validateLength, exists } = app.config.validation
   const { commentError } = app.api.responses
-  const { sendEmail } = app.api.articles.emails
+  const { sendEmail } = app.api.articles.comments.emails
 
   /**
    * @function

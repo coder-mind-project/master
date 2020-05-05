@@ -14,9 +14,9 @@ const uploadImg = multer.single('profilePhoto')
 module.exports = app => {
   const { User } = app.config.database.schemas.mongoose
 
-  const { exists, validateEmail, validatePassword, validateLength } = app.config.validation
+  const { exists, validateEmail, validatePassword } = app.config.validation
 
-  const { encryptTag, encryptAuth, decryptAuth, encryptToken, decryptToken } = app.config.secrets
+  const { encryptTag, encryptAuth, encryptToken, decryptToken } = app.config.secrets
 
   const { sendEmail } = app.api.users.emails
 
@@ -762,7 +762,7 @@ module.exports = app => {
 
       if (!user) {
         throw {
-          name: '_id',
+          name: 'id',
           description: 'Usuário não encontrado'
         }
       }
@@ -776,6 +776,20 @@ module.exports = app => {
           }
 
           return res.status(stack.code).send(stack)
+        }
+
+        const currentProfilePhoto = user.profilePhoto || null
+
+        if (currentProfilePhoto) {
+          const { status, key, error } = getBucketObjKeyFromUrl(currentProfilePhoto)
+          if (!status) return
+
+          s3.deleteObject({ Bucket: bucket, Key: key }, (err, data) => {
+            if (err) {
+              // eslint-disable-next-line no-console
+              console.log(`Error on remove S3 object, Object key: ${key}\nStack: ${err}`)
+            }
+          })
         }
 
         const profilePhoto = req.file.location
@@ -826,6 +840,13 @@ module.exports = app => {
       const _id = req.params.id
 
       const find = await User.findOne({ _id })
+
+      if (!find) {
+        throw {
+          name: 'id',
+          description: 'Usuário não encontrado'
+        }
+      }
 
       if (!find.profilePhoto) {
         throw {

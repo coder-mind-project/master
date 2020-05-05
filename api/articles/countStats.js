@@ -1,11 +1,11 @@
 module.exports = app => {
-  const getViews = app.api.articles.views.getStats
+  const getViews = app.api.articles.views.views.getStats
   const getComments = app.api.articles.comments.getStats
-  const getLikes = app.api.articles.likes.getStats
+  const getLikes = app.api.articles.likes.likes.getStats
 
-  const { viewsJob, getChartViews } = app.api.articles.views
+  const { viewsJob, getChartViews } = app.api.articles.views.views
   const { commentsJob } = app.api.articles.comments
-  const { likesJob, getChartLikes } = app.api.articles.likes
+  const { likesJob, getChartLikes } = app.api.articles.likes.likes
 
   const defineMonthDescribed = require('../../config/validation')().defineMonthDescribed
 
@@ -132,11 +132,7 @@ module.exports = app => {
   }
 
   const getLastSincronization = () => {
-    return app.knex
-      .select('generated_at as generatedAt')
-      .from('views')
-      .orderBy('id', 'desc')
-      .first()
+    return app.knex.select('generated_at as generatedAt').from('views').orderBy('id', 'desc').first()
   }
 
   const sincronizeManually = async (req, res) => {

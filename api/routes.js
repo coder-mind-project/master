@@ -194,13 +194,16 @@ module.exports = app => {
    * @name Views
    * @description Views resources
    */
-  app.route('/views').all(app.config.authentication.passport.authenticate()).get(app.api.articles.views.getViews)
+  app.route('/views').all(app.config.authentication.passport.authenticate()).get(app.api.articles.views.views.getViews)
 
   /**
    * @name Likes
    * @description Likes resources
    */
-  app.route('/likes').all(app.config.authentication.passport.authenticate()).get(app.api.articles.likes.getLastLikes)
+  app
+    .route('/likes')
+    .all(app.config.authentication.passport.authenticate())
+    .get(app.api.articles.likes.likes.getLastLikes)
 
   /**
    * @name Statistics
