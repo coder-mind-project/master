@@ -762,7 +762,7 @@ module.exports = app => {
 
       if (!user) {
         throw {
-          name: '_id',
+          name: 'id',
           description: 'Usuário não encontrado'
         }
       }
