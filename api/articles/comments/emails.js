@@ -1,5 +1,5 @@
-const answerSentTxtMsg = require('../../assets/emails/puretext/answerSent')
-const { webApp } = require('../../config/environment')
+const answerSentTxtMsg = require('../../../assets/emails/puretext/answerSent')
+const { webApp } = require('../../../config/environment')
 
 /**
  *  @function

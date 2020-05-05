@@ -7,9 +7,9 @@ const schedule = require('node-schedule')
  * @param {Object} app - A app Object provided by consign.
  */
 module.exports = app => {
-  const { viewsJob } = app.api.articles.views
+  const { viewsJob } = app.api.articles.views.views
   const { commentsJob } = app.api.articles.comments.comments
-  const { likesJob } = app.api.articles.likes
+  const { likesJob } = app.api.articles.likes.likes
 
   const { validateFirstLoginTime, writeRemovedUsers } = app.api.users.users
 

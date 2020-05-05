@@ -12,9 +12,9 @@ module.exports = app => {
   // Responsável por gerar Mensagens de erro Personalizadas
   const { errorArticle, errorManagementArticles } = app.api.responses
 
-  const { getLikesPerArticle } = app.api.articles.likes
+  const { getLikesPerArticle } = app.api.articles.likes.likes
 
-  const { getViewsPerArticle } = app.api.articles.views
+  const { getViewsPerArticle } = app.api.articles.views.views
 
   const { getCommentsPerArticle } = app.api.articles.comments
 
@@ -26,12 +26,12 @@ module.exports = app => {
         */
 
     try {
-      var limit = parseInt(req.query.limit) || 10
+      let limit = parseInt(req.query.limit) || 10
       const query = req.query.query || ''
       let page = parseInt(req.query.page) || 1
       const type = req.query.op || 'perUser'
 
-      var config = req.user.user.tagAdmin
+      let config = req.user.user.tagAdmin
         ? { deleted: false }
         : {
             'author._id': req.user.user._id,
