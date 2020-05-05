@@ -48,5 +48,10 @@ const article = new mongoose.Schema(
 )
 
 article.plugin(validator)
+article.pre('updateOne', function (next) {
+  this.options.runValidators = true
+  this.options.context = 'query'
+  next()
+})
 
 module.exports = mongoose.model('articles', article)
