@@ -46,7 +46,11 @@ module.exports = app => {
     .get(app.api.articles.articles.get)
     .post(app.api.articles.articles.create)
 
-  app.route('/articles/:id').all(app.config.authentication.passport.authenticate()).put(app.api.articles.articles.save)
+  app
+    .route('/articles/:id')
+    .all(app.config.authentication.passport.authenticate())
+    .put(app.api.articles.articles.save)
+    .get(app.api.articles.articles.getOne)
 
   app
     .route('/articles/:url')
@@ -58,7 +62,7 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .delete(app.api.articles.articles.remove)
     .patch(app.api.articles.articles.management)
-    .get(app.api.articles.articles.getOneById)
+    .get(app.api.articles.articles.getOne)
 
   app
     .route('/articles/img/:id')

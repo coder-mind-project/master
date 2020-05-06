@@ -188,7 +188,7 @@ module.exports = app => {
 
       count = count.length > 0 ? count.reduce(item => item).id : 0
 
-      Article.aggregate([
+      const articles = await Article.aggregate([
         {
           $lookup: {
             from: 'themes',
@@ -279,58 +279,159 @@ module.exports = app => {
       ])
         .skip(page * limit - limit)
         .limit(limit)
-        .then(articles => res.json({ articles, count, limit }))
+
+      return res.json({ articles, count, limit })
     } catch (error) {
       const stack = await articleError(error)
       return res.status(stack.code).send(stack)
     }
   }
 
-  const getOneById = async (req, res) => {
-    const _id = req.params.id
-    const article = await getById(_id)
-
-    if (article && article.error) return res.status(500).send()
-
-    if (article && article._id) return res.json(article)
-    else return res.status(404).send('Nenhum artigo encontrado')
-  }
-
-  const getById = _id => {
-    /* Obtem o artigo pelo ID */
-
+  /**
+   * @function
+   * @description Get the article by Id or customUri
+   * @param {String} value The Article ObjectId representation in string format or customUri
+   * @param {String} key Search method selector, possible value to `customUri` and `id`
+   *
+   * @returns A Object containing operation `status`, found `article` and if occurs the `error`
+   */
+  const getArticle = async (value, key) => {
     try {
-      return Article.findOne({ _id })
+      if (key !== 'customUri' && key !== 'id') {
+        throw new Error(`The key parameter is '${key}', expected 'customUri' or 'id'`)
+      }
+
+      const articles = await Article.aggregate([
+        {
+          $lookup: {
+            from: 'themes',
+            localField: 'themeId',
+            foreignField: '_id',
+            as: 'theme'
+          }
+        },
+        {
+          $lookup: {
+            from: 'categories',
+            localField: 'categoryId',
+            foreignField: '_id',
+            as: 'category'
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'author'
+          }
+        },
+        {
+          $match: {
+            _id: key === 'id' ? app.mongo.Types.ObjectId(value) : { $ne: null },
+            customUri: key === 'customUri' ? value : { $ne: null }
+          }
+        },
+        {
+          $project: {
+            themeId: 0,
+            categoryId: 0,
+            userId: 0
+          }
+        },
+        {
+          $project: {
+            title: 1,
+            description: 1,
+            state: 1,
+            theme: { $arrayElemAt: ['$theme', 0] },
+            category: { $arrayElemAt: ['$category', 0] },
+            author: { $arrayElemAt: ['$author', 0] },
+            logoImg: 1,
+            secondaryImg: 1,
+            headerImg: 1,
+            contentType: 1,
+            content: 1,
+            socialVideoType: 1,
+            socialVideo: 1,
+            socialRepositoryType: 1,
+            socialRepository: 1,
+            customUri: 1,
+            removedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            inactivatedAt: 1,
+            publishedAt: 1,
+            boostedAt: 1
+          }
+        },
+        {
+          $project: {
+            'author.password': 0,
+            'author.confirmEmail': 0,
+            'author.confirmEmailToken': 0,
+            'author.lastEmailTokenSendAt': 0
+          }
+        }
+      ]).limit(1)
+
+      const article = Array.isArray(articles) && articles.length ? articles[0] : null
+
+      return { status: true, article, error: null }
     } catch (error) {
-      return { error: true }
+      return { status: false, article: null, error }
     }
   }
 
+  /**
+   * @function
+   * @description Middleware to get the article by Id
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `type` Type of search method, allowed between two possibilities: by `id` and `customUri`.
+   *
+   * @returns The Article object representation
+   */
   const getOne = async (req, res) => {
-    /* Middleware responsável por obter o artigo pela URL customizada */
-    const customURL = req.params.url
-
-    const article = await getByCustomURL(customURL)
-
-    if (article && article.error) {
-      return res.status(500).send('Ocorreu um erro desconhecido, se persistir reporte')
-    }
-
-    if (!req.user.user.tagAdmin && article.author._id !== req.user.user._id) {
-      return res.status(403).send('Este artigo não é seu, acesso negado')
-    }
-
-    if (article && article._id) return res.json(article)
-    else return res.status(404).send('Nenhum artigo encontrado')
-  }
-
-  const getByCustomURL = customURL => {
-    /* Obtém o artigo pela URL customizada */
-
     try {
-      return Article.findOne({ customURL })
+      const { id } = req.params
+      const { user } = req.user
+      let { type } = req.query
+
+      type = type !== 'customUri' ? 'id' : type
+
+      const idIsValid = app.mongo.Types.ObjectId.isValid(id)
+
+      if (!idIsValid && type === 'id') {
+        throw {
+          name: 'id',
+          description: 'Identificador inválido'
+        }
+      }
+
+      const { status, article, error } = await getArticle(id, type)
+
+      if (!status) throw error
+
+      if (!article) {
+        throw {
+          name: 'id',
+          description: 'Artigo não encontrado'
+        }
+      }
+
+      if (!user.tagAdmin && user._id !== article.author._id) {
+        throw {
+          name: 'forbidden',
+          description: 'Acesso não autorizado, somente administradores podem visualizar artigos de outros autores'
+        }
+      }
+
+      return res.json(article)
     } catch (error) {
-      return { error: true }
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
@@ -668,7 +769,6 @@ module.exports = app => {
   return {
     create,
     get,
-    getOneById,
     getOne,
     save,
     management,
