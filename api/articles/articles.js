@@ -130,34 +130,37 @@ module.exports = app => {
     }
   }
 
+  /**
+   * @function
+   * @description Get a list of articles
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `order` - Ordination of article results
+   * @middlewareParams {String} `type` - Define between user articles and all articles.
+   * It will depend of user level access, for more information @see https://docs.codermind.com.br/docs/master/about.html
+   * @middlewareParams {String} `query` - Keyword to filter articles, will be filtered by `title`, `description` and `content`
+   * @middlewareParams {String} `page` - Current article list page
+   * @middlewareParams {String} `limit` - Current article limit on page
+   * @middlewareParams {String} `tId` - Theme identifier, used for filter by specified theme
+   * @middlewareParams {String} `cId` - Category identifier, used for filter by specified category
+   *
+   * @returns {Object} A object containing the `articles`, `count` and `limit` defined
+   */
   const get = async (req, res) => {
-    /*  Realiza a busca de artigos filtrando por palavras chave.
-            Possui limite de resultados e possui implementação de páginação
-            Devolve a quantidade de artigos existentes pelos filtros de pesquisa
-            E os artigos páginados de acordo com página desejada.
-        */
-
     try {
-      let limit = parseInt(req.query.limit) || 10
-      const query = req.query.query || ''
-      let page = parseInt(req.query.page) || 1
-      const type = req.query.op || 'perUser'
+      const { user } = req.user
 
-      let config = req.user.user.tagAdmin
-        ? { deleted: false }
-        : {
-            'author._id': req.user.user._id,
-            deleted: false
-          }
+      let { limit, page, query, tId, cId, type, order } = req.query
 
-      if (req.user.user.tagAdmin && type === 'all') {
-        config = {
-          deleted: false
-        }
-      }
+      order = order || 'desc'
+      type = type || 'personal'
+      query = query || ''
+      page = parseInt(page) || 1
+      limit = parseInt(limit) || 6
 
-      if (limit > 100) limit = 10
       if (page < 1) page = 1
+      if (limit > 100) limit = 6
 
       let count = await Article.aggregate([
         {
@@ -166,10 +169,18 @@ module.exports = app => {
               {
                 $or: [
                   { title: { $regex: `${query}`, $options: 'i' } },
-                  { shortDescription: { $regex: `${query}`, $options: 'i' } }
+                  { description: { $regex: `${query}`, $options: 'i' } },
+                  { content: { $regex: `${query}`, $options: 'i' } }
                 ]
               },
-              config
+              {
+                themeId: tId && app.mongo.Types.ObjectId.isValid(tId) ? app.mongo.Types.ObjectId(tId) : { $ne: -1 },
+                categoryId: cId && app.mongo.Types.ObjectId.isValid(cId) ? app.mongo.Types.ObjectId(cId) : { $ne: -1 }
+              },
+              {
+                state: { $ne: 'removed' },
+                userId: type === 'all' && user.tagAdmin ? { $ne: null } : app.mongo.Types.ObjectId(user._id)
+              }
             ]
           }
         }
@@ -179,25 +190,99 @@ module.exports = app => {
 
       Article.aggregate([
         {
+          $lookup: {
+            from: 'themes',
+            localField: 'themeId',
+            foreignField: '_id',
+            as: 'theme'
+          }
+        },
+        {
+          $lookup: {
+            from: 'categories',
+            localField: 'categoryId',
+            foreignField: '_id',
+            as: 'category'
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'author'
+          }
+        },
+        {
           $match: {
             $and: [
               {
                 $or: [
                   { title: { $regex: `${query}`, $options: 'i' } },
-                  { shortDescription: { $regex: `${query}`, $options: 'i' } }
+                  { description: { $regex: `${query}`, $options: 'i' } },
+                  { content: { $regex: `${query}`, $options: 'i' } }
                 ]
               },
-              config
+              {
+                themeId: tId && app.mongo.Types.ObjectId.isValid(tId) ? app.mongo.Types.ObjectId(tId) : { $ne: -1 },
+                categoryId: cId && app.mongo.Types.ObjectId.isValid(cId) ? app.mongo.Types.ObjectId(cId) : { $ne: -1 }
+              },
+              {
+                state: { $ne: 'removed' },
+                userId: type === 'all' && user.tagAdmin ? { $ne: null } : app.mongo.Types.ObjectId(user._id)
+              }
             ]
           }
         },
-        { $sort: { updatedAt: -1 } }
+        {
+          $project: {
+            themeId: 0,
+            categoryId: 0,
+            userId: 0
+          }
+        },
+        {
+          $project: {
+            title: 1,
+            description: 1,
+            state: 1,
+            theme: { $arrayElemAt: ['$theme', 0] },
+            category: { $arrayElemAt: ['$category', 0] },
+            author: { $arrayElemAt: ['$author', 0] },
+            logoImg: 1,
+            secondaryImg: 1,
+            headerImg: 1,
+            contentType: 1,
+            content: 1,
+            socialVideoType: 1,
+            socialVideo: 1,
+            socialRepositoryType: 1,
+            socialRepository: 1,
+            customUri: 1,
+            removedAt: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            inactivatedAt: 1,
+            publishedAt: 1,
+            boostedAt: 1
+          }
+        },
+        {
+          $project: {
+            'author.password': 0,
+            'author.confirmEmail': 0,
+            'author.confirmEmailToken': 0,
+            'author.lastEmailTokenSendAt': 0
+          }
+        },
+        { $sort: { createdAt: order === 'asc' ? 1 : -1 } }
       ])
         .skip(page * limit - limit)
         .limit(limit)
         .then(articles => res.json({ articles, count, limit }))
     } catch (error) {
-      return res.status(500).send(error)
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
