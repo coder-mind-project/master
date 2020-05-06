@@ -298,12 +298,18 @@ module.exports = app => {
         switch (description) {
           case 'É necessário incluir um titulo ao artigo':
           case 'É necessário adicionar um tema antes de incluir uma categoria':
-          case 'É necessário incluir um endereço personalizado válido': {
+          case 'É necessário incluir um endereço personalizado válido':
+          case 'Identificador inválido': {
             reformulatedError.code = 400
             break
           }
-          case 'Não é possível alterar o artigo de outro autor': {
+          case 'Não é possível alterar o artigo de outro autor':
+          case 'Acesso não autorizado, somente administradores podem visualizar artigos de outros autores': {
             reformulatedError.code = 403
+            break
+          }
+          case 'Artigo não encontrado': {
+            reformulatedError.code = 404
             break
           }
           default: {
