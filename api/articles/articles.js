@@ -140,8 +140,8 @@ module.exports = app => {
    * @middlewareParams {String} `type` - Define between user articles and all articles.
    * It will depend of user level access, for more information @see https://docs.codermind.com.br/docs/master/about.html
    * @middlewareParams {String} `query` - Keyword to filter articles, will be filtered by `title`, `description` and `content`
-   * @middlewareParams {String} `page` - Current article list page
-   * @middlewareParams {String} `limit` - Current article limit on page
+   * @middlewareParams {Number} `page` - Current article list page
+   * @middlewareParams {Number} `limit` - Current article limit on page
    * @middlewareParams {String} `tId` - Theme identifier, used for filter by specified theme
    * @middlewareParams {String} `cId` - Category identifier, used for filter by specified category
    *
