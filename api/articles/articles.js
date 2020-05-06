@@ -10,8 +10,8 @@ const MyDate = require('../../config/Date')
  */
 module.exports = app => {
   const { Article } = app.config.database.schemas.mongoose
-  const { exists, validateLength } = app.config.validation
-  const { errorArticle, errorManagementArticles, articleError } = app.api.responses
+  const { exists } = app.config.validation
+  const { errorManagementArticles, articleError } = app.api.responses
 
   const { getLikesPerArticle } = app.api.articles.likes.likes
   const { getViewsPerArticle } = app.api.articles.views.views
