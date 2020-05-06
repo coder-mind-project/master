@@ -302,6 +302,10 @@ module.exports = app => {
             reformulatedError.code = 400
             break
           }
+          case 'Não é possível alterar o artigo de outro autor': {
+            reformulatedError.code = 403
+            break
+          }
           default: {
             reformulatedError.code = 500
           }

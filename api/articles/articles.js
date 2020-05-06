@@ -60,10 +60,11 @@ module.exports = app => {
    * @description Validate article fields for save him
    * @param {Object} article - Article object candidate
    * @param {String} id - The Article ObjectId
+   * @param {Object} user - The user that change the article, generally its provided by request
    *
    * @returns {Object} Formated/validated article object
    */
-  const validateFields = async (article, id) => {
+  const validateFields = async (article, id, user) => {
     if (Object.prototype.hasOwnProperty.call(article, 'title') && !article.title) {
       throw {
         name: 'title',
@@ -79,6 +80,13 @@ module.exports = app => {
     }
 
     const currentArticle = await Article.findOne({ _id: id })
+
+    if (user._id !== currentArticle.userId) {
+      throw {
+        name: 'forbidden',
+        description: 'Não é possível alterar o artigo de outro autor'
+      }
+    }
 
     if (article.categoryId && !currentArticle.themeId) {
       throw {
@@ -108,9 +116,10 @@ module.exports = app => {
   const save = async (req, res) => {
     try {
       const { id } = req.params
+      const { user } = req.user
       let article = req.body
 
-      article = await validateFields(article, id)
+      article = await validateFields(article, id, user)
 
       await Article.updateOne({ _id: id }, article)
 
