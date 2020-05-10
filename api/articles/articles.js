@@ -17,7 +17,7 @@ const { articleData } = require('../../config/environment')
 module.exports = app => {
   const { Article } = app.config.database.schemas.mongoose
   const { exists } = app.config.validation
-  const { errorManagementArticles, articleError } = app.api.responses
+  const { articleError } = app.api.responses
 
   const { getLikesPerArticle } = app.api.articles.likes.likes
   const { getViewsPerArticle } = app.api.articles.views.views
