@@ -1,7 +1,7 @@
 {
-  "name": "coder-mind-master-api",
+  "name": "master",
   "version": "1.1.0",
-  "description": "Master API for Coder Mind ecosystem",
+  "description": "Master api for Coder Mind platform",
   "main": "index.js",
   "scripts": {
     "start": "pm2-runtime start ecosystem.config.js",
@@ -9,11 +9,16 @@
     "mongo-seed": "run-func ./config/database/seeds/mongodb/index.js"
   },
   "keywords": [
-    "App Coder Mind",
-    "Panel Coder Mind",
-    "Coder Mind"
+    "master",
+    "master api",
+    "coder mind",
+    "coder mind master"
   ],
-  "author": "Allan Wanderley Alves",
+  "author": {
+    "name": "Allan Wanderley Alves",
+    "email": "allan@codermind.com.br",
+    "url": "http://allanalves23.top"
+  },
   "private": true,
   "dependencies": {
     "aws-sdk": "^2.668.0",
