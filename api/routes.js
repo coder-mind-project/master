@@ -59,11 +59,6 @@ module.exports = app => {
     .get(app.api.articles.articles.getOne)
 
   app
-    .route('/articles/management/:id')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.articles.getOne)
-
-  app
     .route('/articles/images/:id')
     .all(app.config.authentication.passport.authenticate())
     .post(app.api.articles.articles.saveImage)
