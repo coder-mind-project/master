@@ -778,6 +778,16 @@ module.exports = app => {
           return res.status(stack.code).send(stack)
         }
 
+        if (!req.file) {
+          const stack = {
+            code: 400,
+            name: 'profilePhoto',
+            description: 'É necessário selecionar uma imagem'
+          }
+
+          return res.status(stack.code).send(stack)
+        }
+
         const currentProfilePhoto = user.profilePhoto || null
 
         if (currentProfilePhoto) {
