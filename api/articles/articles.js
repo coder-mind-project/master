@@ -1,4 +1,3 @@
-const Image = require('../../config/serialization/images.js')
 const MyDate = require('../../config/Date')
 
 const { s3, bucket, getBucketKeyFromUrl } = require('../../config/aws/s3')
@@ -671,35 +670,69 @@ module.exports = app => {
     }
   }
 
+  /**
+   * @function
+   * @description Remove the article image, specified by `type`
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `id` the article id
+   * @middlewareParams {String} `type` the article image type, allowed: `logo`, `secondary` and `header`
+   */
   const removeImage = async (req, res) => {
-    /* Realiza a remoção da(s) imagem(ns) do artigo */
-
-    const _id = req.params.id
-    const path = req.query.path
-
     try {
-      if (path !== 'smallImg' && path !== 'mediumImg' && path !== 'bigImg') {
-        throw 'Ocorreu um erro ao remover a imagem, se persistir reporte'
+      const { id } = req.params
+      const { type } = req.query
+
+      const acceptbleImagesType = ['logo', 'secondary', 'header']
+      const isValidType = acceptbleImagesType.find(currentType => currentType === type)
+
+      if (!isValidType) {
+        throw {
+          name: 'type',
+          description: 'Tipo de imagem inválido'
+        }
       }
 
-      const article = await Article.findOne({ _id })
-      if (!article) throw 'Artigo não encontrado'
+      const article = await Article.findOne({ _id: id })
 
-      if (!article[path]) throw 'Este artigo não possui imagem'
-
-      Image.removeImage(article[path]).then(async resp => {
-        if (resp) {
-          const update = await Article.updateOne({ _id }, { [path]: '' })
-          if (update.nModified > 0) return res.status(204).send()
-          else {
-            throw 'Ocorreu um erro ao remover a imagem, se persistir reporte'
-          }
-        } else {
-          throw 'Ocorreu um erro ao remover a imagem, se persistir reporte'
+      if (!article) {
+        throw {
+          name: 'id',
+          description: 'Artigo não encontrado'
         }
+      }
+
+      const articleImageKey = `${type}Img`
+
+      if (!article[articleImageKey]) {
+        throw {
+          name: articleImageKey,
+          description: 'Imagem ja removida'
+        }
+      }
+
+      const { status, key, error } = getBucketKeyFromUrl(article[articleImageKey])
+      if (!status) throw error
+
+      s3.deleteObject({ Bucket: bucket, Key: key }, async (err, data) => {
+        if (err) {
+          const stack = {
+            code: 422,
+            name: 'removeObject',
+            description: 'Ocorreu um erro ao remover a imagem'
+          }
+
+          return res.status(stack.code).send(stack)
+        }
+
+        await Article.updateOne({ _id: id }, { [articleImageKey]: null })
+
+        return res.status(204).send()
       })
-    } catch (msg) {
-      return res.status(400).send(msg)
+    } catch (error) {
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
