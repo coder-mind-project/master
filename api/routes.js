@@ -51,6 +51,7 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .put(app.api.articles.articles.save)
     .get(app.api.articles.articles.getOne)
+    .delete(app.api.articles.articles.remove)
 
   app
     .route('/articles/:url')
@@ -60,16 +61,12 @@ module.exports = app => {
   app
     .route('/articles/management/:id')
     .all(app.config.authentication.passport.authenticate())
-    .delete(app.api.articles.articles.remove)
-    .patch(app.api.articles.articles.management)
     .get(app.api.articles.articles.getOne)
 
   app
-    .route('/articles/img/:id')
+    .route('/articles/images/:id')
     .all(app.config.authentication.passport.authenticate())
-    .post(multer.single('smallImg'), app.api.articles.articles.pushImage)
-    .patch(multer.single('mediumImg'), app.api.articles.articles.pushImage)
-    .put(multer.single('bigImg'), app.api.articles.articles.pushImage)
+    .post(app.api.articles.articles.saveImage)
     .delete(app.api.articles.articles.removeImage)
 
   app

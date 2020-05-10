@@ -1,6 +1,13 @@
 const Image = require('../../config/serialization/images.js')
 const MyDate = require('../../config/Date')
 
+const { s3, bucket, getBucketKeyFromUrl } = require('../../config/aws/s3')
+const multer = require('../../config/serialization/multers3')
+
+const uploadImg = multer.single('image')
+
+const { articleData } = require('../../config/environment')
+
 /**
  * @function
  * @module Articles
@@ -435,123 +442,232 @@ module.exports = app => {
     }
   }
 
+  /**
+   * @function
+   * @description Remove the article (sets the `removed` state to article)
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `id` the article id
+   */
   const remove = async (req, res) => {
-    /* Remove o artigo */
-
-    const id = req.params.id
-
     try {
-      if (!id) throw 'Artigo não encontrado'
+      const { id } = req.params
+      const { user } = req.user
 
       const article = await Article.findOne({ _id: id })
 
-      if (!article._id) throw 'Artigo não encontrado'
-      if (article.published) {
-        throw 'Artigos publicados não podem ser removidos, considere inativar o artigo'
+      if (!article) {
+        throw {
+          name: 'id',
+          description: 'Artigo não encontrado'
+        }
       }
 
-      const change = {
-        deleted: true
+      if (!user.tagAdmin && user._id !== article.userId) {
+        throw {
+          name: 'forbidden',
+          description: 'Acesso não autorizado'
+        }
       }
 
-      Article.updateOne({ _id: id }, change).then(() => res.status(204).send())
+      if (article.publishedAt) {
+        throw {
+          name: 'publishedAt',
+          description: 'Este artigo já foi publicado uma vez, não é possível removê-lo'
+        }
+      }
+
+      if (article.state === 'removed') {
+        throw {
+          name: 'state',
+          description: 'Este artigo já foi removido'
+        }
+      }
+
+      await Article.updateOne(
+        { _id: id },
+        {
+          state: 'removed',
+          removedAt: MyDate.setTimeZone('-3'),
+          customUri: articleData.defaultUri
+        }
+      )
+
+      return res.status(204).send()
     } catch (error) {
-      const stack = await errorManagementArticles(error)
-      return res.status(stack.code).send(stack.msg)
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
-  const management = async (req, res) => {
-    /*
-            Realiza o gerenciamento de artigos
-            Isto é, realiza a publicação, impulsionamento, inativação e
-            ativação dos artigos respectivamente.
-        */
+  const validateState = async (id, user, state) => {
+    const validStates = ['boosted', 'inactivated', 'published']
+    const isValidState = validStates.find(currentState => state === currentState)
 
-    const id = req.params.id
-    const operation = req.query.op || 'Operação não identificada'
-
-    try {
-      if (!id) throw 'Artigo não encontrado'
-
-      let result = false
-
-      switch (operation) {
-        case 'publish':
-          result = await publish(id)
-          break
-        case 'boost':
-          result = await boost(id)
-          break
-        case 'inactive':
-          result = await inactive(id)
-          break
-        case 'active':
-          result = await active(id)
-          break
-        default:
-          throw 'Nenhum método definido, consulte a documentação'
+    if (state === 'removed') {
+      throw {
+        name: 'state',
+        description: 'Para remover o artigo, utilize o método DELETE'
       }
+    }
 
-      if (!result._id) throw result
+    if (!isValidState) {
+      throw {
+        name: 'state',
+        description: 'Estado inválido'
+      }
+    }
 
-      return res.json(result)
+    const article = await Article.findOne({ _id: id })
+
+    if (!article) {
+      throw {
+        name: 'id',
+        description: 'Artigo não encontrado'
+      }
+    }
+
+    if (!user.tagAdmin && user._id !== article.userId) {
+      throw {
+        name: 'forbidden',
+        description: 'Acesso não autorizado'
+      }
+    }
+
+    if (article.state === state) {
+      throw {
+        name: 'state',
+        description: 'Este artigo já possui este estado aplicado'
+      }
+    }
+
+    /**
+     * Begin limit boosted articles validation
+     * @description Hard coded solution, limit boosted articles per author (not admin) user.
+     * @temporary
+     */
+
+    if (user.tagAuthor) {
+      const countBoostedArticles = await Article.countDocuments({ userId: user._id, state: 'boosted' })
+
+      if (countBoostedArticles > 1) {
+        throw {
+          name: 'state',
+          description: 'Limite de artigos impulsionados atingido'
+        }
+      }
+    }
+
+    /** End limit boosted articles validation */
+
+    const stateTimestamp = `${state}At`
+
+    return { article, stateTimestamp }
+  }
+
+  /**
+   * @function
+   * @description Change the Article current state. For remove the article, see `remove` resource.
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `id` the article id
+   * @middlewareParams {String} `state` the wanted state, allowed: `boosted`, `inactivated` and `published`
+   */
+  const changeState = async (req, res) => {
+    try {
+      const { id } = req.params
+      const { user } = req.user
+      const { state } = req.query
+
+      const { article, stateTimestamp } = await validateState(id, user, state)
+
+      await Article.updateOne({ _id: id }, { state, [stateTimestamp]: MyDate.setTimeZone('-3') })
+
+      return res.status(204).send()
     } catch (error) {
-      const stack = await errorManagementArticles(error)
-      return res.status(stack.code).send(stack.msg)
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
-  const pushImage = async (req, res) => {
-    /* Realiza o envio da(s) imagem(ns) do artigo */
-
+  /**
+   * @function
+   * @description Send the article image
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `id` the article id
+   * @middlewareParams {String} `type` the article image type, allowed: `logo`, `secondary` and `header`
+   */
+  const saveImage = async (req, res) => {
     try {
-      const _id = req.params.id
+      const { id } = req.params
+      const { type } = req.query
 
-      if (!_id) throw 'Artigo não encontrado'
+      const acceptbleImagesType = ['logo', 'secondary', 'header']
+      const isValidType = acceptbleImagesType.find(currentType => currentType === type)
 
-      let path = ''
-
-      switch (req.method) {
-        case 'POST': {
-          path = 'smallImg'
-          break
-        }
-        case 'PATCH': {
-          path = 'mediumImg'
-          break
-        }
-        case 'PUT': {
-          path = 'bigImg'
-          break
+      if (!isValidType) {
+        throw {
+          name: 'type',
+          description: 'Tipo de imagem inválido'
         }
       }
 
-      if (!path) {
-        throw 'Verbo não aceitável para este recurso, é razoável consultar a documentação'
+      const article = await Article.findOne({ _id: id })
+
+      if (!article) {
+        throw {
+          name: 'id',
+          description: 'Artigo não encontrado'
+        }
       }
 
-      const article = await Article.findOne({ _id })
-
-      if (!article) throw 'Artigo não encontrado'
-
-      const currentDirectory = article[path] || ''
-      const size = parseInt(req.query.size) || 512
-
-      if (req.file) {
-        Image.compressImage(req.file, size, currentDirectory).then(async newPath => {
-          const change = {
-            [path]: newPath
+      uploadImg(req, res, async err => {
+        if (err) {
+          const stack = {
+            code: 422,
+            name: 'uploadStream',
+            description: 'Ocorreu um erro ao salvar a imagem'
           }
-          await Article.updateOne({ _id }, change)
 
-          return res.status(200).send(newPath)
-        })
-      } else {
-        throw 'Ocorreu um erro ao salvar a imagem, se persistir reporte'
-      }
+          return res.status(stack.code).send(stack)
+        }
+
+        if (!req.file) {
+          const stack = {
+            code: 400,
+            name: 'image',
+            description: 'É necessário selecionar uma imagem'
+          }
+
+          return res.status(stack.code).send(stack)
+        }
+
+        const imgKey = `${type}Img`
+        const imgValue = req.file.location
+
+        if (article[imgKey]) {
+          const { status, key, error } = getBucketKeyFromUrl(article[imgKey])
+          if (!status) return
+
+          s3.deleteObject({ Bucket: bucket, Key: key }, (err, data) => {
+            if (err) {
+              // eslint-disable-next-line no-console
+              console.log(`Error on remove S3 object, Object key: ${key}\nStack: ${err}`)
+            }
+          })
+        }
+
+        await Article.updateOne({ _id: id }, { [imgKey]: imgValue })
+
+        return res.json({ [imgKey]: imgValue })
+      })
     } catch (error) {
-      return res.status(500).send(error)
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
@@ -771,9 +887,9 @@ module.exports = app => {
     get,
     getOne,
     save,
-    management,
+    changeState,
     remove,
-    pushImage,
+    saveImage,
     removeImage,
     getStatistics
   }
