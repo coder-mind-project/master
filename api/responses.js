@@ -341,77 +341,6 @@ module.exports = app => {
     return reformulatedError
   }
 
-  const errorArticle = error => {
-    const reformulatedError = {
-      code: 500,
-      msg: 'Ocorreu um erro desconhecido, se persistir reporte'
-    }
-
-    if (typeof error !== 'string') return reformulatedError
-    if (error.trim() === '') return reformulatedError
-
-    switch (error) {
-      case 'Informe um título para o artigo':
-      case 'Tema não informado':
-      case 'Breve descrição inválida':
-      case 'Máximo permitido 150 caracteres':
-      case 'Máximo permitido 300 caracteres':
-      case 'Corpo do artigo inválido':
-      case 'Já existe um artigo com este link personalizado, considere alterar-lo': {
-        reformulatedError.code = 400
-        break
-      }
-      case 'Autor não encontrado':
-      case 'URL não definida': {
-        reformulatedError.code = 404
-        break
-      }
-    }
-
-    reformulatedError.msg = error
-
-    return reformulatedError
-  }
-
-  const errorManagementArticles = error => {
-    const reformulatedError = {
-      code: 500,
-      msg: 'Ocorreu um erro desconhecido, se persistir reporte'
-    }
-
-    if (typeof error !== 'string') return reformulatedError
-    if (error.trim() === '') return reformulatedError
-
-    switch (error) {
-      case 'Artigo não encontrado': {
-        reformulatedError.code = 404
-        break
-      }
-      case 'Esse artigo já está publicado':
-      case 'Este artigo não está publicado, publique-o primeiro':
-      case 'Este artigo está inativo, não é possível impulsioná-lo':
-      case 'Este artigo já está impulsionado':
-      case 'Este artigo não está publicado, considere removê-lo':
-      case 'Este artigo já está ativo':
-      case 'Nenhum método definido, consulte a documentação':
-      case 'O id não foi reconhecido, forneça um identificador válido': {
-        reformulatedError.code = 400
-        break
-      }
-      case 'Artigos publicados não podem ser removidos, considere inativar o artigo':
-      case 'Esse artigo esta excluído, não é possível publicá-lo':
-      case 'Este artigo está excluído, não é possível impulsioná-lo':
-      case 'Esse artigo esta excluído, não é possível inativá-lo': {
-        reformulatedError.code = 410
-        break
-      }
-    }
-
-    reformulatedError.msg = error
-
-    return reformulatedError
-  }
-
   /**
    * @function
    * @description Manage error responses for Users module
@@ -729,8 +658,6 @@ module.exports = app => {
     redeemAccountError,
     commentError,
     articleError,
-    errorArticle,
-    errorManagementArticles,
     userError,
     errorView,
     notAcceptableResource,
