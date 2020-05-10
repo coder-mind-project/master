@@ -1,4 +1,3 @@
-const multer = require('../config/serialization/multer')
 const { isAdmin } = require('../config/authentication/accessLevel')
 
 /**
