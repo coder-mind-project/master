@@ -2,7 +2,7 @@ module.exports = app => {
   const getViews = app.api.articles.views.views.getCount
   const getLikes = app.api.articles.likes.likes.getStats
 
-  const { sincronizeViews, getChartViews } = app.api.articles.views.views
+  const { sincronizeViews } = app.api.articles.views.views
   // const { commentsJob } = app.api.articles.comments
   const { likesJob, getChartLikes } = app.api.articles.likes.likes
 
@@ -147,18 +147,5 @@ module.exports = app => {
     }
   }
 
-  const getArticleStatsForChart = async (req, res) => {
-    try {
-      const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
-
-      const views = await getChartViews(user)
-      const likes = await getChartLikes(user)
-
-      res.json({ views, likes })
-    } catch (error) {
-      res.status(500).send(error)
-    }
-  }
-
-  return { get, getStatsForChart, lastSincronization, sincronizeManually, getArticleStatsForChart }
+  return { get, getStatsForChart, lastSincronization, sincronizeManually }
 }

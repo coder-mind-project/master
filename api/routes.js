@@ -74,11 +74,6 @@ module.exports = app => {
     .delete(app.api.articles.articles.removeImage)
 
   app
-    .route('/articles/stats/:id')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.articles.getStatistics)
-
-  app
     .route('/articles/comments/:id')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.comments.comments.getComments)
@@ -216,11 +211,6 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.countStats.lastSincronization)
     .post(isAdmin(app.api.articles.countStats.sincronizeManually))
-
-  app
-    .route('/stats/articles')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.countStats.getArticleStatsForChart)
 
   app
     .route('/stats/authors')
