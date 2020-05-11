@@ -120,41 +120,120 @@ module.exports = app => {
     }
   }
 
-  const getViews = async (req, res) => {
-    /* Obtem as visualizações permitindo uma serie de filtros */
+  /**
+   * @function
+   * @description Get the views
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {Number} `page` - Current page.
+   * @middlewareParams {Number} `limit` - Current limit per page.
+   * @middlewareParams {String} `aid` - The Article identifier.
+   * @middlewareParams {String | Date} `db` - Date start for filter views.
+   * @middlewareParams {String | Date} `de` - Date end for filter views.
+   * @middlewareParams {String} `order` - The views list ordination by createdAt field, allowed: `asc` and `desc`. Default value = `desc`.
+   *
+   * @returns {Object} A object containing the `limit` and latest `views`.
+   */
+  const get = async (req, res) => {
     try {
-      let limit = parseInt(req.query.limit) || 10
+      let { page, limit, aid, db, de, order } = req.query
+      const { user } = req.user
 
-      const article = req.query.art || ''
-      const dateBegin = req.query.db
-        ? new Date(req.query.db)
-        : new Date(new Date().setFullYear(new Date().getFullYear() - 100))
-      const dateEnd = req.query.de
-        ? new Date(req.query.de)
-        : new Date(new Date().setFullYear(new Date().getFullYear() + 100))
+      limit = parseInt(limit) || 10
+      page = parseInt(page) || 1
 
-      const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
+      db = db ? new Date(db) : new Date(new Date().setFullYear(new Date().getFullYear() - 100)) // Hundred years ago
+      de = de ? new Date(de) : new Date(new Date().setFullYear(new Date().getFullYear() + 100)) // Hundred years later
 
-      if (limit > 10) limit = 10
+      if (limit > 100) limit = 10
+      if (page < 1) page = 1
 
-      const match = {
-        'article.title': { $regex: `${article}`, $options: 'i' },
-        startRead: {
-          $gte: dateBegin,
-          $lte: dateEnd
-        },
-        'article.author._id': user
+      if (aid) {
+        const isValidId = app.mongo.Types.ObjectId.isValid(aid)
+        if (!isValidId) {
+          throw {
+            name: 'aid',
+            description: 'Identificador inválido'
+          }
+        }
       }
 
-      if (!user) delete match['article.author._id']
+      let count = await View.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            accessCount: 1,
+            reader: 1,
+            articleId: 1,
+            article: { $arrayElemAt: ['$article', 0] },
+            createdAt: 1,
+            updatedAt: 1
+          }
+        },
+        {
+          $match: {
+            articleId: aid ? app.mongo.Types.ObjectId(aid) : { $ne: null },
+            createdAt: {
+              $gte: db,
+              $lte: de
+            },
+            'article.userId': app.mongo.Types.ObjectId(user._id)
+          }
+        }
+      ]).count('id')
 
-      View.aggregate([{ $match: match }, { $sort: { startRead: -1 } }])
+      count = count.length > 0 ? count.reduce(item => item).id : 0
+
+      const views = await View.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            accessCount: 1,
+            reader: 1,
+            articleId: 1,
+            article: { $arrayElemAt: ['$article', 0] },
+            createdAt: 1,
+            updatedAt: 1
+          }
+        },
+        {
+          $match: {
+            articleId: aid ? app.mongo.Types.ObjectId(aid) : { $ne: null },
+            createdAt: {
+              $gte: db,
+              $lte: de
+            },
+            'article.userId': app.mongo.Types.ObjectId(user._id)
+          }
+        },
+        {
+          $sort: {
+            createdAt: order === 'asc' ? 1 : -1
+          }
+        }
+      ])
+        .skip(page * limit - limit)
         .limit(limit)
-        .then(views => {
-          return res.json({ views })
-        })
+
+      return res.json({ views, count, limit })
     } catch (error) {
-      res.status(500).send(error)
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
     }
   }
 
@@ -380,5 +459,5 @@ module.exports = app => {
     return chartData
   }
 
-  return { getLatest, getStats, viewsJob, getViewsPerArticle, getViews, getChartViews }
+  return { get, getLatest, getStats, viewsJob, getViewsPerArticle, getChartViews }
 }
