@@ -8,13 +8,14 @@ const validator = require('mongoose-unique-validator')
 const like = new mongoose.Schema(
   {
     _id: { type: mongoose.Schema.ObjectId, auto: true },
-    reader: String,
-    article: Object,
-    confirmed: Boolean
+    reader: { type: String, required: true },
+    articleId: { type: mongoose.Schema.ObjectId, required: true },
+    active: { type: Boolean, required: true, default: true }
   },
   {
     timestamps: {
-      createdAt: 'created_at'
+      createdAt: 'createdAt',
+      updatedAt: 'updatedAt'
     }
   }
 )
