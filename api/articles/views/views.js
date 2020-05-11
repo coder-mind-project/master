@@ -300,15 +300,25 @@ module.exports = app => {
     }
   }
 
-  const getStats = async _id => {
-    /* Obtem a quantidade de visualizações mais atualizada da base de dados SQL */
+  /**
+   * @function
+   * @description Get views count in MySQL database [`views` table]
+   * @private
+   *
+   * @param {String} userId - The user Identifier on ObjectId format
+   *
+   * @returns {Object} A object containing the `status` of operation, the views `count`and `error` stack if occurs.
+   */
+  const getCount = async userId => {
     try {
-      const views = _id
-        ? await app.knex.select().from('views').where('reference', _id).orderBy('id', 'desc').first()
+      let count = userId
+        ? await app.knex.select().from('views').where('reference', userId).orderBy('id', 'desc').first()
         : await app.knex.select().from('views').whereNull('reference').orderBy('id', 'desc').first()
-      return { status: true, views }
+
+      count = count || 0
+      return { status: true, count, error: null }
     } catch (error) {
-      return { status: error, views: {} }
+      return { status: false, count: {}, error }
     }
   }
 
@@ -522,5 +532,5 @@ module.exports = app => {
     return chartData
   }
 
-  return { get, getLatest, getStats, viewsJob, getViewsPerArticle, getChartViews }
+  return { get, getLatest, getCount, viewsJob, getViewsPerArticle, getChartViews }
 }

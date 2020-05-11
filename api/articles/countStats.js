@@ -1,6 +1,5 @@
 module.exports = app => {
-  const getViews = app.api.articles.views.views.getStats
-  const getComments = app.api.articles.comments.getStats
+  const getViews = app.api.articles.views.views.getCount
   const getLikes = app.api.articles.likes.likes.getStats
 
   const { viewsJob, getChartViews } = app.api.articles.views.views
@@ -15,13 +14,12 @@ module.exports = app => {
 
       const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
 
-      const views = (await getViews(user)).views
-      const comments = (await getComments(user)).comments
+      const views = await getViews(user)
       const likes = (await getLikes(user)).likes
 
       const chartData = await getStatsForChart(year, user)
 
-      return res.json({ views, comments, likes, chartData })
+      return res.json({ views: views.count, likes, chartData })
     } catch (error) {
       return res.status(500).send('Ocorreu um erro ao obter as estatísticas, se persistir reporte')
     }
