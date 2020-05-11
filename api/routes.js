@@ -73,6 +73,11 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.comments.comments.getComments)
 
+  app
+    .route('/articles/views/latest')
+    .all(app.config.authentication.passport.authenticate())
+    .get(app.api.articles.views.views.getLatest)
+
   /**
    * @name Users
    * @description Users resources

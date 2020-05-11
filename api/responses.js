@@ -304,7 +304,8 @@ module.exports = app => {
           case 'Estado inválido':
           case 'Para remover o artigo, utilize o método DELETE':
           case 'É necessário enviar a imagem':
-          case 'Tipo de imagem inválido': {
+          case 'Tipo de imagem inválido':
+          case 'Tipo inválido': {
             reformulatedError.code = 400
             break
           }
