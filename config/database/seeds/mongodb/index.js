@@ -21,6 +21,7 @@ const seeder = require('mongoose-seed')
 const insertArticles = require('./insert_articles')
 const insertComments = require('./insert_comments')
 const insertViews = require('./insert_views')
+const insertLikes = require('./insert_likes')
 
 /**
  * @function
@@ -48,6 +49,14 @@ function views() {
 
 /**
  * @function
+ * @description Populate view collection (View seeds)
+ */
+function likes() {
+  insertLikes(seeder, url)
+}
+
+/**
+ * @function
  * @description Populate all available collections (All seeds)
  */
 function latest() {
@@ -64,7 +73,8 @@ function list() {
   Available collections: \n
   - articles
   - comments
-  - views\n
+  - views
+  - likes\n
   `)
 }
 
@@ -72,6 +82,7 @@ module.exports = {
   articles,
   comments,
   views,
+  likes,
   latest,
   list
 }
