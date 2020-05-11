@@ -322,48 +322,69 @@ module.exports = app => {
     }
   }
 
-  const viewsJob = async () => {
-    /* Responsável por migrar as informações de quantidade de visualizações da base NOSQL para SQL */
-
+  /**
+   * @function
+   * @description Sincronize views count (by user and general) between MongoDB and MySQL databases
+   * @private
+   */
+  const sincronizeViews = async () => {
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
     const firstDay = new Date(currentYear, currentMonth, 1)
     const lastDay = new Date(currentYear, currentMonth, 31)
 
-    // Estatísticas para cada usuário da plataforma
+    /** @description The Users `_id` list  */
+    const users = await User.find({ deletedAt: null }, { _id: 1 })
 
-    // Obter o arrays de _ids dos usuários
-    const users = await User.find({ deleted: false }, { _id: 1 })
-
-    // Percorre o array obtendo as views e inserindo as views no banco SQL
+    /** @description Iterate the Users list getting the views count on MongoDB and added on MySQL database */
     users.map(async user => {
-      const userViews = await View.countDocuments({
-        startRead: {
-          $gte: firstDay,
-          $lt: lastDay
+      let count = await View.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
         },
-        'article.author._id': user.id
-      })
+        {
+          $project: {
+            accessCount: 1,
+            reader: 1,
+            articleId: 1,
+            article: { $arrayElemAt: ['$article', 0] },
+            createdAt: 1,
+            updatedAt: 1
+          }
+        },
+        {
+          $match: {
+            'article.userId': app.mongo.Types.ObjectId(user._id),
+            createdAt: {
+              $gte: firstDay,
+              $lt: lastDay
+            }
+          }
+        }
+      ]).count('id')
 
-      await app
-        .knex('views')
-        .insert({ month: currentMonth + 1, count: userViews, year: currentYear, reference: user.id })
+      count = count.length > 0 ? count.reduce(item => item).id : 0
+
+      await app.knex('views').insert({ month: currentMonth + 1, count, year: currentYear, reference: user.id })
     })
 
-    /* Estatísticas gerais de plataforma */
-    const views = await View.countDocuments({
-      startRead: {
+    /** @description General views (including all users) */
+    const totalViews = await View.countDocuments({
+      createdAt: {
         $gte: firstDay,
         $lt: lastDay
       }
     })
 
-    app
-      .knex('views')
-      .insert({ month: currentMonth + 1, count: views, year: currentYear })
-      .then(() => {
-        console.log(`**CRON** | views updated at ${new Date()}`)
-      })
+    await app.knex('views').insert({ month: currentMonth + 1, count: totalViews, year: currentYear })
+
+    // eslint-disable-next-line no-console
+    console.log(`**CRON** | views updated at ${new Date()}`)
   }
 
   const getViewsPerArticle = async (article, page, limit) => {
@@ -409,43 +430,43 @@ module.exports = app => {
   const getViewsByArticle = async (user, limit) => {
     const views = user
       ? await View.aggregate([
-          {
-            $match: {
-              'article.author._id': user
-            }
-          },
-          {
-            $group: {
-              _id: '$article._id',
-              count: { $sum: 1 }
-            }
-          },
-          {
-            $lookup: {
-              from: 'articles',
-              localField: '_id',
-              foreignField: '_id',
-              as: 'article'
-            }
+        {
+          $match: {
+            'article.author._id': user
           }
-        ]).limit(limit)
+        },
+        {
+          $group: {
+            _id: '$article._id',
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $lookup: {
+            from: 'articles',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'article'
+          }
+        }
+      ]).limit(limit)
       : await View.aggregate([
-          { $match: {} },
-          {
-            $group: {
-              _id: '$article._id',
-              count: { $sum: 1 }
-            }
-          },
-          {
-            $lookup: {
-              from: 'articles',
-              localField: '_id',
-              foreignField: '_id',
-              as: 'article'
-            }
+        { $match: {} },
+        {
+          $group: {
+            _id: '$article._id',
+            count: { $sum: 1 }
           }
-        ]).limit(limit)
+        },
+        {
+          $lookup: {
+            from: 'articles',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'article'
+          }
+        }
+      ]).limit(limit)
 
     const data = await views.map(elem => {
       return {
@@ -475,37 +496,37 @@ module.exports = app => {
   const getViewsByAuthor = async (user, limit) => {
     const views = user
       ? await View.aggregate([
-          {
-            $group: {
-              _id: { $toObjectId: '$article.author._id' },
-              count: { $sum: 1 }
-            }
-          },
-          {
-            $lookup: {
-              from: 'users',
-              localField: '_id',
-              foreignField: '_id',
-              as: 'author'
-            }
+        {
+          $group: {
+            _id: { $toObjectId: '$article.author._id' },
+            count: { $sum: 1 }
           }
-        ]).limit(limit)
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'author'
+          }
+        }
+      ]).limit(limit)
       : await View.aggregate([
-          {
-            $group: {
-              _id: { $toObjectId: '$article.author._id' },
-              count: { $sum: 1 }
-            }
-          },
-          {
-            $lookup: {
-              from: 'users',
-              localField: '_id',
-              foreignField: '_id',
-              as: 'author'
-            }
+        {
+          $group: {
+            _id: { $toObjectId: '$article.author._id' },
+            count: { $sum: 1 }
           }
-        ]).limit(limit)
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'author'
+          }
+        }
+      ]).limit(limit)
 
     const data = await views.map(elem => {
       return {
@@ -532,5 +553,5 @@ module.exports = app => {
     return chartData
   }
 
-  return { get, getLatest, getCount, viewsJob, getViewsPerArticle, getChartViews }
+  return { get, getLatest, getCount, sincronizeViews, getViewsPerArticle, getChartViews }
 }
