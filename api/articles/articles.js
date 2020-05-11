@@ -20,7 +20,6 @@ module.exports = app => {
   const { articleError } = app.api.responses
 
   const { getLikesPerArticle } = app.api.articles.likes.likes
-  const { getCommentsPerArticle } = app.api.articles.comments
 
   /**
    * @function

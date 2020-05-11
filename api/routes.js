@@ -73,11 +73,6 @@ module.exports = app => {
     .post(app.api.articles.articles.saveImage)
     .delete(app.api.articles.articles.removeImage)
 
-  app
-    .route('/articles/comments/:id')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.comments.comments.getComments)
-
   /**
    * @name Users
    * @description Users resources
