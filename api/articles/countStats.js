@@ -2,7 +2,7 @@ module.exports = app => {
   const getViews = app.api.articles.views.views.getCount
   const getLikes = app.api.articles.likes.likes.getCount
 
-  const { sincronizeViews } = app.api.articles.views.views
+  const { synchronizeViews } = app.api.articles.views.views
   // const { commentsJob } = app.api.articles.comments
   const { synchronizeLikes, getChartLikes } = app.api.articles.likes.likes
 
@@ -135,7 +135,7 @@ module.exports = app => {
 
   const sincronizeManually = async (req, res) => {
     try {
-      await sincronizeViews()
+      await synchronizeViews()
       // await commentsJob()
       await synchronizeLikes()
 

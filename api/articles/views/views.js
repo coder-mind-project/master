@@ -324,10 +324,10 @@ module.exports = app => {
 
   /**
    * @function
-   * @description Sincronize views count (by user and general) between MongoDB and MySQL databases
+   * @description Synchronize views count (by user and general) between MongoDB and MySQL databases
    * @private
    */
-  const sincronizeViews = async () => {
+  const synchronizeViews = async () => {
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
     const firstDay = new Date(currentYear, currentMonth, 1)
@@ -337,7 +337,7 @@ module.exports = app => {
     const users = await User.find({ deletedAt: null }, { _id: 1 })
 
     /** @description Iterate the Users list getting the views count on MongoDB and added on MySQL database */
-    users.map(async user => {
+    const usersCount = users.map(async user => {
       let count = await View.aggregate([
         {
           $lookup: {
@@ -370,22 +370,27 @@ module.exports = app => {
 
       count = count.length > 0 ? count.reduce(item => item).id : 0
 
-      await app.knex('views').insert({ month: currentMonth + 1, count, year: currentYear, reference: user.id })
+      return { month: currentMonth + 1, count, year: currentYear, reference: user.id }
     })
 
-    /** @description General views (including all users) */
-    const totalViews = await View.countDocuments({
-      createdAt: {
-        $gte: firstDay,
-        $lt: lastDay
-      }
+    Promise.all(usersCount).then(async data => {
+      /** @description Insert views per user */
+      await app.knex('views').insert(data)
+
+      /** @description Insert general views (including all users) */
+      const totalViews = await View.countDocuments({
+        createdAt: {
+          $gte: firstDay,
+          $lt: lastDay
+        }
+      })
+
+      await app.knex('views').insert({ month: currentMonth + 1, count: totalViews, year: currentYear })
+
+      // eslint-disable-next-line no-console
+      console.log(`**CRON** | views updated at ${new Date()}`)
     })
-
-    await app.knex('views').insert({ month: currentMonth + 1, count: totalViews, year: currentYear })
-
-    // eslint-disable-next-line no-console
-    console.log(`**CRON** | views updated at ${new Date()}`)
   }
 
-  return { get, getLatest, getCount, sincronizeViews }
+  return { get, getLatest, getCount, synchronizeViews }
 }
