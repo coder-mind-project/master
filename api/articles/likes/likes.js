@@ -122,6 +122,69 @@ module.exports = app => {
 
   /**
    * @function
+   * @description Get likes count by article Id or user Id
+   * @private
+   *
+   * @param {String} type - Type of search, allowed: `user` and `article`
+   * @param {String} userId - The user Identifier on ObjectId format
+   * @param {String} articleId - The article Identifier on ObjectId format
+   *
+   * @returns {Object} A object containing the `status` of operation, the likes `count`and `error` stack if occurs.
+   */
+  const getCountRealTime = async (type, userId, articleId) => {
+    try {
+      const validTypes = ['user', 'article']
+      const isValidType = validTypes.find(currentType => currentType === type)
+
+      if (!isValidType) {
+        throw new Error(`The first parameter: "type" is ${type}, expected ${validTypes.toString()}`)
+      }
+
+      if (type === 'user' && !app.mongo.Types.ObjectId.isValid(userId)) {
+        throw new Error(`type of userId is ${typeof userId}, expected String on ObjectId format`)
+      }
+
+      if (type === 'article' && !app.mongo.Types.ObjectId.isValid(articleId)) {
+        throw new Error(`type of articleId is ${typeof articleId}, expected String on ObjectId format`)
+      }
+
+      let count = await Like.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            active: 1,
+            reader: 1,
+            articleId: 1,
+            article: { $arrayElemAt: ['$article', 0] },
+            createdAt: 1,
+            updatedAt: 1
+          }
+        },
+        {
+          $match: {
+            'article.userId': type === 'user' ? app.mongo.Types.ObjectId(userId) : { $ne: null },
+            articleId: type === 'article' ? app.mongo.Types.ObjectId(articleId) : { $ne: null }
+          }
+        }
+      ]).count('id')
+
+      count = count.length > 0 ? count.reduce(item => item).id : 0
+
+      return { status: true, count, error: null }
+    } catch (error) {
+      return { status: false, count: 0, error }
+    }
+  }
+
+  /**
+   * @function
    * @description Get likes count in MySQL database [`likes` table]
    * @private
    *
