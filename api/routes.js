@@ -56,6 +56,11 @@ module.exports = app => {
     .get(app.api.articles.views.views.getLatest)
 
   app
+    .route('/articles/likes/latest')
+    .all(app.config.authentication.passport.authenticate())
+    .get(app.api.articles.likes.likes.getLatest)
+
+  app
     .route('/articles/:id')
     .all(app.config.authentication.passport.authenticate())
     .put(app.api.articles.articles.save)
@@ -185,15 +190,6 @@ module.exports = app => {
     .route('/comments/answers/:id')
     .all(app.config.authentication.passport.authenticate())
     .put(app.api.articles.comments.comments.editAnswer)
-
-  /**
-   * @name Likes
-   * @description Likes resources
-   */
-  app
-    .route('/likes')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.likes.likes.getLastLikes)
 
   /**
    * @name Statistics
