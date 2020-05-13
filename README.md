@@ -1,10 +1,12 @@
 ![# Coder Mind](https://i.imgur.com/IKPFcHr.png)
 
+[![JavaScript Style Guide](https://cdn.rawgit.com/standard/standard/master/badge.svg)](https://github.com/standard/standard)
+
 ## Contact information:
 
 Owner: Coder Mind
 
-E-mail: awallan259@gmail.com
+E-mail: allan@codermind.com.br
 
 Latest release (development): https://master-develop.herokuapp.com
 
