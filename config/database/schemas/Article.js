@@ -24,15 +24,15 @@ const article = new mongoose.Schema(
     headerImg: { type: String, default: null },
     contentType: { type: String, required: true, enum: ['default', 'md'], default: 'default' },
     content: { type: String, default: null },
-    socialVideoType: { type: String, enum: ['youtube', 'other'], default: null },
+    socialVideoType: { type: String, enum: ['youtube', 'other', null], default: null },
     socialVideo: { type: String, default: null },
-    socialRepositoryType: { type: String, enum: ['github', 'gitlab', 'other'], default: null },
+    socialRepositoryType: { type: String, enum: ['github', 'gitlab', 'other', null], default: null },
     socialRepository: { type: String, default: null },
     customUri: {
       type: String,
       required: true,
       unique: true,
-      default: `${Date.now()}${Math.floor(Math.random() * 123555738)}`
+      default: () => `${Date.now()}${Math.floor(Math.random() * 123555738)}`
     },
     removedAt: { type: Date, default: null },
     inactivatedAt: { type: Date, default: null },
@@ -48,5 +48,10 @@ const article = new mongoose.Schema(
 )
 
 article.plugin(validator)
+article.pre('updateOne', function (next) {
+  this.options.runValidators = true
+  this.options.context = 'query'
+  next()
+})
 
 module.exports = mongoose.model('articles', article)

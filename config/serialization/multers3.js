@@ -13,6 +13,18 @@ const fileFilter = (req, file, cb) => {
   return cb(isAccepted ? null : new Error('Image type is invalid'), isAccepted)
 }
 
+const fileFolder = path => {
+  if (path.match('articles')) {
+    return 'articles/images/'
+  }
+
+  if (path.match('users')) {
+    return 'users/images/'
+  }
+
+  return ''
+}
+
 module.exports = multer({
   storage: multerS3({
     s3,
@@ -23,7 +35,7 @@ module.exports = multer({
       cb(null, { provider: 'master', poweredBy: 'codermind' })
     },
     key: (req, file, cb) => {
-      cb(null, Date.now().toString())
+      cb(null, `${fileFolder(req.route.path)}${Date.now().toString()}`)
     }
   }),
   fileFilter,

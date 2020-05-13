@@ -1,265 +1,396 @@
+/**
+ * @function
+ * @module Views
+ * @description Provide some middlewares functions.
+ * @param {Object} app - A app Object provided by consign.
+ * @returns {Object} Containing some middleware functions.
+ */
 module.exports = app => {
-    
-    const { View, User } = app.config.database.schemas.mongoose
+  const { View, User } = app.config.database.schemas.mongoose
+  const { articleError } = app.api.responses
 
+  /**
+   * @function
+   * @description Get the last views by `article` or `author`
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `type` - Search type, allowed: by userId (`user`) and articleId (`article`).
+   * @middlewareParams {Number} `limit` - Current view limit by request.
+   * @middlewareParams {String} `id` - Article or User identifier.
+   *
+   * @returns {Object} A object containing the `limit` and latest `views`.
+   */
+  const getLatest = async (req, res) => {
+    try {
+      const { user } = req.user
+      let { limit, type, id } = req.query
 
-    const lastViews = (req, res) => {
-        /** Obtem as ultimas visualizações dos artigos [FUNÇÃO NÃO UTILIZADA] */
-        try {
-            const limit = parseInt(req.query.limit) || 10
+      const validTypes = ['user', 'article']
+      const isValidType = validTypes.find(currentType => currentType === type)
 
-            if(limit > 10) limit = 10
-
-            View.aggregate([
-                {$sort: {startRead: -1}}
-            ]).limit(limit).then(response => res.json({views: response, limit}))
-
-        } catch (error) {
-            return res.status(500).send('Ocorreu um erro ao obter as visualizações')
+      if (!isValidType) {
+        throw {
+          name: 'type',
+          description: 'Tipo inválido'
         }
-    }
+      }
 
-    const getViews = async (req, res) => {
-        /* Obtem as visualizações permitindo uma serie de filtros */
-        try {
-            let limit = parseInt(req.query.limit) || 10
+      const idIsValid = app.mongo.Types.ObjectId.isValid(id)
 
-            const article = req.query.art || ''
-            const dateBegin = req.query.db ? new Date(req.query.db) : new Date(new Date().setFullYear(new Date().getFullYear() - 100))
-            const dateEnd = req.query.de ? new Date(req.query.de) : new Date(new Date().setFullYear(new Date().getFullYear() + 100))
-
-            const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
-
-            if(limit > 10) limit = 10
-
-            const match = {   
-                'article.title': {$regex: `${article}`, $options: 'i'},
-                startRead: {
-                    $gte: dateBegin,
-                    $lte: dateEnd
-                },
-                'article.author._id': user
-            }
-
-            if(!user) delete match['article.author._id']
-
-            View.aggregate([
-                {$match: match}, 
-                {$sort: {startRead: -1}}
-            ]).limit(limit).then(views => {
-                return res.json({views})
-            })
-            
-        } catch (error) {
-            res.status(500).send(error)
+      if (!idIsValid) {
+        throw {
+          name: 'id',
+          description: 'Identificador inválido'
         }
-    }
+      }
 
-    const getStats = async (_id) => {
-        /* Obtem a quantidade de visualizações mais atualizada da base de dados SQL */
-        try {
-            const views = _id ? await app.knex.select().from('views').where('reference', _id).orderBy('id', 'desc').first() : await app.knex.select().from('views').whereNull('reference').orderBy('id', 'desc').first()
-            return {status: true, views}
-        } catch (error) {
-            return {status: error, views: {}}
+      if (!user.tagAdmin && user._id !== id) {
+        throw {
+          name: 'forbidden',
+          description: 'Acesso não autorizado'
         }
-    }
+      }
 
-    const viewsJob = async () => {
-        /* Responsável por migrar as informações de quantidade de visualizações da base NOSQL para SQL */
+      limit = parseInt(limit) || 10
 
-        const currentMonth = (new Date().getMonth())
-        const currentYear = (new Date().getFullYear())
-        const firstDay = new Date(currentYear, currentMonth, 1)
-        const lastDay = new Date(currentYear, currentMonth, 31)
+      if (limit > 100) limit = 10
 
-        
-        // Estatísticas para cada usuário da plataforma
-        
-        // Obter o arrays de _ids dos usuários
-        const users = await User.find({deleted: false}, {_id: 1})
-        
-        // Percorre o array obtendo as views e inserindo as views no banco SQL
-        users.map(async user => {
-            const userViews = await View.countDocuments(
-                {startRead: {
-                    '$gte': firstDay,
-                    '$lt': lastDay
-                },
-                'article.author._id': user.id
-            })
-            
-            await app.knex('views').insert({month: currentMonth + 1, count: userViews, year: currentYear, reference: user.id})
-        })
-
-        
-        /* Estatísticas gerais de plataforma */
-        const views = await View.countDocuments({startRead: {
-            '$gte': firstDay,
-            '$lt': lastDay
-        }})
-
-        app.knex('views').insert({month: currentMonth + 1, count: views, year: currentYear}).then( () => {
-            console.log(`**CRON** | views updated at ${new Date()}`)
-        })
-
-        
-    }
-
-    const getViewsPerArticle = async (article, page, limit) => {
-        /* Obtem as estatisticas de visualização por um artigo especifico */
-        try {
-
-            if(!page) page = 1
-            if(!limit || limit > 100) limit = 10
-            
-            const count =  await View.find({'article._id': article._id}).countDocuments()
-            const views =  await View.aggregate([
-                {$match: {
-                    'article._id':  article._id,
-                }},
-                {$sort: {startRead: -1}}
-            ]).skip(page * limit - limit).limit(limit)
-
-            return {status: true, views, count}
-        } catch (error) {
-            return {status: false, views: [], count: 0}
+      let count = await View.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            accessCount: 1,
+            reader: 1,
+            article: { $arrayElemAt: ['$article', 0] },
+            createdAt: 1,
+            updatedAt: 1
+          }
+        },
+        {
+          $match: {
+            'article.userId': type === 'user' ? app.mongo.Types.ObjectId(user._id) : { $ne: null }
+          }
         }
-    }
+      ]).count('id')
 
-    const getChartViews = async (user = null, limit = 10) => {
-        try {
-            const viewsByArticle = await getViewsByArticle(user, limit)
-            const viewsByAuthor = await getViewsByAuthor(user, limit)
+      count = count.length > 0 ? count.reduce(item => item).id : 0
 
-            const data = {
-                byArticle: viewsByArticle,
-                byAuthor: viewsByAuthor
-            }
-
-
-            return data
-        } catch (error) {
-            throw error
+      const views = await View.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            accessCount: 1,
+            reader: 1,
+            article: { $arrayElemAt: ['$article', 0] },
+            createdAt: 1,
+            updatedAt: 1
+          }
+        },
+        {
+          $match: {
+            'article.userId': type === 'user' ? app.mongo.Types.ObjectId(user._id) : { $ne: null }
+          }
+        },
+        {
+          $sort: {
+            createdAt: -1
+          }
         }
-    }
+      ]).limit(limit)
 
-    const getViewsByArticle = async (user, limit) => {
-        
-        const views = user ? await View.aggregate([
-            {$match: {
-                'article.author._id': user
-            }},
-            {$group: 
-                {   _id:  "$article._id",
-                    count: {$sum: 1},
-                }
+      return res.json({ views, count, limit })
+    } catch (error) {
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Get the views
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {Number} `page` - Current page.
+   * @middlewareParams {Number} `limit` - Current limit per page.
+   * @middlewareParams {String} `aid` - The Article identifier.
+   * @middlewareParams {String | Date} `db` - Date start for filter views.
+   * @middlewareParams {String | Date} `de` - Date end for filter views.
+   * @middlewareParams {String} `order` - The views list ordination by createdAt field, allowed: `asc` and `desc`. Default value = `desc`.
+   *
+   * @returns {Object} A object containing the `limit` and latest `views`.
+   */
+  const get = async (req, res) => {
+    try {
+      let { page, limit, aid, db, de, order } = req.query
+      const { user } = req.user
+
+      limit = parseInt(limit) || 10
+      page = parseInt(page) || 1
+
+      db = db ? new Date(db) : new Date(new Date().setFullYear(new Date().getFullYear() - 100)) // Hundred years ago
+      de = de ? new Date(de) : new Date(new Date().setFullYear(new Date().getFullYear() + 100)) // Hundred years later
+
+      if (limit > 100) limit = 10
+      if (page < 1) page = 1
+
+      if (aid) {
+        const isValidId = app.mongo.Types.ObjectId.isValid(aid)
+        if (!isValidId) {
+          throw {
+            name: 'aid',
+            description: 'Identificador inválido'
+          }
+        }
+      }
+
+      let count = await View.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            accessCount: 1,
+            reader: 1,
+            articleId: 1,
+            article: { $arrayElemAt: ['$article', 0] },
+            createdAt: 1,
+            updatedAt: 1
+          }
+        },
+        {
+          $match: {
+            articleId: aid ? app.mongo.Types.ObjectId(aid) : { $ne: null },
+            createdAt: {
+              $gte: db,
+              $lte: de
             },
-            {$lookup: 
-                {
-                    from: "articles",
-                    localField: "_id",
-                    foreignField: "_id",
-                    as: "article"
-                }
-            }
-        ]).limit(limit) : await View.aggregate([
-            {$match: {}},
-            {$group: 
-                {   _id:  "$article._id",
-                    count: {$sum: 1}
-                }
+            'article.userId': app.mongo.Types.ObjectId(user._id)
+          }
+        }
+      ]).count('id')
+
+      count = count.length > 0 ? count.reduce(item => item).id : 0
+
+      const views = await View.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            accessCount: 1,
+            reader: 1,
+            articleId: 1,
+            article: { $arrayElemAt: ['$article', 0] },
+            createdAt: 1,
+            updatedAt: 1
+          }
+        },
+        {
+          $match: {
+            articleId: aid ? app.mongo.Types.ObjectId(aid) : { $ne: null },
+            createdAt: {
+              $gte: db,
+              $lte: de
             },
-            {$lookup: 
-                {
-                    from: "articles",
-                    localField: "_id",
-                    foreignField: "_id",
-                    as: "article"
-                }
-            }
-        ]).limit(limit)
-
-        const data = await views.map( elem => {
-            return {
-                _id: elem._id,
-                title: elem.article[0].title,
-                article: elem.article[0],
-                quantity: elem.count
-            }
-        })
-
-        let chartData = {
-            articles: [],
-            articleId: [],
-            views: [],
-            originalData: data 
+            'article.userId': app.mongo.Types.ObjectId(user._id)
+          }
+        },
+        {
+          $sort: {
+            createdAt: order === 'asc' ? 1 : -1
+          }
         }
+      ])
+        .skip(page * limit - limit)
+        .limit(limit)
 
-        for (let i = 0; i < data.length; i++) {
-            chartData.articles.push(data[i].title)
-            chartData.articleId.push(data[i]._id)
-            chartData.views.push(data[i].quantity)
-        }
-
-        return chartData
+      return res.json({ views, count, limit })
+    } catch (error) {
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
     }
+  }
 
-    const getViewsByAuthor = async (user, limit) => {
-        const views = user ? await View.aggregate([
-            {$group: 
-                {   _id:  {$toObjectId: "$article.author._id"},
-                    count: {$sum: 1}
-                }
-            },
-            {$lookup: 
-                {
-                    from: "users",
-                    localField: "_id",
-                    foreignField: "_id",
-                    as: "author"
-                }
-            }
-        ]).limit(limit) : await View.aggregate([
-            {$group: 
-                {   _id:  {$toObjectId: "$article.author._id"},
-                    count: {$sum: 1}
-                }
-            },
-            {$lookup: 
-                {
-                    from: "users",
-                    localField: "_id",
-                    foreignField: "_id",
-                    as: "author"
-                }
-            }
-        ]).limit(limit)
+  /**
+   * @function
+   * @description Get views count by article Id or user Id
+   * @private
+   *
+   * @param {String} type - Type of search, allowed: `user` and `article`
+   * @param {String} userId - The user Identifier on ObjectId format
+   * @param {String} articleId - The article Identifier on ObjectId format
+   *
+   * @returns {Object} A object containing the `status` of operation, the views `count`and `error` stack if occurs.
+   */
+  const getCountRealTime = async (type, userId, articleId) => {
+    try {
+      const validTypes = ['user', 'article']
+      const isValidType = validTypes.find(currentType => currentType === type)
 
-        const data = await views.map( elem => {
-            return {
-                _id: elem._id,
-                name: elem.author[0].name,
-                author: elem.author[0],
-                quantity: elem.count
-            }
-        })
+      if (!isValidType) {
+        throw new Error(`The first parameter: "type" is ${type}, expected ${validTypes.toString()}`)
+      }
 
-        let chartData = {
-            authors: [],
-            authorId: [],
-            views: [],
-            originalData: data 
+      if (type === 'user' && !app.mongo.Types.ObjectId.isValid(userId)) {
+        throw new Error(`type of userId is ${typeof userId}, expected String on ObjectId format`)
+      }
+
+      if (type === 'article' && !app.mongo.Types.ObjectId.isValid(articleId)) {
+        throw new Error(`type of articleId is ${typeof articleId}, expected String on ObjectId format`)
+      }
+
+      let count = await View.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            accessCount: 1,
+            reader: 1,
+            articleId: 1,
+            article: { $arrayElemAt: ['$article', 0] },
+            createdAt: 1,
+            updatedAt: 1
+          }
+        },
+        {
+          $match: {
+            'article.userId': type === 'user' ? app.mongo.Types.ObjectId(userId) : { $ne: null },
+            articleId: type === 'article' ? app.mongo.Types.ObjectId(articleId) : { $ne: null }
+          }
         }
+      ]).count('id')
 
-        for (let i = 0; i < data.length; i++) {
-            chartData.authors.push(data[i].author.name)
-            chartData.authorId.push(data[i]._id)
-            chartData.views.push(data[i].quantity)
-        }
+      count = count.length > 0 ? count.reduce(item => item).id : 0
 
-        return chartData
+      return { status: true, count, error: null }
+    } catch (error) {
+      return { status: false, count: 0, error }
     }
-    
-    return {getStats , viewsJob, lastViews, getViewsPerArticle, getViews, getChartViews}
+  }
+
+  /**
+   * @function
+   * @description Get views count in MySQL database [`views` table]
+   * @private
+   *
+   * @param {String} userId - The user Identifier on ObjectId format
+   *
+   * @returns {Object} A object containing the `status` of operation, the views `count`and `error` stack if occurs.
+   */
+  const getCount = async userId => {
+    try {
+      let count = userId
+        ? await app.knex.select().from('views').where('reference', userId).orderBy('id', 'desc').first()
+        : await app.knex.select().from('views').whereNull('reference').orderBy('id', 'desc').first()
+
+      count = count || 0
+      return { status: true, count, error: null }
+    } catch (error) {
+      return { status: false, count: {}, error }
+    }
+  }
+
+  /**
+   * @function
+   * @description Synchronize views count (by user and general) between MongoDB and MySQL databases
+   * @private
+   */
+  const synchronizeViews = async () => {
+    const currentMonth = new Date().getMonth()
+    const currentYear = new Date().getFullYear()
+    const firstDay = new Date(currentYear, currentMonth, 1)
+    const lastDay = new Date(currentYear, currentMonth, 31)
+
+    /** @description The Users `_id` list  */
+    const users = await User.find({ deletedAt: null }, { _id: 1 })
+
+    /** @description Iterate the Users list getting the views count on MongoDB and added on MySQL database */
+    const usersCount = users.map(async user => {
+      let count = await View.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            accessCount: 1,
+            reader: 1,
+            articleId: 1,
+            article: { $arrayElemAt: ['$article', 0] },
+            createdAt: 1,
+            updatedAt: 1
+          }
+        },
+        {
+          $match: {
+            'article.userId': app.mongo.Types.ObjectId(user._id),
+            createdAt: {
+              $gte: firstDay,
+              $lt: lastDay
+            }
+          }
+        }
+      ]).count('id')
+
+      count = count.length > 0 ? count.reduce(item => item).id : 0
+
+      return { month: currentMonth + 1, count, year: currentYear, reference: user.id }
+    })
+
+    Promise.all(usersCount).then(async data => {
+      /** @description Insert views per user */
+      await app.knex('views').insert(data)
+
+      /** @description Insert general views (including all users) */
+      const totalViews = await View.countDocuments({
+        createdAt: {
+          $gte: firstDay,
+          $lt: lastDay
+        }
+      })
+
+      await app.knex('views').insert({ month: currentMonth + 1, count: totalViews, year: currentYear })
+
+      // eslint-disable-next-line no-console
+      console.log(`**CRON** | views updated at ${new Date()}`)
+    })
+  }
+
+  return { get, getLatest, getCount, synchronizeViews }
 }

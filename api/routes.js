@@ -1,4 +1,3 @@
-const multer = require('../config/serialization/multer')
 const { isAdmin } = require('../config/authentication/accessLevel')
 
 /**
@@ -44,8 +43,34 @@ module.exports = app => {
     .route('/articles')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.articles.get)
-    .post(app.api.articles.articles.save)
+    .post(app.api.articles.articles.create)
+
+  app
+    .route('/articles/views')
+    .all(app.config.authentication.passport.authenticate())
+    .get(app.api.articles.views.views.get)
+
+  app
+    .route('/articles/views/latest')
+    .all(app.config.authentication.passport.authenticate())
+    .get(app.api.articles.views.views.getLatest)
+
+  app
+    .route('/articles/likes')
+    .all(app.config.authentication.passport.authenticate())
+    .get(app.api.articles.likes.likes.get)
+
+  app
+    .route('/articles/likes/latest')
+    .all(app.config.authentication.passport.authenticate())
+    .get(app.api.articles.likes.likes.getLatest)
+
+  app
+    .route('/articles/:id')
+    .all(app.config.authentication.passport.authenticate())
     .put(app.api.articles.articles.save)
+    .get(app.api.articles.articles.getOne)
+    .delete(app.api.articles.articles.remove)
 
   app
     .route('/articles/:url')
@@ -53,29 +78,10 @@ module.exports = app => {
     .get(app.api.articles.articles.getOne)
 
   app
-    .route('/articles/management/:id')
+    .route('/articles/images/:id')
     .all(app.config.authentication.passport.authenticate())
-    .delete(app.api.articles.articles.remove)
-    .patch(app.api.articles.articles.management)
-    .get(app.api.articles.articles.getOneById)
-
-  app
-    .route('/articles/img/:id')
-    .all(app.config.authentication.passport.authenticate())
-    .post(multer.single('smallImg'), app.api.articles.articles.pushImage)
-    .patch(multer.single('mediumImg'), app.api.articles.articles.pushImage)
-    .put(multer.single('bigImg'), app.api.articles.articles.pushImage)
+    .post(app.api.articles.articles.saveImage)
     .delete(app.api.articles.articles.removeImage)
-
-  app
-    .route('/articles/stats/:id')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.articles.getStatistics)
-
-  app
-    .route('/articles/comments/:id')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.comments.comments.getComments)
 
   /**
    * @name Users
@@ -191,21 +197,6 @@ module.exports = app => {
     .put(app.api.articles.comments.comments.editAnswer)
 
   /**
-   * @name Views
-   * @description Views resources
-   */
-  app.route('/views').all(app.config.authentication.passport.authenticate()).get(app.api.articles.views.views.getViews)
-
-  /**
-   * @name Likes
-   * @description Likes resources
-   */
-  app
-    .route('/likes')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.likes.likes.getLastLikes)
-
-  /**
    * @name Statistics
    * @description Statistics resources
    */
@@ -216,11 +207,6 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.countStats.lastSincronization)
     .post(isAdmin(app.api.articles.countStats.sincronizeManually))
-
-  app
-    .route('/stats/articles')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.countStats.getArticleStatsForChart)
 
   app
     .route('/stats/authors')

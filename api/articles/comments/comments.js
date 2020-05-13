@@ -1584,103 +1584,6 @@ module.exports = app => {
       })
   }
 
-  // ===================================================================== //
-  // Comment statistics below
-  // Refactor later
-
-  /**
-   * @function
-   * @needsUpdate
-   */
-  const getStats = async _id => {
-    try {
-      const comments = await getCommentsStats(_id)
-      return { status: true, comments }
-    } catch (error) {
-      return { status: error, comments: {} }
-    }
-  }
-
-  /**
-   * @function
-   * @needsUpdate
-   */
-  const getCommentsStats = async _id => {
-    let results = []
-
-    if (_id) {
-      results = await app.knex.select().from('comments').where('reference', _id).orderBy('id', 'desc').first()
-    } else {
-      results = await app.knex.select().from('comments').whereNull('reference').orderBy('id', 'desc').first()
-    }
-
-    return results
-  }
-
-  /**
-   * @function
-   * @needsUpdate
-   */
-  const getCommentsPerArticle = async (article, page, limit) => {
-    try {
-      if (!page) page = 1
-      if (!limit || limit > 100) limit = 10
-
-      const count = await Comment.find({
-        'article._id': { $regex: `${article._id}`, $options: 'i' },
-        answerOf: null
-      }).countDocuments()
-      const comments = await Comment.aggregate([
-        {
-          $match: {
-            'article._id': { $regex: `${article._id}`, $options: 'i' },
-            answerOf: null
-          }
-        },
-        { $sort: { startRead: -1 } }
-      ])
-        .skip(page * limit - limit)
-        .limit(limit)
-
-      return { status: true, comments, count }
-    } catch (error) {
-      return { status: false, comments: [], count: 0 }
-    }
-  }
-
-  /**
-   * @function
-   * @needsUpdate
-   */
-  const getComments = async (req, res) => {
-    try {
-      const page = parseInt(req.query.page) || 1
-      let limit = parseInt(req.query.limit) || 10
-
-      if (limit > 100) limit = 10
-
-      const _id = req.params.id
-
-      const article = await Article.findOne({ _id })
-
-      const result = await getCommentsPerArticle(article, page, limit)
-
-      if (result.status) {
-        const comments = result.comments
-        const count = result.count
-
-        return res.json({ comments, count })
-      } else {
-        throw 'Ocorreu um erro ao encontrar os comentários'
-      }
-    } catch (error) {
-      return res.status(500).send(error)
-    }
-  }
-
-  // End comment statistics
-  // ========================================================= //
-
   return {
     get,
     readComment,
@@ -1690,9 +1593,6 @@ module.exports = app => {
     getById,
     getHistory,
     commentsJob,
-    getStats,
-    getCommentsPerArticle,
-    getComments,
     disableComment,
     enableComment
   }

@@ -90,6 +90,10 @@ const captcha = {
   secretKey: process.env.CAPTCHA_SECRET_KEY
 }
 
+const articleData = {
+  defaultUri: `${Date.now()}${Math.floor(Math.random() * 123555738)}`
+}
+
 /**
  * @module EnvironmentVariables
  * @description Exports environments variable for all application.
@@ -172,5 +176,7 @@ module.exports = {
     url: captcha.url,
     siteKey: captcha.siteKey,
     secretKey: captcha.secretKey
-  }
+  },
+
+  articleData
 }

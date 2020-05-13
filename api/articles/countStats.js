@@ -1,11 +1,10 @@
 module.exports = app => {
-  const getViews = app.api.articles.views.views.getStats
-  const getComments = app.api.articles.comments.getStats
-  const getLikes = app.api.articles.likes.likes.getStats
+  const getViews = app.api.articles.views.views.getCount
+  const getLikes = app.api.articles.likes.likes.getCount
 
-  const { viewsJob, getChartViews } = app.api.articles.views.views
-  const { commentsJob } = app.api.articles.comments
-  const { likesJob, getChartLikes } = app.api.articles.likes.likes
+  const { synchronizeViews } = app.api.articles.views.views
+  // const { commentsJob } = app.api.articles.comments
+  const { synchronizeLikes } = app.api.articles.likes.likes
 
   const defineMonthDescribed = require('../../config/validation')().defineMonthDescribed
 
@@ -15,13 +14,12 @@ module.exports = app => {
 
       const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
 
-      const views = (await getViews(user)).views
-      const comments = (await getComments(user)).comments
-      const likes = (await getLikes(user)).likes
+      const views = await getViews(user)
+      const likes = await getLikes(user)
 
       const chartData = await getStatsForChart(year, user)
 
-      return res.json({ views, comments, likes, chartData })
+      return res.json({ views: views.count, likes: likes.count, chartData })
     } catch (error) {
       return res.status(500).send('Ocorreu um erro ao obter as estatísticas, se persistir reporte')
     }
@@ -137,9 +135,9 @@ module.exports = app => {
 
   const sincronizeManually = async (req, res) => {
     try {
-      await viewsJob()
-      await commentsJob()
-      await likesJob()
+      await synchronizeViews()
+      // await commentsJob()
+      await synchronizeLikes()
 
       const response = await getLastSincronization()
 
@@ -149,18 +147,5 @@ module.exports = app => {
     }
   }
 
-  const getArticleStatsForChart = async (req, res) => {
-    try {
-      const user = req.user.user.tagAdmin && req.user.user.platformStats ? null : req.user.user._id
-
-      const views = await getChartViews(user)
-      const likes = await getChartLikes(user)
-
-      res.json({ views, likes })
-    } catch (error) {
-      res.status(500).send(error)
-    }
-  }
-
-  return { get, getStatsForChart, lastSincronization, sincronizeManually, getArticleStatsForChart }
+  return { get, getStatsForChart, lastSincronization, sincronizeManually }
 }

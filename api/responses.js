@@ -254,74 +254,91 @@ module.exports = app => {
     return reformulatedError
   }
 
-  const errorArticle = error => {
+  /**
+   * @function
+   * @description Manage error responses for Articles module
+   * @param {Object} stack - A raw Error stack
+   * @returns {Object} - A refined Error stack
+   *
+   * @forModule Article
+   */
+  const articleError = stack => {
+    let pending = ''
     const reformulatedError = {
       code: 500,
       msg: 'Ocorreu um erro desconhecido, se persistir reporte'
     }
 
-    if (typeof error !== 'string') return reformulatedError
-    if (error.trim() === '') return reformulatedError
+    switch (stack.name) {
+      case 'CastError': {
+        if (stack.kind === 'ObjectId') {
+          pending = stack.path
+          reformulatedError.msg = 'Identificador inválido'
+        }
 
-    switch (error) {
-      case 'Informe um título para o artigo':
-      case 'Tema não informado':
-      case 'Breve descrição inválida':
-      case 'Máximo permitido 150 caracteres':
-      case 'Máximo permitido 300 caracteres':
-      case 'Corpo do artigo inválido':
-      case 'Já existe um artigo com este link personalizado, considere alterar-lo': {
         reformulatedError.code = 400
         break
       }
-      case 'Autor não encontrado':
-      case 'URL não definida': {
-        reformulatedError.code = 404
+      case 'ValidationError': {
+        const errors = Object.keys(stack.errors)
+        if (!errors.length) {
+          pending = 'InternalError'
+        } else {
+          const { path, value } = stack.errors[errors[0]]
+          pending = path
+          reformulatedError.msg = `O valor '${value}' não é um valor enumerável válido`
+
+          reformulatedError.code = 400
+        }
         break
+      }
+      default: {
+        const { name, description } = stack
+
+        switch (description) {
+          case 'É necessário incluir um titulo ao artigo':
+          case 'É necessário adicionar um tema antes de incluir uma categoria':
+          case 'É necessário incluir um endereço personalizado válido':
+          case 'Identificador inválido':
+          case 'Este artigo já foi publicado uma vez, não é possível removê-lo':
+          case 'Estado inválido':
+          case 'Para remover o artigo, utilize o método DELETE':
+          case 'É necessário enviar a imagem':
+          case 'Tipo de imagem inválido':
+          case 'Tipo inválido': {
+            reformulatedError.code = 400
+            break
+          }
+          case 'Não é possível alterar o artigo de outro autor':
+          case 'Acesso não autorizado, somente administradores podem visualizar artigos de outros autores':
+          case 'Acesso não autorizado': {
+            reformulatedError.code = 403
+            break
+          }
+          case 'Artigo não encontrado': {
+            reformulatedError.code = 404
+            break
+          }
+          case 'Limite de artigos impulsionados atingido': {
+            reformulatedError.code = 406
+            break
+          }
+          case 'Este artigo já foi removido':
+          case 'Este artigo já possui este estado aplicado': {
+            reformulatedError.code = 410
+            break
+          }
+          default: {
+            reformulatedError.code = 500
+          }
+        }
+
+        pending = name
+        reformulatedError.msg = description
       }
     }
 
-    reformulatedError.msg = error
-
-    return reformulatedError
-  }
-
-  const errorManagementArticles = error => {
-    const reformulatedError = {
-      code: 500,
-      msg: 'Ocorreu um erro desconhecido, se persistir reporte'
-    }
-
-    if (typeof error !== 'string') return reformulatedError
-    if (error.trim() === '') return reformulatedError
-
-    switch (error) {
-      case 'Artigo não encontrado': {
-        reformulatedError.code = 404
-        break
-      }
-      case 'Esse artigo já está publicado':
-      case 'Este artigo não está publicado, publique-o primeiro':
-      case 'Este artigo está inativo, não é possível impulsioná-lo':
-      case 'Este artigo já está impulsionado':
-      case 'Este artigo não está publicado, considere removê-lo':
-      case 'Este artigo já está ativo':
-      case 'Nenhum método definido, consulte a documentação':
-      case 'O id não foi reconhecido, forneça um identificador válido': {
-        reformulatedError.code = 400
-        break
-      }
-      case 'Artigos publicados não podem ser removidos, considere inativar o artigo':
-      case 'Esse artigo esta excluído, não é possível publicá-lo':
-      case 'Este artigo está excluído, não é possível impulsioná-lo':
-      case 'Esse artigo esta excluído, não é possível inativá-lo': {
-        reformulatedError.code = 410
-        break
-      }
-    }
-
-    reformulatedError.msg = error
-
+    reformulatedError[pending] = 'pending'
     return reformulatedError
   }
 
@@ -641,8 +658,7 @@ module.exports = app => {
     authError,
     redeemAccountError,
     commentError,
-    errorArticle,
-    errorManagementArticles,
+    articleError,
     userError,
     errorView,
     notAcceptableResource,
