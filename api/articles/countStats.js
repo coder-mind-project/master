@@ -4,7 +4,7 @@ module.exports = app => {
 
   const { sincronizeViews } = app.api.articles.views.views
   // const { commentsJob } = app.api.articles.comments
-  const { likesJob, getChartLikes } = app.api.articles.likes.likes
+  const { synchronizeLikes, getChartLikes } = app.api.articles.likes.likes
 
   const defineMonthDescribed = require('../../config/validation')().defineMonthDescribed
 
@@ -137,7 +137,7 @@ module.exports = app => {
     try {
       await sincronizeViews()
       // await commentsJob()
-      await likesJob()
+      await synchronizeLikes()
 
       const response = await getLastSincronization()
 

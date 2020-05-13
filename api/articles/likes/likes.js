@@ -142,46 +142,74 @@ module.exports = app => {
     }
   }
 
-  const likesJob = async () => {
+  /**
+   * @function
+   * @description Synchronize likes count (by user and general) between MongoDB and MySQL databases
+   * @private
+   */
+  const synchronizeLikes = async () => {
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
     const firstDay = new Date(currentYear, currentMonth, 1)
     const lastDay = new Date(currentYear, currentMonth, 31)
 
-    // Estatísticas para cada usuário da plataforma
+    /** @description The Users `_id` list  */
+    const users = await User.find({ deletedAt: null }, { _id: 1 })
 
-    // Obter o arrays de _ids dos usuários
-    const users = await User.find({ deleted: false }, { _id: 1 })
+    /** @description Iterate the Users list getting the likes count on MongoDB and added on MySQL database */
+    const usersCount = users.map(async user => {
+      let count = await Like.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'articleId',
+            foreignField: '_id',
+            as: 'article'
+          }
+        },
+        {
+          $project: {
+            active: 1,
+            reader: 1,
+            articleId: 1,
+            article: { $arrayElemAt: ['$article', 0] },
+            createdAt: 1,
+            updatedAt: 1
+          }
+        },
+        {
+          $match: {
+            'article.userId': app.mongo.Types.ObjectId(user._id),
+            createdAt: {
+              $gte: firstDay,
+              $lt: lastDay
+            }
+          }
+        }
+      ]).count('id')
 
-    // Percorre o array obtendo as views e inserindo as views no banco SQL
-    users.map(async user => {
-      const userLikes = await Like.countDocuments({
-        created_at: {
+      count = count.length > 0 ? count.reduce(item => item).id : 0
+
+      return { month: currentMonth + 1, count, year: currentYear, reference: user.id }
+    })
+
+    Promise.all(usersCount).then(async data => {
+      /** @description Insert likes per user */
+      await app.knex('likes').insert(data)
+
+      /** @description Insert general likes (including all users) */
+      const totalLikes = await Like.countDocuments({
+        createdAt: {
           $gte: firstDay,
           $lt: lastDay
-        },
-        'article.author._id': user.id
+        }
       })
 
-      await app
-        .knex('likes')
-        .insert({ month: currentMonth + 1, count: userLikes, year: currentYear, reference: user.id })
-    })
+      await app.knex('likes').insert({ month: currentMonth + 1, count: totalLikes, year: currentYear })
 
-    /* Estatísticas gerais de plataforma */
-    const likes = await Like.countDocuments({
-      created_at: {
-        $gte: firstDay,
-        $lt: lastDay
-      }
+      // eslint-disable-next-line no-console
+      console.log(`**CRON** | likes updated at ${new Date()}`)
     })
-
-    app
-      .knex('likes')
-      .insert({ month: currentMonth + 1, count: likes, year: currentYear })
-      .then(() => {
-        console.log(`**CRON** | likes updated at ${new Date()}`)
-      })
   }
 
   const getLikesPerArticle = async article => {
@@ -319,5 +347,5 @@ module.exports = app => {
     return chartData
   }
 
-  return { getLatest, getCount, likesJob, getLikesPerArticle, getChartLikes }
+  return { getLatest, getCount, synchronizeLikes, getLikesPerArticle, getChartLikes }
 }
