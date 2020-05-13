@@ -19,8 +19,6 @@ module.exports = app => {
   const { exists } = app.config.validation
   const { articleError } = app.api.responses
 
-  const { getLikesPerArticle } = app.api.articles.likes.likes
-
   /**
    * @function
    * @description Create an article

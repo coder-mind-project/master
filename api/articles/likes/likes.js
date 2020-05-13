@@ -212,32 +212,6 @@ module.exports = app => {
     })
   }
 
-  const getLikesPerArticle = async article => {
-    try {
-      const count = await Like.find({ 'article._id': { $regex: `${article._id}`, $options: 'i' } }).countDocuments()
-
-      return { status: true, count }
-    } catch (error) {
-      return { status: false, count: 0 }
-    }
-  }
-
-  const getChartLikes = async (user = null, limit = 10) => {
-    try {
-      const likesByArticle = await getLikesByArticle(user, limit)
-      const likesByAuthor = await getLikesByAuthor(limit)
-
-      const data = {
-        byArticle: likesByArticle,
-        byAuthor: likesByAuthor
-      }
-
-      return data
-    } catch (error) {
-      throw error
-    }
-  }
-
   const getLikesByArticle = async (user, limit) => {
     const likes = user
       ? await Like.aggregate([
@@ -304,48 +278,5 @@ module.exports = app => {
     return chartData
   }
 
-  const getLikesByAuthor = async limit => {
-    const likes = await Like.aggregate([
-      {
-        $group: {
-          _id: { $toObjectId: '$article.author._id' },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'author'
-        }
-      }
-    ]).limit(limit)
-
-    const data = await likes.map(elem => {
-      return {
-        _id: elem._id,
-        name: elem.author[0].name,
-        author: elem.author[0],
-        quantity: elem.count
-      }
-    })
-
-    const chartData = {
-      authors: [],
-      authorId: [],
-      likes: [],
-      originalData: data
-    }
-
-    for (let i = 0; i < data.length; i++) {
-      chartData.authors.push(data[i].author.name)
-      chartData.authorId.push(data[i]._id)
-      chartData.likes.push(data[i].quantity)
-    }
-
-    return chartData
-  }
-
-  return { getLatest, getCount, synchronizeLikes, getLikesPerArticle, getChartLikes }
+  return { getLatest, getCount, synchronizeLikes }
 }

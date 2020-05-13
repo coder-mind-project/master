@@ -4,7 +4,7 @@ module.exports = app => {
 
   const { synchronizeViews } = app.api.articles.views.views
   // const { commentsJob } = app.api.articles.comments
-  const { synchronizeLikes, getChartLikes } = app.api.articles.likes.likes
+  const { synchronizeLikes } = app.api.articles.likes.likes
 
   const defineMonthDescribed = require('../../config/validation')().defineMonthDescribed
 
