@@ -56,6 +56,11 @@ module.exports = app => {
     .get(app.api.articles.views.views.getLatest)
 
   app
+    .route('/articles/likes')
+    .all(app.config.authentication.passport.authenticate())
+    .get(app.api.articles.likes.likes.get)
+
+  app
     .route('/articles/likes/latest')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.likes.likes.getLatest)
