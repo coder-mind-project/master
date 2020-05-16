@@ -83,7 +83,7 @@ module.exports = app => {
 
     const currentArticle = await Article.findOne({ _id: id })
 
-    if (user._id !== currentArticle.userId) {
+    if (user._id !== currentArticle.userId.toString()) {
       throw {
         name: 'forbidden',
         description: 'Não é possível alterar o artigo de outro autor'
