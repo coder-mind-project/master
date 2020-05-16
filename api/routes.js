@@ -69,6 +69,7 @@ module.exports = app => {
     .route('/articles/:id')
     .all(app.config.authentication.passport.authenticate())
     .put(app.api.articles.articles.save)
+    .patch(app.api.articles.articles.changeState)
     .get(app.api.articles.articles.getOne)
     .delete(app.api.articles.articles.remove)
 
