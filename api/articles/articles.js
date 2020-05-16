@@ -15,7 +15,7 @@ const { articleData } = require('../../config/environment')
  * @returns {Object} Containing some middleware functions.
  */
 module.exports = app => {
-  const { Article } = app.config.database.schemas.mongoose
+  const { Article, Category, Theme } = app.config.database.schemas.mongoose
   const { exists } = app.config.validation
   const { articleError } = app.api.responses
 
@@ -83,17 +83,55 @@ module.exports = app => {
 
     const currentArticle = await Article.findOne({ _id: id })
 
-    if (user._id !== currentArticle.userId) {
+    if (user._id !== currentArticle.userId.toString()) {
       throw {
         name: 'forbidden',
         description: 'Não é possível alterar o artigo de outro autor'
       }
     }
 
-    if (article.categoryId && !currentArticle.themeId) {
-      throw {
-        name: 'categoryId',
-        description: 'É necessário adicionar um tema antes de incluir uma categoria'
+    if (article.themeId) {
+      const theme = await Theme.findOne({ _id: article.themeId, state: 'active' })
+
+      if (!theme) {
+        throw {
+          name: 'themeId',
+          description: 'Tema não encontrado'
+        }
+      }
+    }
+
+    if (article.categoryId) {
+      if (!currentArticle.themeId && !article.themeId) {
+        throw {
+          name: 'categoryId',
+          description: 'É necessário adicionar um tema antes de incluir uma categoria'
+        }
+      }
+
+      const category = await Category.findOne({ _id: article.categoryId, state: 'active' })
+
+      if (!category) {
+        throw {
+          name: 'categoryId',
+          description: 'Categoria não encontrada'
+        }
+      }
+
+      const theme = await Theme.findOne({ _id: category.themeId, state: 'active' })
+
+      if (!theme) {
+        throw {
+          name: 'categoryId',
+          description: 'Esta categoria possui o tema associado desativado'
+        }
+      }
+
+      if (article.themeId && theme._id.toString() !== article.themeId) {
+        throw {
+          name: 'themeId',
+          description: 'Este tema não esta associado a categoria informada'
+        }
       }
     }
 
@@ -732,6 +770,33 @@ module.exports = app => {
     }
   }
 
+  /**
+   * @function
+   * @description Checks the articles existing by name
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `title` The article title
+   *
+   * @returns {Object} An object containing a flag that show if exists articles and your quantity
+   */
+  const existingArticlesByTitle = async (req, res) => {
+    try {
+      const { title } = req.body
+      const { user } = req.user
+
+      const articlesCount = await Article.countDocuments({
+        title: { $regex: `${title.trim()}`, $options: 'i' },
+        userId: user._id
+      })
+
+      return res.json({ existArticles: Boolean(articlesCount), quantity: articlesCount })
+    } catch (error) {
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
   return {
     create,
     get,
@@ -740,6 +805,7 @@ module.exports = app => {
     changeState,
     remove,
     saveImage,
-    removeImage
+    removeImage,
+    existingArticlesByTitle
   }
 }

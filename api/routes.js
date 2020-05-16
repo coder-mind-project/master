@@ -44,6 +44,7 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.articles.get)
     .post(app.api.articles.articles.create)
+    .patch(app.api.articles.articles.existingArticlesByTitle)
 
   app
     .route('/articles/views')
@@ -69,6 +70,7 @@ module.exports = app => {
     .route('/articles/:id')
     .all(app.config.authentication.passport.authenticate())
     .put(app.api.articles.articles.save)
+    .patch(app.api.articles.articles.changeState)
     .get(app.api.articles.articles.getOne)
     .delete(app.api.articles.articles.remove)
 

@@ -7,9 +7,9 @@ const schedule = require('node-schedule')
  * @param {Object} app - A app Object provided by consign.
  */
 module.exports = app => {
-  const { sincronizeViews } = app.api.articles.views.views
+  const { synchronizeViews } = app.api.articles.views.views
   // const { commentsJob } = app.api.articles.comments.comments
-  const { likesJob } = app.api.articles.likes.likes
+  const { synchronizeLikes } = app.api.articles.likes.likes
 
   const { validateFirstLoginTime, writeRemovedUsers } = app.api.users.users
 
@@ -20,7 +20,7 @@ module.exports = app => {
    * @param {Function} - A callback to run job.
    */
   schedule.scheduleJob('00 01 * * *', () => {
-    sincronizeViews()
+    synchronizeViews()
   })
 
   /**
@@ -40,7 +40,7 @@ module.exports = app => {
    * @param {Function} - A callback to run job.
    */
   schedule.scheduleJob('00 03 * * *', () => {
-    likesJob()
+    synchronizeLikes()
   })
 
   /**
