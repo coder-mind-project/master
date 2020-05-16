@@ -305,7 +305,8 @@ module.exports = app => {
           case 'Para remover o artigo, utilize o método DELETE':
           case 'É necessário enviar a imagem':
           case 'Tipo de imagem inválido':
-          case 'Tipo inválido': {
+          case 'Tipo inválido':
+          case 'Este tema não esta associado a categoria informada': {
             reformulatedError.code = 400
             break
           }
@@ -315,7 +316,9 @@ module.exports = app => {
             reformulatedError.code = 403
             break
           }
-          case 'Artigo não encontrado': {
+          case 'Artigo não encontrado':
+          case 'Tema não encontrado':
+          case 'Categoria não encontrada': {
             reformulatedError.code = 404
             break
           }
@@ -324,7 +327,8 @@ module.exports = app => {
             break
           }
           case 'Este artigo já foi removido':
-          case 'Este artigo já possui este estado aplicado': {
+          case 'Este artigo já possui este estado aplicado':
+          case 'Esta categoria possui o tema associado desativado': {
             reformulatedError.code = 410
             break
           }

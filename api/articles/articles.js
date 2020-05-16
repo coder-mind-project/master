@@ -15,7 +15,7 @@ const { articleData } = require('../../config/environment')
  * @returns {Object} Containing some middleware functions.
  */
 module.exports = app => {
-  const { Article } = app.config.database.schemas.mongoose
+  const { Article, Category, Theme } = app.config.database.schemas.mongoose
   const { exists } = app.config.validation
   const { articleError } = app.api.responses
 
@@ -90,10 +90,48 @@ module.exports = app => {
       }
     }
 
-    if (article.categoryId && !currentArticle.themeId) {
-      throw {
-        name: 'categoryId',
-        description: 'É necessário adicionar um tema antes de incluir uma categoria'
+    if (article.themeId) {
+      const theme = await Theme.findOne({ _id: article.themeId, state: 'active' })
+
+      if (!theme) {
+        throw {
+          name: 'themeId',
+          description: 'Tema não encontrado'
+        }
+      }
+    }
+
+    if (article.categoryId) {
+      if (!currentArticle.themeId && !article.themeId) {
+        throw {
+          name: 'categoryId',
+          description: 'É necessário adicionar um tema antes de incluir uma categoria'
+        }
+      }
+
+      const category = await Category.findOne({ _id: article.categoryId, state: 'active' })
+
+      if (!category) {
+        throw {
+          name: 'categoryId',
+          description: 'Categoria não encontrada'
+        }
+      }
+
+      const theme = await Theme.findOne({ _id: category.themeId, state: 'active' })
+
+      if (!theme) {
+        throw {
+          name: 'categoryId',
+          description: 'Esta categoria possui o tema associado desativado'
+        }
+      }
+
+      if (article.themeId && theme._id.toString() !== article.themeId) {
+        throw {
+          name: 'themeId',
+          description: 'Este tema não esta associado a categoria informada'
+        }
       }
     }
 
