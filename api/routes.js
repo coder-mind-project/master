@@ -44,6 +44,7 @@ module.exports = app => {
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.articles.get)
     .post(app.api.articles.articles.create)
+    .patch(app.api.articles.articles.existingArticlesByTitle)
 
   app
     .route('/articles/views')

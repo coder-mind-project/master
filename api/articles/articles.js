@@ -770,6 +770,33 @@ module.exports = app => {
     }
   }
 
+  /**
+   * @function
+   * @description Checks the articles existing by name
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `title` The article title
+   *
+   * @returns {Object} An object containing a flag that show if exists articles and your quantity
+   */
+  const existingArticlesByTitle = async (req, res) => {
+    try {
+      const { title } = req.body
+      const { user } = req.user
+
+      const articlesCount = await Article.countDocuments({
+        title: { $regex: `${title.trim()}`, $options: 'i' },
+        userId: user._id
+      })
+
+      return res.json({ existArticles: Boolean(articlesCount), quantity: articlesCount })
+    } catch (error) {
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
   return {
     create,
     get,
@@ -778,6 +805,7 @@ module.exports = app => {
     changeState,
     remove,
     saveImage,
-    removeImage
+    removeImage,
+    existingArticlesByTitle
   }
 }
