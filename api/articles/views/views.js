@@ -137,7 +137,7 @@ module.exports = app => {
    */
   const get = async (req, res) => {
     try {
-      let { page, limit, aid, db, de, order } = req.query
+      let { page, limit, aId, db, de, order } = req.query
       const { user } = req.user
 
       limit = parseInt(limit) || 10
@@ -149,11 +149,11 @@ module.exports = app => {
       if (limit > 100) limit = 10
       if (page < 1) page = 1
 
-      if (aid) {
-        const isValidId = app.mongo.Types.ObjectId.isValid(aid)
+      if (aId) {
+        const isValidId = app.mongo.Types.ObjectId.isValid(aId)
         if (!isValidId) {
           throw {
-            name: 'aid',
+            name: 'aId',
             description: 'Identificador inválido'
           }
         }
@@ -180,7 +180,7 @@ module.exports = app => {
         },
         {
           $match: {
-            articleId: aid ? app.mongo.Types.ObjectId(aid) : { $ne: null },
+            articleId: aId ? app.mongo.Types.ObjectId(aId) : { $ne: null },
             createdAt: {
               $gte: db,
               $lte: de
@@ -213,7 +213,7 @@ module.exports = app => {
         },
         {
           $match: {
-            articleId: aid ? app.mongo.Types.ObjectId(aid) : { $ne: null },
+            articleId: aId ? app.mongo.Types.ObjectId(aId) : { $ne: null },
             createdAt: {
               $gte: db,
               $lte: de
