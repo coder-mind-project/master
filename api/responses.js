@@ -306,7 +306,9 @@ module.exports = app => {
           case 'É necessário enviar a imagem':
           case 'Tipo de imagem inválido':
           case 'Tipo inválido':
-          case 'Este tema não esta associado a categoria informada': {
+          case 'Este tema não esta associado a categoria informada':
+          case 'Para o título somente é permitido nomes de até 100 caracteres':
+          case 'É necessário informar um titulo para realizar a consulta': {
             reformulatedError.code = 400
             break
           }
