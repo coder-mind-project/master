@@ -1,4 +1,8 @@
-/node_modules
-/public/imgs/*.webp
-/.vscode
 .env
+
+/node_modules
+/.vscode
+
+/public/imgs/*.webp
+/public/imgs/*/*.webp
+

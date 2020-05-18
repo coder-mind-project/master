@@ -1,228 +1,210 @@
 const jwt = require('jwt-simple')
-const { authSecret, issuer } = require('../../.env')
-const rp = require('request-promise')
-const nodemailer = require('nodemailer')
+const { SECRET_AUTH_PACKAGE, issuer } = require('../../config/environment')
+const captcha = require('../../config/recaptcha/captcha.js')
 
+/**
+ *  @function
+ *  @module Auth
+ *  @description Manage authentications.
+ *  @param {Object} app - A app Object provided by consign.
+ *  @returns {Object} Containing some functions for provide authentication.
+ */
 module.exports = app => {
+  const { exists } = app.config.validation
 
-    // Validações de dados
-    const { validateEmail, exists, validateCpf } = app.config.validation
+  const { User } = app.config.database.schemas.mongoose
 
-    // Mongoose Model para usuarios
-    const { User } = app.config.mongooseModels
+  const { encryptAuth } = app.config.secrets
 
-    // Configurações extras
-    const { encryptAuth, decryptAuth } = app.config.secrets
+  const { authError } = app.api.responses
 
-    const { SMTP_SERVER, PORT, SECURE, USER, PASSWORD } = app.config.mailer
+  /**
+   * @function
+   * @description Realize authentications.
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @returns {Object} A User Object representation + jwt token.
+   *
+   * @middlewareParams {Object} Localizated in Body request, must contain email, password and response attributes.
+   */
+  const signIn = async (req, res) => {
+    try {
+      const request = { ...req.body }
 
+      const { secret } = SECRET_AUTH_PACKAGE
 
-    const { validateTokenManagement, signInError } = app.config.managementHttpResponse
+      const response = await captcha.verify(request.response)
 
-    const { secret_key, uri } = app.config.captcha
-
-    const signIn = async (req, res) => {
-        /* Realiza a autenticação do usuário no sistema */
-
-        try {
-            const request = {...req.body}
-
-            const url = `${uri}?secret=${secret_key}&response=${request.response}`
-            
-            await rp({method: 'POST', uri: url, json: true}).then( response => {
-                if(!response.success) throw 'Captcha inválido'
-            })
-
-            validateEmail(request.email, 'E-mail inválido')
-            exists(request.password, 'É necessário informar uma senha')
-
-            const user = await User.findOne({email: request.email})
-
-            if(!user) throw 'Não encontramos um cadastro com estas credenciais'
-            if(user.deleted) throw 'Sua conta esta suspensa, em caso de reinvidicação entre em contato com o administrador do sistema'
-
-            const password = await encryptAuth(request.password)
-
-            if(user.password === password) {
-
-                user.password = null
-
-                const now = Math.floor(Date.now() / 1000)
-                const tenDaysLater = (60*60*24*10)
-
-                const payload = {
-                    iss: issuer,
-                    iat: now,
-                    exp: now + tenDaysLater,
-                    user: {
-                        _id: user._id,
-                        name: user.name,
-                        email: user.email,
-                        tagAdmin: user.tagAdmin,
-                        tagAuthor: user.tagAuthor
-                    }
-                }
-
-                return res.json({
-                    token: jwt.encode(payload, authSecret),
-                    user
-                })
-            }
-            else throw 'Senha incorreta, esqueceu sua senha?'
-
-        } catch (error) {
-            error = await signInError(error)
-            return res.status(error.code).send(error.msg)
+      if (!response.success) {
+        throw {
+          name: 'recaptcha',
+          description: 'Captcha inválido'
         }
+      }
+
+      exists(request.email, {
+        name: 'emailOrUsername',
+        description: 'É necessário informar um e-mail ou username'
+      })
+
+      exists(request.password, {
+        name: 'password',
+        description: 'É necessário informar uma senha'
+      })
+
+      const countUsers = await User.countDocuments({ deletedAt: null })
+
+      // prettier-ignore
+      const user = countUsers
+        ? await User.findOne({ email: request.email })
+        : await app.knex
+          .select()
+          .from('users')
+          .where('username', request.email)
+          .orWhere('email', request.email)
+          .first()
+
+      if (!user) {
+        throw {
+          name: 'authentication',
+          description: 'E-mail ou senha inválidos'
+        }
+      }
+
+      if (user.deletedAt) {
+        throw {
+          name: 'authentication',
+          description:
+            'Sua conta esta suspensa, em caso de reinvidicação entre em contato com o administrador do sistema'
+        }
+      }
+
+      const password = await encryptAuth(request.password)
+
+      if (user.password === password) {
+        if (!user.firstLoginAt && countUsers) {
+          const today = new Date()
+          const result = await User.updateOne({ _id: user._id }, { firstLoginAt: today })
+          if (result.nModified) user.firstLoginAt = today
+        }
+
+        user.password = null
+
+        const now = Math.floor(Date.now() / 1000)
+        const tenDaysLater = 60 * 60 * 24 * 10
+
+        const payload = {
+          iss: issuer,
+          iat: now,
+          exp: now + tenDaysLater,
+          user: {
+            _id: user._id || user.id,
+            name: user.name,
+            email: user.email,
+            tagAdmin: user.tagAdmin,
+            tagAuthor: user.tagAuthor,
+            platformStats: Boolean(user.platformStats)
+          }
+        }
+        return res.json({
+          token: jwt.encode(payload, secret),
+          user
+        })
+      } else {
+        throw {
+          name: 'authentication',
+          description: 'E-mail ou senha inválidos'
+        }
+      }
+    } catch (error) {
+      const stack = await authError(error)
+      return res.status(stack.code).send(stack)
     }
+  }
 
-    const validateToken = async (req, res) =>{
-        /* Valida o token de acesso */
+  /**
+   * @function
+   * @description Validate passport token.
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @returns {Object} A User Object representation + jwt token.
+   *
+   * @middlewareParams {Object} Localizated in Body request, must contain token attribute.
+   */
+  const validateToken = async (req, res) => {
+    try {
+      let token = { ...req.body }.token
+      const { secret } = SECRET_AUTH_PACKAGE
 
-        var token = null
-        var payload = null
+      const payload = token ? await jwt.decode(token, secret) : {}
 
-        try {
-            const token = {...req.body}.token
+      if (payload.iss !== issuer) {
+        throw {
+          name: 'issuer',
+          description: 'Acesso não autorizado'
+        }
+      }
 
-            if(token){
-                payload = await jwt.decode(token, authSecret)
-            }else{
-                throw 'Acesso não autorizado'
-            }
+      if (!payload.user) {
+        throw {
+          name: 'user',
+          description: 'Acesso não autorizado'
+        }
+      }
 
-        } catch (error) {
-            return res.status(401).send('Acesso não autorizado')
+      const origin = isNaN(payload.user._id)
+
+      // prettier-ignore
+      let user = origin
+        ? await User.findOne({ _id: payload.user._id, deletedAt: null })
+        : await app.knex
+          .select()
+          .from('users')
+          .where('id', payload.user._id)
+          .first()
+
+      if (user && (user._id || user.id)) {
+        if (payload.user.email !== user.email) {
+          throw {
+            name: 'changedEmail',
+            description: 'Acesso não autorizado, seu e-mail de acesso foi alterado.'
+          }
         }
 
-        try {
-                const user = payload.user
-                
-                if(payload.iss !== issuer) throw 'Acesso não autorizado'
-
-                const exist = await User.findOne({_id: user._id, deleted: false})
-                
-                if(exist && exist._id) {
-
-                    if( payload.exp - Math.floor(Date.now() / 1000) < (60 * 60 * 24 * 2)){
-                        payload.exp = (60*60*24*10)
-                        token = await jwt.encode(payload, authSecret)
-                    }
-
-                    exist.password = null
-
-                    return res.json({
-                        token,
-                        user: exist
-                    })
-                }else{
-                    throw 'Acesso não autorizado'
-                } 
-
-        } catch (error) {
-            error = await validateTokenManagement(error)
-            return res.status(error.code).send(error.msg)
+        if (payload.exp - Math.floor(Date.now() / 1000) < 60 * 60 * 24 * 2) {
+          payload.exp = 60 * 60 * 24 * 10
+          token = jwt.encode(payload, secret)
         }
 
+        if (!origin) {
+          user._id = user.id
+          delete user.id
+        }
+
+        user = user.toObject({
+          transform: (doc, ret) => {
+            delete ret.password
+            return ret
+          }
+        })
+
+        return res.json({
+          token,
+          user
+        })
+      } else {
+        throw {
+          name: 'unauthorized',
+          description: 'Acesso não autorizado'
+        }
+      }
+    } catch (error) {
+      const stack = await authError(error)
+      return res.status(stack.code).send(stack)
     }
+  }
 
-    const redeemPerEmail = async (req, res) => {
-        try {
-            const request = {...req.body}
-
-            const url = `${uri}?secret=${secret_key}&response=${request.response}`
-            
-            await rp({method: 'POST', uri: url, json: true}).then( response => {
-                if(!response.success) throw 'Captcha inválido'
-            })
-
-            validateEmail(request.email, 'E-mail inválido')
-
-            const user = await User.findOne({email: request.email})
-
-            if(!user) throw 'Não encontramos uma conta com este e-mail, tem certeza que seu e-mail está certo?'
-
-            const password = await decryptAuth(user.password)
-
-            const transport = {
-                host: SMTP_SERVER,
-                port: PORT,
-                secure: SECURE,
-                auth: {
-                    user: USER,
-                    pass: PASSWORD
-                }
-            }
-
-            const transporter = nodemailer.createTransport(transport)
-
-            const mail = {
-                from: `"Agente Coder Mind" <${USER}>`,
-                to: request.email,
-                subject: 'RECUPERAÇÃO DE SENHA | Coder Mind',
-                text: `Olá ${user.name}, segue sua senha: ${password}`,
-                html: `<b>Olá ${user.name}, segue sua senha: ${password}</b>`,
-            }
-            
-            const info = await transporter.sendMail(mail)
-
-            if(info.messageId) return res.status(200).send('Enviamos um e-mail para você, as próximas instruções estarão por lá =D')
-            else throw 'Ocorreu um erro ao enviar o e-mail'
-
-        } catch (error) {
-            return res.status(500).send(error)
-        }
-    }
-
-    const redeemPerMoreInformations = async (req, res) => {
-        try {
-            const request = {...req.body}
-
-            const url = `${uri}?secret=${secret_key}&response=${request.response}`
-            
-            await rp({method: 'POST', uri: url, json: true}).then( response => {
-                if(!response.success) throw 'Captcha inválido'
-            })
-
-            validateCpf(request.cpf, 'CPF inválido')
-            exists(request.celphone, 'Número de celular inválido')
-            
-            const user = await User.findOne({cpf: request.cpf, celphone: request.celphone})
-
-            if(!user) throw 'Não foi possível verificar sua autenticidade, tente novamente ou entre em contato com o administrador do sistema'
-
-            const email = user.email
-            const password = await decryptAuth(user.password)
-
-            const transport = {
-                host: SMTP_SERVER,
-                port: PORT,
-                secure: SECURE,
-                auth: {
-                    user: USER,
-                    pass: PASSWORD
-                }
-            }
-
-            const transporter = nodemailer.createTransport(transport)
-
-            const mail = {
-                from: `"Agente Coder Mind" <${USER}>`,
-                to: email,
-                subject: 'RECUPERAÇÃO DE SENHA | Coder Mind',
-                text: `Olá ${user.name}, segue sua senha: ${password}`,
-                html: `<b>Olá ${user.name}, segue sua senha: ${password}</b>`,
-            }
-            
-            const info = await transporter.sendMail(mail)
-
-            if(info.messageId) return res.status(200).send(`Verificamos suas informações, entre no seu endereço de email: ${email} , enviaremos sua senha por lá =D`)
-            else throw 'Ocorreu um erro ao enviar o e-mail'
-
-        } catch (error) {
-            return res.status(500).send(error)
-        }
-    }
-
-    return {signIn, validateToken, redeemPerEmail, redeemPerMoreInformations}
+  return { signIn, validateToken }
 }
