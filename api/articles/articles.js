@@ -37,6 +37,13 @@ module.exports = app => {
         description: 'É necessário incluir um titulo ao artigo'
       })
 
+      if (title.length > 100) {
+        throw {
+          name: 'title',
+          description: 'Para o título somente é permitido nomes de até 100 caracteres'
+        }
+      }
+
       const article = new Article({
         title,
         userId: user._id
