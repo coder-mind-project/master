@@ -793,6 +793,11 @@ module.exports = app => {
       const { title } = req.body
       const { user } = req.user
 
+      exists(title, {
+        name: 'title',
+        description: 'É necessário informar um titulo para realizar a consulta'
+      })
+
       const articlesCount = await Article.countDocuments({
         title: { $regex: `${title.trim()}`, $options: 'i' },
         userId: user._id
