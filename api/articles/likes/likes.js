@@ -45,7 +45,7 @@ module.exports = app => {
         }
       }
 
-      if (!user.tagAdmin && user._id !== id) {
+      if (type === 'user' && !user.tagAdmin && user._id !== id) {
         throw {
           name: 'forbidden',
           description: 'Acesso não autorizado'
