@@ -6,7 +6,7 @@
  * @returns {Object} Containing some middleware functions.
  */
 module.exports = app => {
-  const { Like, User } = app.config.database.schemas.mongoose
+  const { Like, User, Article } = app.config.database.schemas.mongoose
   const { articleError } = app.api.responses
 
   /**
@@ -56,6 +56,16 @@ module.exports = app => {
 
       if (limit > 100) limit = 10
 
+      if (type === 'article') {
+        const article = await Article.findOne({ _id: id }, { userId: 1 })
+        if (!article || (article && article.userId.toString() !== user._id && !user.tagAdmin)) {
+          throw {
+            name: 'id',
+            description: 'Artigo não encontrado'
+          }
+        }
+      }
+
       let count = await Like.aggregate([
         {
           $lookup: {
@@ -76,7 +86,8 @@ module.exports = app => {
         },
         {
           $match: {
-            'article.userId': type === 'user' ? app.mongo.Types.ObjectId(user._id) : { $ne: null }
+            'article.userId': type === 'user' ? app.mongo.Types.ObjectId(id) : { $ne: null },
+            'article._id': type === 'article' ? app.mongo.Types.ObjectId(id) : { $ne: null }
           }
         }
       ]).count('id')
@@ -103,7 +114,8 @@ module.exports = app => {
         },
         {
           $match: {
-            'article.userId': type === 'user' ? app.mongo.Types.ObjectId(user._id) : { $ne: null }
+            'article.userId': type === 'user' ? app.mongo.Types.ObjectId(id) : { $ne: null },
+            'article._id': type === 'article' ? app.mongo.Types.ObjectId(id) : { $ne: null }
           }
         },
         {
