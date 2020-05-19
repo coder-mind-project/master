@@ -59,7 +59,7 @@ module.exports = app => {
       if (type === 'article') {
         const article = await Article.findOne({ _id: id }, { userId: 1 })
 
-        if (!article || (article && article.userId !== id && !user.tagAdmin)) {
+        if (!article || (article && article.userId.toString() !== user._id && !user.tagAdmin)) {
           throw {
             name: 'id',
             description: 'Artigo não encontrado'
