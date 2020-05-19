@@ -418,7 +418,8 @@ module.exports = app => {
             'author.password': 0,
             'author.confirmEmail': 0,
             'author.confirmEmailToken': 0,
-            'author.lastEmailTokenSendAt': 0
+            'author.lastEmailTokenSendAt': 0,
+            'author.token': 0
           }
         }
       ]).limit(1)
