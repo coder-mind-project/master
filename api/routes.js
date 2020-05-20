@@ -75,11 +75,6 @@ module.exports = app => {
     .delete(app.api.articles.articles.remove)
 
   app
-    .route('/articles/:url')
-    .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.articles.getOne)
-
-  app
     .route('/articles/images/:id')
     .all(app.config.authentication.passport.authenticate())
     .post(app.api.articles.articles.saveImage)
