@@ -513,13 +513,6 @@ module.exports = app => {
         }
       }
 
-      if (article.publishedAt) {
-        throw {
-          name: 'publishedAt',
-          description: 'Este artigo já foi publicado uma vez, não é possível removê-lo'
-        }
-      }
-
       if (article.state === 'removed') {
         throw {
           name: 'state',
