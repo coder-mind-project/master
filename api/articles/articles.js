@@ -536,10 +536,33 @@ module.exports = app => {
     }
   }
 
-  const validateState = async (id, user, state) => {
+  /**
+   * @function
+   * @description Checks the valid states for changeState methods.
+   * @param {String} state - The wanted state.
+   * @param {Boolean} includingRemove - If true, include the "removed" state on valid states.
+   */
+  const checkValidStates = (state, includingRemove = false) => {
     const validStates = ['boosted', 'inactivated', 'published']
-    const isValidState = validStates.find(currentState => state === currentState)
+    if (includingRemove) validStates.push('removed')
 
+    const isValidState = validStates.find(currentState => state === currentState)
+    if (!isValidState) {
+      throw {
+        name: 'state',
+        description: 'Estado inválido'
+      }
+    }
+  }
+
+  /**
+   * @function
+   * @description Validate the rules for accept condition on changeState method.
+   * @param {String} id - The article Identifier (Id).
+   * @param {Object} user - The User object representation.
+   * @param {String} state - The wanted state.
+   */
+  const validateState = async (id, user, state) => {
     if (state === 'removed') {
       throw {
         name: 'state',
@@ -547,12 +570,7 @@ module.exports = app => {
       }
     }
 
-    if (!isValidState) {
-      throw {
-        name: 'state',
-        description: 'Estado inválido'
-      }
-    }
+    checkValidStates(state)
 
     const article = await Article.findOne({ _id: id })
 
@@ -619,6 +637,85 @@ module.exports = app => {
       const { article, stateTimestamp } = await validateState(id, user, state)
 
       await Article.updateOne({ _id: id }, { state, [stateTimestamp]: MyDate.setTimeZone('-3') })
+
+      return res.status(204).send()
+    } catch (error) {
+      const stack = await articleError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+
+  /**
+   * @function
+   * @description Checks the articlesId property for validate some rules to be consumed.
+   * @param {Object} user - The user object representation
+   * @param {Array} articlesId - Array containing string in ObjectId format.
+   * @param {String} state - The wanted state.
+   */
+  const checkArticlesForMultipleChanges = async (user, articlesId, state) => {
+    checkValidStates(state, true)
+
+    if (!articlesId || !Array.isArray(articlesId)) {
+      throw {
+        name: 'articlesId',
+        description: `O tipo de articlesId é ${typeof articlesId}, esperado um Array`
+      }
+    }
+
+    if (Array.isArray(articlesId) && !articlesId.length) {
+      throw {
+        name: 'articlesId',
+        description: 'É necessário informar identificadores de artigos'
+      }
+    }
+
+    articlesId.forEach((id, index) => {
+      if (!app.mongo.Types.ObjectId.isValid(id)) {
+        throw {
+          name: 'articlesId',
+          description: `É necessário informar identificadores válidos, o valor do índice ${index} é um identificador inválido`
+        }
+      }
+    })
+
+    if (!user.tagAdmin) {
+      const boostedArticles = await Article.countDocuments({
+        userId: app.mongo.Types.ObjectId(user._id),
+        state: 'boosted'
+      })
+
+      if (state === 'boosted' && (boostedArticles >= 1 || articlesId.length > 1)) {
+        throw {
+          name: 'articlesId',
+          description: 'Não é possível impulsionar mais de um artigo no perfil atual'
+        }
+      }
+    }
+  }
+
+  /**
+   * @function
+   * @description Change multiple article states. For remove the article, see `remove` resource.
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} `id` the article id
+   * @middlewareParams {String} `state` the wanted state, allowed: `boosted`, `inactivated` and `published`
+   */
+  const changeStates = async (req, res) => {
+    try {
+      const { user } = req.user
+      const { state, articlesId } = req.body
+
+      await checkArticlesForMultipleChanges(user, articlesId, state)
+
+      await Article.updateMany(
+        {
+          _id: { $in: articlesId },
+          userId: app.mongo.Types.ObjectId(user._id)
+        },
+        { state }
+      )
 
       return res.status(204).send()
     } catch (error) {
@@ -810,6 +907,7 @@ module.exports = app => {
     getOne,
     save,
     changeState,
+    changeStates,
     remove,
     saveImage,
     removeImage,

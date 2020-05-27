@@ -45,6 +45,7 @@ module.exports = app => {
     .get(app.api.articles.articles.get)
     .post(app.api.articles.articles.create)
     .patch(app.api.articles.articles.existingArticlesByTitle)
+    .put(app.api.articles.articles.changeStates)
 
   app
     .route('/articles/views')
