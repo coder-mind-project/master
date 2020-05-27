@@ -292,6 +292,13 @@ module.exports = app => {
         }
         break
       }
+      case 'articlesId': {
+        // Temporary solution, review response messages when a lot articlesId is has changed with "boosted" state
+        reformulatedError.code = 400
+        reformulatedError.msg = stack.description
+        pending = stack.name
+        break
+      }
       default: {
         const { name, description } = stack
 
