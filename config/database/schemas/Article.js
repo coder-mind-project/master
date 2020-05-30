@@ -55,4 +55,10 @@ article.pre('updateOne', function (next) {
   next()
 })
 
+article.pre('updateMany', function (next) {
+  this.options.runValidators = true
+  this.options.context = 'query'
+  next()
+})
+
 module.exports = mongoose.model('articles', article)
