@@ -700,9 +700,12 @@ module.exports = app => {
         articlesToChange = articles.filter(article => article.state === 'inactivated' || article.state === 'draft')
         break
       }
-      case 'inactivated':
       case 'boosted': {
         articlesToChange = articles.filter(article => article.state === 'published')
+        break
+      }
+      case 'inactivated': {
+        articlesToChange = articles.filter(article => article.state === 'published' || article.state === 'boosted')
         break
       }
       case 'removed': {
