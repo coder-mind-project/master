@@ -691,6 +691,29 @@ module.exports = app => {
         }
       }
     }
+
+    const articles = await Article.find({ _id: { $in: articlesId } }, { state: 1, _id: 1 })
+
+    let articlesToChange
+    switch (state) {
+      case 'published': {
+        articlesToChange = articles.filter(article => article.state === 'inactivated' || article.state === 'draft')
+        break
+      }
+      case 'inactivated':
+      case 'boosted': {
+        articlesToChange = articles.filter(article => article.state === 'published')
+        break
+      }
+      case 'removed': {
+        articlesToChange = articles.filter(article => article.state === 'draft')
+        break
+      }
+      default: {
+        articlesToChange = []
+      }
+    }
+    return articlesToChange.map(article => article._id)
   }
 
   /**
@@ -707,11 +730,11 @@ module.exports = app => {
       const { user } = req.user
       const { state, articlesId } = req.body
 
-      await checkArticlesForMultipleChanges(user, articlesId, state)
+      const articlesToChange = await checkArticlesForMultipleChanges(user, articlesId, state)
 
       await Article.updateMany(
         {
-          _id: { $in: articlesId },
+          _id: { $in: articlesToChange },
           userId: app.mongo.Types.ObjectId(user._id)
         },
         { state }
