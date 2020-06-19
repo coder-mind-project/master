@@ -287,7 +287,7 @@ module.exports = app => {
 
   /**
    * @function
-   * @description Gets categories by theme
+   * @description Gets categories by theme id only
    * @param {Object} req - Request object provided by Express.js
    * @param {Object} res - Response object provided by Express.js
    *
@@ -296,13 +296,13 @@ module.exports = app => {
    * @returns {Array<Category>} An Array containing categories
    */
   const getByTheme = async (req, res) => {
-    const themeId = req.params.id
+    const { id } = req.params
 
     try {
-      if (!themeId) {
+      if (!app.mongo.Types.ObjectId.isValid(id)) {
         throw {
-          name: 'themeId',
-          description: 'Identificador do tema não encontrado'
+          name: 'id',
+          description: 'Identificador do tema inválido'
         }
       }
 
@@ -319,7 +319,75 @@ module.exports = app => {
           $match: {
             $and: [
               {
-                themeId: app.mongo.Types.ObjectId(themeId)
+                themeId: app.mongo.Types.ObjectId(id)
+              },
+              {
+                state: 'active'
+              }
+            ]
+          }
+        },
+        {
+          $project: {
+            name: 1,
+            alias: 1,
+            description: 1,
+            state: 1,
+            theme: { $arrayElemAt: ['$themes', 0] }
+          }
+        }
+      ]).then(categories => res.json(categories))
+    } catch (error) {
+      const stack = await categoryError(error)
+      return res.status(stack.code).send(stack)
+    }
+  }
+  /**
+   * @function
+   * @description Gets categories by theme id and query filter
+   * @param {Object} req - Request object provided by Express.js
+   * @param {Object} res - Response object provided by Express.js
+   *
+   * @middlewareParams {String} id - Category identifier
+   *
+   * @returns {Array<Category>} An Array containing categories
+   */
+  const getByThemeWithFilter = async (req, res) => {
+    const { id, query } = req.params
+
+    try {
+      if (!app.mongo.Types.ObjectId.isValid(id)) {
+        throw {
+          name: 'id',
+          description: 'Identificador do tema inválido'
+        }
+      }
+
+      Category.aggregate([
+        {
+          $lookup: {
+            from: 'themes',
+            localField: 'themeId',
+            foreignField: '_id',
+            as: 'themes'
+          }
+        },
+        {
+          $match: {
+            $and: [
+              {
+                themeId: app.mongo.Types.ObjectId(id),
+                $or: [
+                  {
+                    name: { $regex: `${query}`, $options: 'i' }
+                  },
+                  {
+                    alias: { $regex: `${query}`, $options: 'i' }
+                  },
+                  {
+                    description: { $regex: `${query}`, $options: 'i' }
+                  }
+                ]
               },
               {
                 state: 'active'
@@ -369,5 +437,5 @@ module.exports = app => {
     }
   }
 
-  return { save, get, getOne, remove, active, getByTheme }
+  return { save, get, getOne, remove, active, getByTheme, getByThemeWithFilter }
 }
