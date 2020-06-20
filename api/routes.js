@@ -155,9 +155,14 @@ module.exports = app => {
     .put(isAdmin(app.api.categories.categories.save))
 
   app
-    .route('/categories/theme/:id')
+    .route('/categories/themes/:id')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.categories.categories.getByTheme)
+
+  app
+    .route('/categories/:query/themes/:id')
+    .all(app.config.authentication.passport.authenticate())
+    .get(app.api.categories.categories.getByThemeWithFilter)
 
   /**
    * @name Comments
