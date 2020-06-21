@@ -4,6 +4,9 @@ orbs:
   heroku: circleci/heroku@1.0.1
 jobs:
   build:
+    branches:
+      only:
+        - master
     executor:
       name: node/default
     steps:
