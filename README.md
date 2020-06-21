@@ -5,6 +5,7 @@
 ## Contact information:
 
 Owner: Coder Mind
+Author: Allan Wanderley Alves
 
 E-mail: allan@codermind.com.br
 
