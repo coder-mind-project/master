@@ -525,7 +525,7 @@ module.exports = app => {
         {
           state: 'removed',
           removedAt: MyDate.setTimeZone('-3'),
-          customUri: articleData.defaultUri
+          customUri: articleData.defaultUri()
         }
       )
 
