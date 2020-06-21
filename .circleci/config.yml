@@ -1,7 +1,7 @@
 version: 2.1
 orbs:
   node: circleci/node@1.1.6
-  heroku: circleci/heroku@0.0.10
+  heroku: circleci/heroku@1.0.1
 jobs:
   build:
     executor:
@@ -11,10 +11,21 @@ jobs:
       - node/with-cache:
           steps:
             - run: npm install
+  deploy:
+    executor:
+      name: heroku/default
+    steps:
+      - checkout
+      - heroku/install
+      - run:
+          command: >
+            echo "The command above installs Heroku, the command below deploys.
+            What you do inbetween is up to you!"
+      - heroku/deploy-via-git
 workflows:
     build:
       jobs:
         - build
     heroku_deploy:
       jobs:
-        - heroku/deploy-via-git
+        - deploy
