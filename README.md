@@ -10,7 +10,7 @@ E-mail: allan@codermind.com.br
 
 Latest release (development): https://master-develop.herokuapp.com
 
-Stable release (master): coming...
+Stable release (alpha): https://master-production.herokuapp.com
 ___
 
 ## Docs:
@@ -18,7 +18,6 @@ ___
 https://docs.codermind.com.br/docs/master/about.html
 
 ___
-
 
 ## Workflow
 
