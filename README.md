@@ -32,6 +32,7 @@ Run the application with:
 
 ___
 
+
 ## Migrations (MySQL)
 
 ### The migrations works with knex dependency.
