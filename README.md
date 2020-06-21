@@ -29,7 +29,6 @@ Install dependencies with:
 Run the application with: 
 
 `npm start`
-
 ___
 
 ## Migrations (MySQL)
@@ -79,7 +78,6 @@ After knex cli installed, just run someone commands below:
     knex migrate:rollback --all
 
 ___
-
 
 ## Seeds (MySQL)
 
