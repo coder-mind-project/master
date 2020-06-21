@@ -11,12 +11,14 @@ jobs:
       - node/with-cache:
           steps:
             - run: npm install
+  pull:
+    commands:
+      - git pull
 workflows:
     build:
       jobs:
         - build
+        - pull
     heroku_deploy:
-      commands:
-        - git pull
       jobs:
         - heroku/deploy-via-git
