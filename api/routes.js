@@ -27,7 +27,7 @@ module.exports = app => {
   app.route('/stats').all(app.config.authentication.passport.authenticate()).get(app.api.articles.countStats.get)
 
   app
-    .route('/stats/sincronization')
+    .route('/stats/synchronization')
     .all(app.config.authentication.passport.authenticate())
     .get(app.api.articles.countStats.lastSincronization)
     .post(isAdmin(app.api.articles.countStats.sincronizeManually))
