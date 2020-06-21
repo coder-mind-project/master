@@ -1,0 +1,20 @@
+version: 2.1
+orbs:
+  node: circleci/node@1.1.6
+  heroku: circleci/heroku@0.0.10
+jobs:
+  build:
+    executor:
+      name: node/default
+    steps:
+      - checkout
+      - node/with-cache:
+          steps:
+            - run: npm install
+workflows:
+    build:
+      jobs:
+        - build
+    heroku_deploy:
+      jobs:
+        - heroku/deploy-via-git

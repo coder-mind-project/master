@@ -34,7 +34,7 @@ module.exports = app => {
 
       const { secret } = SECRET_AUTH_PACKAGE
 
-      const response = await captcha.verify(request.response)
+      const response = await captcha.verify(request.response, true)
 
       if (!response.success) {
         throw {

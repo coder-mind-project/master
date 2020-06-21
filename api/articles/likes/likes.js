@@ -6,7 +6,7 @@
  * @returns {Object} Containing some middleware functions.
  */
 module.exports = app => {
-  const { Like, User } = app.config.database.schemas.mongoose
+  const { Like, User, Article } = app.config.database.schemas.mongoose
   const { articleError } = app.api.responses
 
   /**
@@ -45,7 +45,7 @@ module.exports = app => {
         }
       }
 
-      if (!user.tagAdmin && user._id !== id) {
+      if (type === 'user' && !user.tagAdmin && user._id !== id) {
         throw {
           name: 'forbidden',
           description: 'Acesso não autorizado'
@@ -55,6 +55,16 @@ module.exports = app => {
       limit = parseInt(limit) || 10
 
       if (limit > 100) limit = 10
+
+      if (type === 'article') {
+        const article = await Article.findOne({ _id: id }, { userId: 1 })
+        if (!article || (article && article.userId.toString() !== user._id && !user.tagAdmin)) {
+          throw {
+            name: 'id',
+            description: 'Artigo não encontrado'
+          }
+        }
+      }
 
       let count = await Like.aggregate([
         {
@@ -76,7 +86,8 @@ module.exports = app => {
         },
         {
           $match: {
-            'article.userId': type === 'user' ? app.mongo.Types.ObjectId(user._id) : { $ne: null }
+            'article.userId': type === 'user' ? app.mongo.Types.ObjectId(id) : { $ne: null },
+            'article._id': type === 'article' ? app.mongo.Types.ObjectId(id) : { $ne: null }
           }
         }
       ]).count('id')
@@ -103,7 +114,8 @@ module.exports = app => {
         },
         {
           $match: {
-            'article.userId': type === 'user' ? app.mongo.Types.ObjectId(user._id) : { $ne: null }
+            'article.userId': type === 'user' ? app.mongo.Types.ObjectId(id) : { $ne: null },
+            'article._id': type === 'article' ? app.mongo.Types.ObjectId(id) : { $ne: null }
           }
         },
         {
@@ -138,7 +150,7 @@ module.exports = app => {
    */
   const get = async (req, res) => {
     try {
-      let { page, limit, aid, db, de, order, state } = req.query
+      let { page, limit, aId, db, de, order, state } = req.query
       const { user } = req.user
 
       limit = parseInt(limit) || 10
@@ -161,11 +173,11 @@ module.exports = app => {
       if (limit > 100) limit = 10
       if (page < 1) page = 1
 
-      if (aid) {
-        const isValidId = app.mongo.Types.ObjectId.isValid(aid)
+      if (aId) {
+        const isValidId = app.mongo.Types.ObjectId.isValid(aId)
         if (!isValidId) {
           throw {
-            name: 'aid',
+            name: 'aId',
             description: 'Identificador inválido'
           }
         }
@@ -192,7 +204,7 @@ module.exports = app => {
         },
         {
           $match: {
-            articleId: aid ? app.mongo.Types.ObjectId(aid) : { $ne: null },
+            articleId: aId ? app.mongo.Types.ObjectId(aId) : { $ne: null },
             createdAt: {
               $gte: db,
               $lte: de
@@ -226,7 +238,7 @@ module.exports = app => {
         },
         {
           $match: {
-            articleId: aid ? app.mongo.Types.ObjectId(aid) : { $ne: null },
+            articleId: aId ? app.mongo.Types.ObjectId(aId) : { $ne: null },
             createdAt: {
               $gte: db,
               $lte: de

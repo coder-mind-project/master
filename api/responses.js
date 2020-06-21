@@ -292,6 +292,13 @@ module.exports = app => {
         }
         break
       }
+      case 'articlesId': {
+        // Temporary solution, review response messages when a lot articlesId is has changed with "boosted" state
+        reformulatedError.code = 400
+        reformulatedError.msg = stack.description
+        pending = stack.name
+        break
+      }
       default: {
         const { name, description } = stack
 
@@ -306,7 +313,9 @@ module.exports = app => {
           case 'É necessário enviar a imagem':
           case 'Tipo de imagem inválido':
           case 'Tipo inválido':
-          case 'Este tema não esta associado a categoria informada': {
+          case 'Este tema não esta associado a categoria informada':
+          case 'Para o título somente é permitido nomes de até 100 caracteres':
+          case 'É necessário informar um titulo para realizar a consulta': {
             reformulatedError.code = 400
             break
           }

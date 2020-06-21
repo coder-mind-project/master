@@ -91,7 +91,7 @@ const captcha = {
 }
 
 const articleData = {
-  defaultUri: `${Date.now()}${Math.floor(Math.random() * 123555738)}`
+  defaultUri: () => `${Date.now()}${Math.floor(Math.random() * 123555738)}`
 }
 
 /**
