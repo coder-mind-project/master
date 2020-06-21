@@ -8,7 +8,7 @@ const MyDate = require('../../../config/Date')
  * @returns {Object} Containing some middleware functions.
  */
 module.exports = app => {
-  const { Comment, Article, User } = app.config.database.schemas.mongoose
+  const { Comment, User } = app.config.database.schemas.mongoose
   const { validateLength, exists } = app.config.validation
   const { commentError } = app.api.responses
   const { sendEmail } = app.api.articles.comments.emails
@@ -1512,18 +1512,18 @@ module.exports = app => {
    * @function
    * @description Job for count article comments in current month (general and per user stats)
    */
-  const commentsJob = async () => {
+  const synchronizeComments = async () => {
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
     const firstDay = new Date(currentYear, currentMonth, 1)
     const lastDay = new Date(currentYear, currentMonth, 31)
 
-    // Users (authors and admins) list
+    /** @description The Users `_id` list  */
     const users = await User.find({ deletedAt: null }, { _id: 1 })
 
-    // Insert comments quantity per User in MySQL database
-    users.map(async user => {
-      let userComments = await Comment.aggregate([
+    /** @description Iterate the Users list getting the comments count on MongoDB and added on MySQL database */
+    const usersCount = users.map(async user => {
+      let count = await Comment.aggregate([
         {
           $lookup: {
             from: 'articles',
@@ -1534,54 +1534,53 @@ module.exports = app => {
         },
         {
           $project: {
-            _id: 1,
+            userName: 1,
+            userEmail: 1,
+            userId: 1,
+            message: 1,
+            state: 1,
+            confirmedAt: 1,
+            readedAt: 1,
             answerOf: 1,
+            articleId: 1,
+            article: { $arrayElemAt: ['$article', 0] },
             createdAt: 1,
-            article: { $arrayElemAt: ['$article', 0] }
+            updatedAt: 1
           }
         },
         {
           $match: {
-            $and: [
-              { 'article.author': app.mongo.Types.ObjectId(user.id) },
-              { answerOf: null },
-              {
-                createdAt: {
-                  $gte: firstDay,
-                  $lt: lastDay
-                }
-              }
-            ]
+            'article.userId': app.mongo.Types.ObjectId(user._id),
+            createdAt: {
+              $gte: firstDay,
+              $lt: lastDay
+            }
           }
         }
       ]).count('id')
 
-      userComments = userComments.length > 0 ? userComments.reduce(item => item).id : 0
+      count = count.length > 0 ? count.reduce(item => item).id : 0
 
-      await app.knex('comments').insert({
-        month: currentMonth + 1,
-        count: userComments,
-        year: currentYear,
-        reference: user.id
-      })
+      return { month: currentMonth + 1, count, year: currentYear, reference: user.id }
     })
 
-    /* Estatísticas gerais de plataforma */
-    const comments = await Comment.countDocuments({
-      createdAt: {
-        $gte: firstDay,
-        $lt: lastDay
-      },
-      answerOf: null
-    })
+    Promise.all(usersCount).then(async data => {
+      /** @description Insert likes per user */
+      await app.knex('comments').insert(data)
 
-    app
-      .knex('comments')
-      .insert({ month: currentMonth + 1, count: comments, year: currentYear })
-      .then(() => {
-        // eslint-disable-next-line no-console
-        console.log(`**CRON** | comments updated at ${new Date()}`)
+      /** @description Insert general likes (including all users) */
+      const totalLikes = await Comment.countDocuments({
+        createdAt: {
+          $gte: firstDay,
+          $lt: lastDay
+        }
       })
+
+      await app.knex('comments').insert({ month: currentMonth + 1, count: totalLikes, year: currentYear })
+
+      // eslint-disable-next-line no-console
+      console.log(`**CRON** | comments updated at ${new Date()}`)
+    })
   }
 
   return {
@@ -1592,7 +1591,7 @@ module.exports = app => {
     editAnswer,
     getById,
     getHistory,
-    commentsJob,
+    synchronizeComments,
     disableComment,
     enableComment
   }

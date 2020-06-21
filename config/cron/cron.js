@@ -8,7 +8,7 @@ const schedule = require('node-schedule')
  */
 module.exports = app => {
   const { synchronizeViews } = app.api.articles.views.views
-  // const { commentsJob } = app.api.articles.comments.comments
+  const { synchronizeComments } = app.api.articles.comments.comments
   const { synchronizeLikes } = app.api.articles.likes.likes
 
   const { validateFirstLoginTime, writeRemovedUsers } = app.api.users.users
@@ -30,7 +30,7 @@ module.exports = app => {
    * @param {Function} - A callback to run job.
    */
   schedule.scheduleJob('00 02 * * *', () => {
-    // commentsJob()
+    synchronizeComments()
   })
 
   /**
