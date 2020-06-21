@@ -12,7 +12,8 @@ const url = config.mongo.url
 mongoose
   .connect(url, {
     useNewUrlParser: true,
-    useCreateIndex: true
+    useCreateIndex: true,
+    useUnifiedTopology: true
   })
   .catch(e => {
     const msg = `Error: Connection in mongo database failed, make sure your database is online - Stack: ${e}`

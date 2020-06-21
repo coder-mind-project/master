@@ -14,10 +14,7 @@ const articlesRoutes = require('./articles/articles.routes')
  *  @param {Object} app - A app Object provided by consign.
  */
 module.exports = app => {
-  /**
-   * @name Public
-   * @description Access to static resources
-   */
+
   app.use('/public', app.express.static('public'))
 
   /**
