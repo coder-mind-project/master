@@ -14,20 +14,19 @@ const articlesRoutes = require('./articles/articles.routes')
  *  @param {Object} app - A app Object provided by consign.
  */
 module.exports = app => {
-
   app.use('/public', app.express.static('public'))
 
   /**
    * @name Statistics
    * @description Statistics resources
    */
-  app.route('/stats').all(app.config.authentication.passport.authenticate()).get(app.api.articles.countStats.get)
+  app.route('/stats').all(app.config.authentication.passport.authenticate()).get(app.api.dashboard.countStats.get)
 
   app
     .route('/stats/synchronization')
     .all(app.config.authentication.passport.authenticate())
-    .get(app.api.articles.countStats.lastSincronization)
-    .post(isAdmin(app.api.articles.countStats.sincronizeManually))
+    .get(app.api.dashboard.countStats.lastSincronization)
+    .post(isAdmin(app.api.dashboard.countStats.sincronizeManually))
 
   app
     .route('/stats/authors')
