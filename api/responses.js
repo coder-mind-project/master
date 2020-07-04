@@ -286,7 +286,7 @@ module.exports = app => {
         } else {
           const { path, value } = stack.errors[errors[0]]
           pending = path
-          reformulatedError.msg = `O valor '${value}' não é um valor enumerável válido`
+          reformulatedError.msg = path === 'customUri' ? 'Esta url personalizada já esta sendo utilizada, por favor escolha outra' : `O valor '${value}' não é um valor enumerável válido`
 
           reformulatedError.code = 400
         }
