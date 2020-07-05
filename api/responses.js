@@ -382,13 +382,8 @@ module.exports = app => {
             pending = 'customUrl'
             reformulatedError.msg = 'Esta url personalizada já está cadastrada'
           } else {
-            if (errors.cellphone && errors.cellphone.kind === 'unique') {
-              pending = 'cellphone'
-              reformulatedError.msg = 'Este número de telefone já esta associado a uma outra conta, tente outro número'
-            } else {
-              pending = 'MongoDB'
-              reformulatedError.msg = 'Existe alguma restrição não mapeada, por favor reporte este problema'
-            }
+            pending = 'MongoDB'
+            reformulatedError.msg = 'Existe alguma restrição não mapeada, por favor reporte este problema'
           }
         }
 
@@ -417,6 +412,7 @@ module.exports = app => {
           case 'É necessário informar um genero':
           case "Tipo de usuário inválido, escolha entre 'author' e 'admin'":
           case 'Tipo de usuário inválido':
+          case 'Este número de telefone já esta cadastrado':
           case 'Número de celular inválido':
           case 'Número de telefone inválido':
           case 'Ja existe cadastro com essas informações':
