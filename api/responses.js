@@ -191,7 +191,8 @@ module.exports = app => {
         break
       }
       case 'Sua conta esta suspensa, em caso de reinvidicação entre em contato com o administrador do sistema':
-      case 'E-mail ou senha inválidos': {
+      case 'E-mail ou senha inválidos':
+      case 'Acesso não autorizado': {
         reformulatedError.code = 401
         break
       }
