@@ -1,7 +1,7 @@
 ![# Coder Mind](https://i.imgur.com/IKPFcHr.png)
 
 [![JavaScript Style Guide](https://cdn.rawgit.com/standard/standard/master/badge.svg)](https://github.com/standard/standard)
-[![master-api-ci](https://circleci.com/gh/coder-mind-project/master.svg?style=shield)](https://circleci.com/gh/coder-mind-project/coder-mind-master)
+[![master-api-ci](https://circleci.com/gh/coder-mind-project/master.svg?style=shield)](https://circleci.com/gh/coder-mind-project/master)
 
 ## Contact information:
 

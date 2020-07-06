@@ -94,6 +94,14 @@ const articleData = {
   defaultUri: () => `${Date.now()}${Math.floor(Math.random() * 123555738)}`
 }
 
+const rootUser = {
+  _id: process.env.ROOT_ID,
+  name: process.env.ROOT_NAME,
+  email: process.env.ROOT_EMAIL,
+  pass: process.env.ROOT_PASSWORD,
+  tag: process.env.ROOT_TAG
+}
+
 /**
  * @module EnvironmentVariables
  * @description Exports environments variable for all application.
@@ -178,5 +186,6 @@ module.exports = {
     secretKey: captcha.secretKey
   },
 
-  articleData
+  articleData,
+  rootUser
 }

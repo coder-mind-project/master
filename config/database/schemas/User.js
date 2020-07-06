@@ -17,7 +17,7 @@ const user = new mongoose.Schema(
     github: String,
     youtube: String,
     email: { type: String, unique: true },
-    cellphone: { type: String, unique: true, sparse: true },
+    cellphone: { type: String },
     address: String,
     number: Number,
     password: String,

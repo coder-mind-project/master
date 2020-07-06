@@ -42,6 +42,7 @@ consign()
   .then('./api/tickets')
   .then('./api')
   .then('./config/cron/cron.js')
+  .then('./config/bootstrap/bootstrap.js')
   .into(app)
 
 const port = process.env.PORT || 3001
