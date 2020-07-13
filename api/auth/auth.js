@@ -53,17 +53,7 @@ module.exports = app => {
         description: 'É necessário informar uma senha'
       })
 
-      const countUsers = await User.countDocuments({ deletedAt: null })
-
-      // prettier-ignore
-      const user = countUsers
-        ? await User.findOne({ email: request.email })
-        : await app.knex
-          .select()
-          .from('users')
-          .where('username', request.email)
-          .orWhere('email', request.email)
-          .first()
+      const user = await User.findOne({ email: request.email })
 
       if (!user) {
         throw {
@@ -83,7 +73,7 @@ module.exports = app => {
       const password = await encryptAuth(request.password)
 
       if (user.password === password) {
-        if (!user.firstLoginAt && countUsers) {
+        if (!user.firstLoginAt) {
           const today = new Date()
           const result = await User.updateOne({ _id: user._id }, { firstLoginAt: today })
           if (result.nModified) user.firstLoginAt = today
@@ -154,18 +144,9 @@ module.exports = app => {
         }
       }
 
-      const origin = isNaN(payload.user._id)
+      let user = await User.findOne({ _id: payload.user._id, deletedAt: null })
 
-      // prettier-ignore
-      let user = origin
-        ? await User.findOne({ _id: payload.user._id, deletedAt: null })
-        : await app.knex
-          .select()
-          .from('users')
-          .where('id', payload.user._id)
-          .first()
-
-      if (user && (user._id || user.id)) {
+      if (user && user._id) {
         if (payload.user.email !== user.email) {
           throw {
             name: 'changedEmail',
@@ -176,11 +157,6 @@ module.exports = app => {
         if (payload.exp - Math.floor(Date.now() / 1000) < 60 * 60 * 24 * 2) {
           payload.exp = 60 * 60 * 24 * 10
           token = jwt.encode(payload, secret)
-        }
-
-        if (!origin) {
-          user._id = user.id
-          delete user.id
         }
 
         user = user.toObject({

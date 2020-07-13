@@ -119,7 +119,7 @@ module.exports = app => {
         {
           $lookup: {
             from: 'users',
-            localField: 'article.author',
+            localField: 'article.userId',
             foreignField: '_id',
             as: 'article.author'
           }
@@ -199,7 +199,7 @@ module.exports = app => {
         {
           $lookup: {
             from: 'users',
-            localField: 'article.author',
+            localField: 'article.userId',
             foreignField: '_id',
             as: 'article.author'
           }
@@ -220,10 +220,10 @@ module.exports = app => {
             article: {
               _id: 1,
               title: 1,
-              customURL: 1,
-              smallImg: 1,
-              mediumImg: 1,
-              largeImg: 1,
+              customUri: 1,
+              logoImg: 1,
+              secondaryImg: 1,
+              headerImg: 1,
               author: { $arrayElemAt: ['$article.author', 0] }
             }
           }
@@ -245,16 +245,16 @@ module.exports = app => {
             article: {
               _id: 1,
               title: 1,
-              customURL: 1,
-              smallImg: 1,
-              mediumImg: 1,
-              largeImg: 1,
+              customUri: 1,
+              logoImg: 1,
+              secondaryImg: 1,
+              headerImg: 1,
               author: {
                 _id: 1,
                 name: 1,
                 tagAdmin: 1,
                 tagAuthor: 1,
-                customUrl: 1,
+                customUri: 1,
                 profilePhoto: 1
               }
             }
@@ -328,7 +328,7 @@ module.exports = app => {
         {
           $lookup: {
             from: 'users',
-            localField: 'article.author',
+            localField: 'article.userId',
             foreignField: '_id',
             as: 'article.author'
           }
@@ -408,7 +408,7 @@ module.exports = app => {
         {
           $lookup: {
             from: 'users',
-            localField: 'article.author',
+            localField: 'article.userId',
             foreignField: '_id',
             as: 'article.author'
           }
@@ -429,10 +429,10 @@ module.exports = app => {
             article: {
               _id: 1,
               title: 1,
-              customURL: 1,
-              smallImg: 1,
-              mediumImg: 1,
-              largeImg: 1,
+              customUri: 1,
+              logoImg: 1,
+              secondaryImg: 1,
+              headerImg: 1,
               author: { $arrayElemAt: ['$article.author', 0] }
             }
           }
@@ -454,16 +454,16 @@ module.exports = app => {
             article: {
               _id: 1,
               title: 1,
-              customURL: 1,
-              smallImg: 1,
-              mediumImg: 1,
-              largeImg: 1,
+              customUri: 1,
+              logoImg: 1,
+              secondaryImg: 1,
+              headerImg: 1,
               author: {
                 _id: 1,
                 name: 1,
                 tagAdmin: 1,
                 tagAuthor: 1,
-                customUrl: 1,
+                customUri: 1,
                 profilePhoto: 1
               }
             }
@@ -536,7 +536,7 @@ module.exports = app => {
         {
           $lookup: {
             from: 'users',
-            localField: 'article.author',
+            localField: 'article.userId',
             foreignField: '_id',
             as: 'article.author'
           }
@@ -614,7 +614,7 @@ module.exports = app => {
         {
           $lookup: {
             from: 'users',
-            localField: 'article.author',
+            localField: 'article.userId',
             foreignField: '_id',
             as: 'article.author'
           }
@@ -635,10 +635,10 @@ module.exports = app => {
             article: {
               _id: 1,
               title: 1,
-              customURL: 1,
-              smallImg: 1,
-              mediumImg: 1,
-              largeImg: 1,
+              customUri: 1,
+              logoImg: 1,
+              secondaryImg: 1,
+              headerImg: 1,
               author: { $arrayElemAt: ['$article.author', 0] }
             }
           }
@@ -660,16 +660,16 @@ module.exports = app => {
             article: {
               _id: 1,
               title: 1,
-              customURL: 1,
-              smallImg: 1,
-              mediumImg: 1,
-              largeImg: 1,
+              customUri: 1,
+              logoImg: 1,
+              secondaryImg: 1,
+              headerImg: 1,
               author: {
                 _id: 1,
                 name: 1,
                 tagAdmin: 1,
                 tagAuthor: 1,
-                customUrl: 1,
+                customUri: 1,
                 profilePhoto: 1
               }
             }
@@ -742,7 +742,7 @@ module.exports = app => {
         {
           $lookup: {
             from: 'users',
-            localField: 'article.author',
+            localField: 'article.userId',
             foreignField: '_id',
             as: 'article.author'
           }
@@ -821,7 +821,7 @@ module.exports = app => {
         {
           $lookup: {
             from: 'users',
-            localField: 'article.author',
+            localField: 'article.userId',
             foreignField: '_id',
             as: 'article.author'
           }
@@ -842,10 +842,10 @@ module.exports = app => {
             article: {
               _id: 1,
               title: 1,
-              customURL: 1,
-              smallImg: 1,
-              mediumImg: 1,
-              largeImg: 1,
+              customUri: 1,
+              logoImg: 1,
+              secondaryImg: 1,
+              headerImg: 1,
               author: { $arrayElemAt: ['$article.author', 0] }
             }
           }
@@ -867,16 +867,16 @@ module.exports = app => {
             article: {
               _id: 1,
               title: 1,
-              customURL: 1,
-              smallImg: 1,
-              mediumImg: 1,
-              largeImg: 1,
+              customUri: 1,
+              logoImg: 1,
+              secondaryImg: 1,
+              headerImg: 1,
               author: {
                 _id: 1,
                 name: 1,
                 tagAdmin: 1,
                 tagAuthor: 1,
-                customUrl: 1,
+                customUri: 1,
                 profilePhoto: 1
               }
             }
@@ -966,7 +966,7 @@ module.exports = app => {
         {
           $lookup: {
             from: 'users',
-            localField: 'article.author',
+            localField: 'article.userId',
             foreignField: '_id',
             as: 'article.author'
           }
@@ -987,7 +987,7 @@ module.exports = app => {
             article: {
               _id: 1,
               title: 1,
-              customURL: 1,
+              customUri: 1,
               author: { $arrayElemAt: ['$article.author', 0] }
             }
           }
@@ -1008,13 +1008,13 @@ module.exports = app => {
             article: {
               _id: 1,
               title: 1,
-              customURL: 1,
+              customUri: 1,
               author: {
                 _id: 1,
                 name: 1,
                 tagAdmin: 1,
                 tagAuthor: 1,
-                customUrl: 1,
+                customUri: 1,
                 profilePhoto: 1
               }
             }
@@ -1053,13 +1053,13 @@ module.exports = app => {
             article: {
               _id: 1,
               title: 1,
-              customURL: 1,
+              customUri: 1,
               author: {
                 _id: 1,
                 name: 1,
                 tagAdmin: 1,
                 tagAuthor: 1,
-                customUrl: 1,
+                customUri: 1,
                 profilePhoto: 1
               }
             },

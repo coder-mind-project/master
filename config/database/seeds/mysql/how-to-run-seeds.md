@@ -16,7 +16,7 @@ After knex cli installed, just run someone commands below:
 #### Run all seed(s) file(s):
 ##### * Atention:  Seed files are executed in alphabetical order. *
 
-    knex seeds:run
+    knex seed:run
 
 #### Run seed file specified:
 

@@ -1,4 +1,4 @@
-const { issuer, panel } = require('../../config/environment')
+const { issuer } = require('../../config/environment')
 const { s3, bucket, getBucketKeyFromUrl } = require('../../config/aws/s3')
 const multer = require('../../config/serialization/multers3')
 
@@ -135,6 +135,30 @@ module.exports = app => {
 
   /**
    * @function
+   * @description Validates the users cellphone according to domain rules
+   * @param {User} userToUpdate - User will be updated
+   * @param {User} userInDatabase - Current User in database
+   */
+  const validateUserCellphone = async (userToUpdate, userInDatabase) => {
+    if (userToUpdate.cellphone) {
+      const documents = await User.countDocuments({ _id: { $ne: userInDatabase._id }, cellphone: userToUpdate.cellphone })
+      if (documents) {
+        throw {
+          name: 'cellphone',
+          description: 'Este número de telefone já esta cadastrado'
+        }
+      }
+    } else {
+      if (!userInDatabase.cellphone) {
+        delete userToUpdate.cellphone
+      } else {
+        userToUpdate.cellphone = null
+      }
+    }
+  }
+
+  /**
+   * @function
    * @description Save an user
    * @param {Object} req - Request object provided by Express.js
    * @param {Object} res - Response object provided by Express.js
@@ -195,6 +219,8 @@ module.exports = app => {
           }
         }
 
+        await validateUserCellphone(user, found)
+
         const updatedUser = await formatUserToUpdate(user, found)
 
         await User.updateOne({ _id }, updatedUser)
@@ -228,10 +254,10 @@ module.exports = app => {
           name: user.name,
           email: user.email,
           gender: user.gender,
-          cellphone: user.cellphone,
-          birthDate: user.birthDate,
-          address: user.address,
-          number: user.number,
+          cellphone: user.cellphone || undefined,
+          birthDate: user.birthDate || undefined,
+          address: user.address || undefined,
+          number: user.number || undefined,
           [user.type === 'admin' ? 'tagAdmin' : 'tagAuthor']: tag,
           [user.type !== 'admin' ? 'tagAdmin' : 'tagAuthor']: null,
           password,
@@ -426,6 +452,8 @@ module.exports = app => {
       }
 
       const found = await User.findOne({ _id, deletedAt: null }, { password: 0 })
+
+      await validateUserCellphone(user, found)
 
       if (found.email !== user.email) {
         const emailAlreadyExists = await User.findOne({ email: user.email }, { email: 1 })

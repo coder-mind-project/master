@@ -437,18 +437,19 @@ module.exports = app => {
    */
   const save = async (req, res) => {
     try {
-      const body = { ...req.body }
+      const { body } = req
+      const { user } = req.user
 
       exists(body.msg, {
         name: 'msg',
         description: 'É necessário descrever seu problema para enviar o ticket'
       })
+
       validateEmail(body.emailUser, {
         name: 'email',
         description: 'E-mail inválido, tente fornecer um e-mail válido'
       })
 
-      const user = req.user && req.user.user ? req.user.user : null
       if (!user && body.type !== 'account-changed') {
         throw {
           name: 'unauthorized',
@@ -482,7 +483,11 @@ module.exports = app => {
         }
       }
 
-      return op.status ? res.status(201).send() : { name: 'ticketType', description: op.msg }
+      if (op.status) {
+        return res.status(201).send()
+      }
+
+      throw op.stack
     } catch (error) {
       const stack = ticketError(error)
       return res.status(stack.code).send(stack)
@@ -528,8 +533,7 @@ module.exports = app => {
 
       return { status: Boolean(response._id) }
     } catch (error) {
-      const stack = ticketError(error)
-      return { status: false, stack }
+      return { status: false, stack: error }
     }
   }
 
@@ -569,8 +573,7 @@ module.exports = app => {
 
       return { status: Boolean(response._id) }
     } catch (error) {
-      const stack = ticketError(error)
-      return { status: false, stack }
+      return { status: false, stack: error }
     }
   }
 
@@ -624,8 +627,7 @@ module.exports = app => {
 
       return { status: Boolean(response._id) }
     } catch (error) {
-      const stack = ticketError(error)
-      return { status: false, stack }
+      return { status: false, stack: error }
     }
   }
 
@@ -662,8 +664,7 @@ module.exports = app => {
 
       return { status: Boolean(response._id) }
     } catch (error) {
-      const stack = ticketError(error)
-      return { status: false, stack }
+      return { status: false, stack: error }
     }
   }
 
