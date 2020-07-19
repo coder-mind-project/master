@@ -45,9 +45,10 @@ consign()
   .then('./config/bootstrap/bootstrap.js')
   .into(app)
 
+const host = '0.0.0.0'
 const port = process.env.PORT || 3001
 
-app.listen(port, () => {
+app.listen(port, host, () => {
   // eslint-disable-next-line no-console
-  console.log(`Server running at port ${port}`)
+  console.log(`Server running on http://${host}:${port}`)
 })
