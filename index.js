@@ -50,5 +50,5 @@ const port = process.env.PORT || 3001
 
 app.listen(port, host, () => {
   // eslint-disable-next-line no-console
-  console.log(`Server running on http://${host}:${port}`)
+  console.log('\x1b[44m\x1b[30m%s', `Server running on http://${host}:${port}`, '\x1b[0m')
 })
