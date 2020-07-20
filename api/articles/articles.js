@@ -470,7 +470,7 @@ module.exports = app => {
         }
       }
 
-      if (!user.tagAdmin && user._id !== article.author._id) {
+      if (!user.tagAdmin && user._id !== article.author._id.toString()) {
         throw {
           name: 'forbidden',
           description: 'Acesso não autorizado, somente administradores podem visualizar artigos de outros autores'
@@ -581,7 +581,7 @@ module.exports = app => {
       }
     }
 
-    if (!user.tagAdmin && user._id !== article.userId) {
+    if (!user.tagAdmin && user._id !== article.userId.toString()) {
       throw {
         name: 'forbidden',
         description: 'Acesso não autorizado'
