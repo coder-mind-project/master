@@ -581,7 +581,7 @@ module.exports = app => {
       }
     }
 
-    if (!user.tagAdmin && user._id !== article.userId) {
+    if (!user.tagAdmin && user._id !== article.userId.toString()) {
       throw {
         name: 'forbidden',
         description: 'Acesso não autorizado'
