@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'masterDevelop',
+      name: 'master',
       script: 'index.js',
       watch: '.'
     }
