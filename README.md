@@ -1,18 +1,18 @@
 ![# Coder Mind](https://i.imgur.com/IKPFcHr.png)
 
+[![Build status](https://dev.azure.com/codermindproject/Coder%20Mind/_apis/build/status/Production/Master-production)](https://dev.azure.com/codermindproject/Coder%20Mind/_build/latest?definitionId=6)
+[![Release status](https://vsrm.dev.azure.com/codermindproject/_apis/public/Release/badge/2cbdac35-45f6-4fc4-a511-54ecd832b244/1/1)](http://master.codermind.com.br)
 [![JavaScript Style Guide](https://cdn.rawgit.com/standard/standard/master/badge.svg)](https://github.com/standard/standard)
-[![master-api-ci](https://circleci.com/gh/coder-mind-project/master.svg?style=shield)](https://circleci.com/gh/coder-mind-project/master)
-[![Build status](https://dev.azure.com/codermindproject/Coder%20Mind/_apis/build/status/Homolog/Master-homolog)](https://dev.azure.com/codermindproject/Coder%20Mind/_build/latest?definitionId=2)
 
 ## Contact information:
 
 Owner: Coder Mind
 
-E-mail: allan@codermind.com.br
+E-mail (Project owner): allan@codermind.com.br
 
-Latest release (development): https://master-develop.herokuapp.com
+Stable release: http://master.codermind.com.br
 
-Stable release (alpha): https://master-production.herokuapp.com
+Latest release: http://master-homolog.codermind.com.br
 ___
 
 ## Docs:
@@ -33,7 +33,7 @@ Run the application with:
 
 ___
 
-## Migrations (MySQL)
+## Migrations (MySQL/MariaDB)
 
 ### The migrations works with knex dependency.
 
@@ -119,9 +119,6 @@ Example:
 
     // To generate article seeds
     npm run mongo-seed articles
-
-> **Disclaimer**: Do not run seeds in production database!
-Just run in development environment, because this feature completely removes all documents from the collection selected.
 
 ### List all collections
 
