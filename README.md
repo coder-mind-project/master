@@ -137,3 +137,4 @@ Example:
 ### Run seeds for everyone collections
 
 `npm run mongo-seed latest`
+
