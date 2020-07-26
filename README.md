@@ -2,6 +2,7 @@
 
 [![JavaScript Style Guide](https://cdn.rawgit.com/standard/standard/master/badge.svg)](https://github.com/standard/standard)
 [![master-api-ci](https://circleci.com/gh/coder-mind-project/master.svg?style=shield)](https://circleci.com/gh/coder-mind-project/master)
+[![Build status](https://dev.azure.com/codermindproject/Coder%20Mind/_apis/build/status/Homolog/Master-homolog)](https://dev.azure.com/codermindproject/Coder%20Mind/_build/latest?definitionId=2)
 
 ## Contact information:
 
