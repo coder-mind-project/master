@@ -27,19 +27,22 @@ const mysql = {
     url: process.env.MYSQLPRODUCTION,
     user: process.env.MYSQLUSERPRODUCTION,
     password: process.env.MYSQLPASSPRODUCTION,
-    dbname: process.env.MYSQLDBNAMEPRODUCTION
+    dbname: process.env.MYSQLDBNAMEPRODUCTION,
+    port: process.env.MYSQLPORTPRODUCTION
   },
   develop: {
     url: process.env.MYSQLDEVELOP,
     user: process.env.MYSQLUSERDEVELOP,
     password: process.env.MYSQLPASSDEVELOP,
-    dbname: process.env.MYSQLDBNAMEDEVELOP
+    dbname: process.env.MYSQLDBNAMEDEVELOP,
+    port: process.env.MYSQLPORTDEVELOP
   },
   local: {
     url: process.env.MYSQLLOCAL,
     user: process.env.MYSQLUSERLOCAL,
     password: process.env.MYSQLPASSLOCAL,
-    dbname: process.env.MYSQLDBNAMELOCAL
+    dbname: process.env.MYSQLDBNAMELOCAL,
+    port: process.env.MYSQLPORTLOCAL
   }
 }
 
@@ -109,7 +112,33 @@ const rootUser = {
 module.exports = {
   aws,
   dbProduction: { url: mongo.production },
-  dbLocal: { url: mongo.local },
+  dbLocal: {
+    mongo: { url: mongo.local },
+    mysql: {
+      client: 'mysql',
+      connection: {
+        host: mysql.local.url,
+        user: mysql.local.user,
+        port: mysql.local.port,
+        password: mysql.local.password,
+        database: mysql.local.dbname,
+        dateStrings: true
+      },
+      pool: {
+        min: 0,
+        max: 5,
+        afterCreate: function (conn, done) {
+          // eslint-disable-next-line no-console
+          console.log(`Mysql Connection Opened at ${new Date()}`)
+          done(null, conn)
+        }
+      },
+      acquireConnectionTimeout: 30000,
+      migrations: {
+        directory: './config/database/migrations/mysql'
+      }
+    }
+  },
   dbDevelopment: {
     mongo: { url: mongo.develop },
     mysql: {
@@ -117,7 +146,7 @@ module.exports = {
       connection: {
         host: mysql.develop.url,
         user: mysql.develop.user,
-        port: 3306,
+        port: mysql.develop.port,
         password: mysql.develop.password,
         database: mysql.develop.dbname,
         dateStrings: true
