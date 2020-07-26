@@ -1,7 +1,7 @@
 ![# Coder Mind](https://i.imgur.com/IKPFcHr.png)
 
 [![Build status](https://dev.azure.com/codermindproject/Coder%20Mind/_apis/build/status/Production/Master-production)](https://dev.azure.com/codermindproject/Coder%20Mind/_build/latest?definitionId=6)
-[![Release status](https://vsrm.dev.azure.com/codermindproject/_apis/public/Release/badge/2cbdac35-45f6-4fc4-a511-54ecd832b244/1/1)](http://master.codermind.com.br)
+[![Release status](https://vsrm.dev.azure.com/codermindproject/_apis/public/Release/badge/2cbdac35-45f6-4fc4-a511-54ecd832b244/3/3)](http://master.codermind.com.br)
 [![JavaScript Style Guide](https://cdn.rawgit.com/standard/standard/master/badge.svg)](https://github.com/standard/standard)
 
 ## Contact information:
