@@ -1,6 +1,7 @@
 const jwt = require('jwt-simple')
 const { SECRET_AUTH_PACKAGE, issuer } = require('../../config/environment')
 const captcha = require('../../config/recaptcha/captcha.js')
+const { tokenDuration, tokenEmission, nowInSecs } = require('../../config/authentication/tokenrules')
 
 /**
  *  @function
@@ -82,12 +83,11 @@ module.exports = app => {
         user.password = null
 
         const now = Math.floor(Date.now() / 1000)
-        const tenDaysLater = 60 * 60 * 24 * 10
 
         const payload = {
           iss: issuer,
-          iat: now,
-          exp: now + tenDaysLater,
+          iat: tokenEmission,
+          exp: tokenDuration,
           user: {
             _id: user._id || user.id,
             name: user.name,
@@ -128,7 +128,7 @@ module.exports = app => {
       let token = { ...req.body }.token
       const { secret } = SECRET_AUTH_PACKAGE
 
-      const payload = token ? await jwt.decode(token, secret) : {}
+      const payload = token ? await jwt.decode(token, secret, true) : {}
 
       if (payload.iss !== issuer) {
         throw {
@@ -140,6 +140,13 @@ module.exports = app => {
       if (!payload.user) {
         throw {
           name: 'user',
+          description: 'Acesso não autorizado'
+        }
+      }
+
+      if (!payload.exp || !payload.iat || nowInSecs() > payload.exp) {
+        throw {
+          name: 'expired',
           description: 'Acesso não autorizado'
         }
       }
