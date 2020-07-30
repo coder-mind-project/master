@@ -10,9 +10,9 @@ Owner: Coder Mind
 
 E-mail (Project owner): allan@codermind.com.br
 
-Stable release: http://master.codermind.com.br
+Stable release: https://master.codermind.com.br
 
-Latest release: http://master-homolog.codermind.com.br
+Latest release: https://master-homolog.codermind.com.br
 ___
 
 ## Docs:
