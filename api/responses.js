@@ -180,7 +180,7 @@ module.exports = app => {
       msg: 'Ocorreu um erro desconhecido, se persistir reporte'
     }
 
-    const { name, description } = { ...stack }
+    const { name, description } = stack
 
     switch (description) {
       case 'Captcha inválido':
@@ -201,7 +201,8 @@ module.exports = app => {
     pending = name
     reformulatedError.msg = description
 
-    reformulatedError[pending] = 'pending'
+    reformulatedError[pending || 'InternalError'] = 'pending'
+
     return reformulatedError
   }
 
