@@ -13,9 +13,9 @@ const env = require('../environment')
 const { production, develop } = env.aws
 
 aws.config.update({
-  secretAccessKey: production.secretAccessKey,
-  accessKeyId: production.accessKeyId,
-  region: production.region
+  secretAccessKey: develop.secretAccessKey,
+  accessKeyId: develop.accessKeyId,
+  region: develop.region
 })
 
 const s3 = new aws.S3()
@@ -43,4 +43,4 @@ const getBucketKeyFromUrl = url => {
   }
 }
 
-module.exports = { s3, bucket: production.bucket, getBucketKeyFromUrl }
+module.exports = { s3, bucket: develop.bucket, getBucketKeyFromUrl }
