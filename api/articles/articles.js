@@ -636,7 +636,7 @@ module.exports = app => {
 
       const { article, stateTimestamp } = await validateState(id, user, state)
 
-      await Article.updateOne({ _id: id }, { state, [stateTimestamp]: state !== 'published' ? MyDate.setTimeZone('-3') : article[stateTimestamp] })
+      await Article.updateOne({ _id: id }, { state, [stateTimestamp]: !article[stateTimestamp] ? MyDate.setTimeZone('-3') : article[stateTimestamp] })
 
       return res.status(204).send()
     } catch (error) {
