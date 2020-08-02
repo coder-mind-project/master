@@ -32,10 +32,8 @@ module.exports = app => {
     const variables = [
       { key: '__username', value: user.name },
       { key: '__username', value: user.name },
-      { key: '__cpf', value: user.cpf },
-      { key: '__celphone', value: user.celphone },
+      { key: '__cellphone', value: user.cellphone },
       { key: '__email', value: user.email },
-      { key: '__password', value: decryptAuth(user.password) },
       { key: '__accessLevel', value: user.tagAdmin ? 'Administrador' : 'Autor' },
       { key: '___idUserAdmin', value: admin._id },
       {
@@ -46,10 +44,8 @@ module.exports = app => {
 
     const txtParams = {
       username: user.name,
-      cpf: user.cpf,
-      celphone: user.celphone,
+      cellphone: user.cellphone,
       email: user.email,
-      password: user.password,
       accessLevel: user.tagAdmin ? 'Administrador' : 'Autor',
       _idUserAdmin: admin._id,
       changeDate: `${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`

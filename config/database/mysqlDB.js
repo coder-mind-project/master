@@ -3,7 +3,7 @@ const config = require('../../knexfile.js')
 
 const logger = (message) => {
   // eslint-disable-next-line no-console
-  console.log(`Dastabase settings - Migrations - ${new Date()} - ${message}`)
+  console.log(`Database settings - Migrations - ${new Date()} - ${message}`)
 }
 
 /**
