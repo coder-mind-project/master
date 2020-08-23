@@ -3,24 +3,17 @@
 [![Build status](https://dev.azure.com/codermindproject/Coder%20Mind/_apis/build/status/Production/Master-production)](https://dev.azure.com/codermindproject/Coder%20Mind/_build/latest?definitionId=6)
 [![Release status](https://vsrm.dev.azure.com/codermindproject/_apis/public/Release/badge/2cbdac35-45f6-4fc4-a511-54ecd832b244/3/3)](http://master.codermind.com.br)
 [![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/coder-mind-project/master.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/coder-mind-project/master/context:javascript)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/coder-mind-project/master.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/coder-mind-project/master/alerts/)
 [![JavaScript Style Guide](https://cdn.rawgit.com/standard/standard/master/badge.svg)](https://github.com/standard/standard)
 
 ## Contact information:
 
 Owner: Coder Mind
 
-E-mail (Project owner): allan@codermind.com.br
-
-Stable release: https://master.codermind.com.br
-
-Latest release: https://master-homolog.codermind.com.br
-___
-
-## Docs:
-
-https://docs.codermind.com.br/docs/master/about.html
+E-mail: contato@codermind.com.br
 
 ___
+
 
 ## Workflow
 
