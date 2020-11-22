@@ -82,12 +82,10 @@ module.exports = app => {
 
         user.password = null
 
-        const now = Math.floor(Date.now() / 1000)
-
         const payload = {
           iss: issuer,
-          iat: tokenEmission,
-          exp: tokenDuration,
+          iat: tokenEmission(),
+          exp: tokenDuration(),
           user: {
             _id: user._id || user.id,
             name: user.name,
