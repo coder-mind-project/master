@@ -10,7 +10,7 @@ const env = require('../environment')
 /**
  * @description Change to `production` for all `develop` ocurrences to set bucket production
  */
-const { production, develop } = env.aws
+const { production } = env.aws
 
 aws.config.update({
   secretAccessKey: production.secretAccessKey,

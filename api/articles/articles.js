@@ -636,7 +636,10 @@ module.exports = app => {
 
       const { article, stateTimestamp } = await validateState(id, user, state)
 
-      await Article.updateOne({ _id: id }, { state, [stateTimestamp]: !article[stateTimestamp] ? MyDate.setTimeZone('-3') : article[stateTimestamp] })
+      await Article.updateOne(
+        { _id: id },
+        { state, [stateTimestamp]: !article[stateTimestamp] ? MyDate.setTimeZone('-3') : article[stateTimestamp] }
+      )
 
       return res.status(204).send()
     } catch (error) {
@@ -808,7 +811,7 @@ module.exports = app => {
         const imgValue = req.file.location
 
         if (article[imgKey]) {
-          const { status, key, error } = getBucketKeyFromUrl(article[imgKey])
+          const { status, key } = getBucketKeyFromUrl(article[imgKey])
           if (!status) return
 
           s3.deleteObject({ Bucket: bucket, Key: key }, (err, data) => {

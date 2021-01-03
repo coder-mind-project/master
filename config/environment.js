@@ -17,9 +17,7 @@ const aws = {
 }
 
 const mongo = {
-  production: process.env.MONGOPRODUCTION,
-  develop: process.env.MONGODEVELOP,
-  local: process.env.MONGOLOCAL
+  production: process.env.MONGOPRODUCTION
 }
 
 const mysql = {
@@ -29,20 +27,6 @@ const mysql = {
     password: process.env.MYSQLPASSPRODUCTION,
     dbname: process.env.MYSQLDBNAMEPRODUCTION,
     port: process.env.MYSQLPORTPRODUCTION
-  },
-  develop: {
-    url: process.env.MYSQLDEVELOP,
-    user: process.env.MYSQLUSERDEVELOP,
-    password: process.env.MYSQLPASSDEVELOP,
-    dbname: process.env.MYSQLDBNAMEDEVELOP,
-    port: process.env.MYSQLPORTDEVELOP
-  },
-  local: {
-    url: process.env.MYSQLLOCAL,
-    user: process.env.MYSQLUSERLOCAL,
-    password: process.env.MYSQLPASSLOCAL,
-    dbname: process.env.MYSQLDBNAMELOCAL,
-    port: process.env.MYSQLPORTLOCAL
   }
 }
 
@@ -57,9 +41,7 @@ const smtp = {
 
 const urls = {
   blog: process.env.URL_BLOG,
-  panel: process.env.URL_PANEL,
-  blogLocal: process.env.URL_BLOG_LOCAL,
-  panelLocal: process.env.URL_PANEL_LOCAL
+  panel: process.env.URL_PANEL
 }
 
 const secrets = {
@@ -111,17 +93,18 @@ const rootUser = {
  */
 module.exports = {
   aws,
-  dbProduction: { url: mongo.production },
-  dbLocal: {
-    mongo: { url: mongo.local },
+  dbProduction: {
+    mongo: {
+      url: mongo.production
+    },
     mysql: {
       client: 'mysql',
       connection: {
-        host: mysql.local.url,
-        user: mysql.local.user,
-        port: mysql.local.port,
-        password: mysql.local.password,
-        database: mysql.local.dbname,
+        host: mysql.production.url,
+        user: mysql.production.user,
+        port: mysql.production.port,
+        password: mysql.production.password,
+        database: mysql.production.dbname,
         dateStrings: true
       },
       pool: {
@@ -129,34 +112,7 @@ module.exports = {
         max: 5,
         afterCreate: function (conn, done) {
           // eslint-disable-next-line no-console
-          console.log(`Mysql Connection Opened at ${new Date()}`)
-          done(null, conn)
-        }
-      },
-      acquireConnectionTimeout: 30000,
-      migrations: {
-        directory: './config/database/migrations/mysql'
-      }
-    }
-  },
-  dbDevelopment: {
-    mongo: { url: mongo.develop },
-    mysql: {
-      client: 'mysql',
-      connection: {
-        host: mysql.develop.url,
-        user: mysql.develop.user,
-        port: mysql.develop.port,
-        password: mysql.develop.password,
-        database: mysql.develop.dbname,
-        dateStrings: true
-      },
-      pool: {
-        min: 0,
-        max: 5,
-        afterCreate: function (conn, done) {
-          // eslint-disable-next-line no-console
-          console.log(`Mysql Connection Opened at ${new Date()}`)
+          console.log(`Mysql Connection Opened at ${new Date().toLocaleString()}`)
           done(null, conn)
         }
       },
@@ -177,13 +133,11 @@ module.exports = {
   },
 
   webApp: {
-    default: urls.blog,
-    local: urls.blogLocal
+    default: urls.blog
   },
 
   panel: {
-    default: urls.panel,
-    local: urls.panelLocal
+    default: urls.panel
   },
 
   SECRET_TAG_PACKAGE: {
