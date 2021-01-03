@@ -141,7 +141,10 @@ module.exports = app => {
    */
   const validateUserCellphone = async (userToUpdate, userInDatabase) => {
     if (userToUpdate.cellphone) {
-      const documents = await User.countDocuments({ _id: { $ne: userInDatabase._id }, cellphone: userToUpdate.cellphone })
+      const documents = await User.countDocuments({
+        _id: { $ne: userInDatabase._id },
+        cellphone: userToUpdate.cellphone
+      })
       if (documents) {
         throw {
           name: 'cellphone',
@@ -306,7 +309,7 @@ module.exports = app => {
         }
       }
 
-      const token = user && user.confirmEmailToken ? JSON.parse(decryptToken(user.confirmEmailToken)) : null
+      const token = user.confirmEmailToken ? JSON.parse(decryptToken(user.confirmEmailToken)) : null
 
       // Validate the token issuer
       if (!token || token.issuer !== issuer) {
@@ -618,57 +621,6 @@ module.exports = app => {
 
   /**
    * @function
-   * @description Remove/Delete an User permanently.
-   * This middleware is not accessible for production releases, use only for development.
-   * To use, add a new route and point to this middleware.
-   *
-   * @param {Object} req - Request object provided by Express.js
-   * @param {Object} res - Response object provided by Express.js
-   *
-   * @middlewareParams {String} id - The User identifier
-   */
-  const removePermanently = async (req, res) => {
-    try {
-      const _id = req.params.id
-
-      const user = await User.findOne({ _id })
-
-      if (!user) {
-        throw {
-          name: '_id',
-          description: 'Usuário não encontrado'
-        }
-      }
-
-      const result = await deleteUser(_id)
-
-      if (result.deletedCount) {
-        const payload = {
-          status: true,
-          data: [
-            {
-              _id: user.id,
-              name: user.name,
-              cellphone: user.cellphone,
-              password: user.password,
-              deleted_at: new Date()
-            }
-          ]
-        }
-
-        // Write removed users in another database
-        writeRemovedUsers(payload, true)
-
-        return res.status(204).send()
-      }
-    } catch (error) {
-      const stack = userError(error)
-      return res.status(stack.code).send(stack)
-    }
-  }
-
-  /**
-   * @function
    * @description Restore a deleted user (Only for soft deleted users).
    * @param {Object} req - Request object provided by Express.js
    * @param {Object} res - Response object provided by Express.js
@@ -819,7 +771,7 @@ module.exports = app => {
         const currentProfilePhoto = user.profilePhoto || null
 
         if (currentProfilePhoto) {
-          const { status, key, error } = getBucketKeyFromUrl(currentProfilePhoto)
+          const { status, key } = getBucketKeyFromUrl(currentProfilePhoto)
           if (!status) return
 
           s3.deleteObject({ Bucket: bucket, Key: key }, (err, data) => {
