@@ -2,7 +2,7 @@ const { rootUser } = require('../environment')
 
 function logger(message) {
   // eslint-disable-next-line no-console
-  console.log(`Bootstrap - ${new Date()}: ${message}`)
+  console.log(`Bootstrap - ${new Date().toLocaleString()}: ${message}`)
 }
 
 async function bootstrap(app) {
