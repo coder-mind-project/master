@@ -41,9 +41,7 @@ const smtp = {
 
 const urls = {
   blog: process.env.URL_BLOG,
-  panel: process.env.URL_PANEL,
-  blogLocal: process.env.URL_BLOG_LOCAL,
-  panelLocal: process.env.URL_PANEL_LOCAL
+  panel: process.env.URL_PANEL
 }
 
 const secrets = {
@@ -102,11 +100,11 @@ module.exports = {
     mysql: {
       client: 'mysql',
       connection: {
-        host: mysql.local.url,
-        user: mysql.local.user,
-        port: mysql.local.port,
-        password: mysql.local.password,
-        database: mysql.local.dbname,
+        host: mysql.production.url,
+        user: mysql.production.user,
+        port: mysql.production.port,
+        password: mysql.production.password,
+        database: mysql.production.dbname,
         dateStrings: true
       },
       pool: {
@@ -135,13 +133,11 @@ module.exports = {
   },
 
   webApp: {
-    default: urls.blog,
-    local: urls.blogLocal
+    default: urls.blog
   },
 
   panel: {
-    default: urls.panel,
-    local: urls.panelLocal
+    default: urls.panel
   },
 
   SECRET_TAG_PACKAGE: {
