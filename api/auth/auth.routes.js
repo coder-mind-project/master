@@ -1,5 +1,3 @@
-const { isAdmin } = require('../../config/authentication/accessLevel')
-
 module.exports = app => {
   /**
    * @name Authentication
