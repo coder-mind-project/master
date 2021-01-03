@@ -27,21 +27,21 @@ module.exports = app => {
     const author = answer.userName
     const article = {
       title: comment.article.title,
-      customUrl: `${webApp.default}/artigos/${comment.article.customURL}`
+      customUri: `${webApp.default}/artigos/${comment.article.customUri}`
     }
 
     const variables = [
       { key: '__user', value: reader.name },
       { key: '__author', value: author },
       { key: '__article', value: article.title },
-      { key: '__url', value: article.customUrl }
+      { key: '__url', value: article.customUri }
     ]
 
     const textParams = {
       user: reader.name,
       author,
       article: article.title,
-      url: article.customUrl
+      url: article.customUri
     }
 
     const textMsg = answerSentTxtMsg
