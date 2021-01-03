@@ -418,5 +418,5 @@ module.exports = app => {
     })
   }
 
-  return { getLatest, get, getCount, synchronizeLikes }
+  return { getLatest, get, getCount, synchronizeLikes, getCountRealTime }
 }
