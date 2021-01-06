@@ -1,9 +1,8 @@
 const mongoose = require('mongoose')
 
-const { dbLocal, dbProduction, dbDevelopment } = require('../../config/environment')
-const config = dbDevelopment
+const { dbProduction } = require('../../config/environment')
 
-const url = config.mongo.url
+const url = dbProduction.mongo.url
 
 /**
  * @function

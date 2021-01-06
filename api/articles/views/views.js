@@ -405,5 +405,5 @@ module.exports = app => {
     })
   }
 
-  return { get, getLatest, getCount, synchronizeViews }
+  return { get, getLatest, getCount, synchronizeViews, getCountRealTime }
 }

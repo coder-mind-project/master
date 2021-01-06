@@ -1,5 +1,5 @@
-module.exports = (payload) => {
-    return ` Seja bem vindo a Coder Mind
+module.exports = payload => {
+  return ` Seja bem vindo a Coder Mind
     \n\n
     Um de nossos administradores registrou uma nova conta neste endereço de e-mail, e o que isto significa?
     \n
@@ -23,7 +23,7 @@ module.exports = (payload) => {
     \n
     ${payload.notAcceptAccountLink}
     \n\n
-    © Coder Mind - 2020
+    © Coder Mind - 2021
     \n
     www.codermind.com.br
     \n\n\n\n
