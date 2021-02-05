@@ -6,6 +6,8 @@
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/coder-mind-project/master.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/coder-mind-project/master/alerts/)
 [![JavaScript Style Guide](https://cdn.rawgit.com/standard/standard/master/badge.svg)](https://github.com/standard/standard)
 
+> This project is no longer maintained and will no longer be updated.
+
 ## Contact information:
 
 Owner: Coder Mind
